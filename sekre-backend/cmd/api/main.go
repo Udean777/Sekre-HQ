@@ -22,6 +22,9 @@ import (
 	taskDelivery "github.com/username/sekre-backend/internal/task/delivery"
 	taskRepository "github.com/username/sekre-backend/internal/task/repository"
 	taskUsecase "github.com/username/sekre-backend/internal/task/usecase"
+	eventDelivery "github.com/username/sekre-backend/internal/event/delivery"
+	eventRepository "github.com/username/sekre-backend/internal/event/repository"
+	eventUsecase "github.com/username/sekre-backend/internal/event/usecase"
 	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/token"
 )
@@ -57,11 +60,13 @@ func main() {
 	authRepo := authRepository.NewAuthRepository(db)
 	divisionRepo := orgRepository.NewDivisionRepository(db)
 	taskRepo := taskRepository.NewTaskRepository(db)
+	eventRepo := eventRepository.NewEventRepository(db)
 
 	// Initialize usecases
 	authUsecaseInst := authUsecase.NewAuthUsecase(authRepo, tokenManager)
 	divisionUsecaseInst := orgUsecase.NewDivisionUsecase(divisionRepo)
 	taskUsecaseInst := taskUsecase.NewTaskUsecase(taskRepo)
+	eventUsecaseInst := eventUsecase.NewEventUsecase(*eventRepo)
 
 	// Initialize router
 	router := mux.NewRouter()
@@ -86,6 +91,9 @@ func main() {
 	
 	taskHandler := taskDelivery.NewTaskHandler(taskUsecaseInst)
 	taskHandler.RegisterRoutes(protected)
+	
+	eventHandler := eventDelivery.NewEventHandler(eventUsecaseInst)
+	eventHandler.RegisterRoutes(protected)
 
 	// Health check endpoint
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

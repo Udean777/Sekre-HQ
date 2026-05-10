@@ -30,4 +30,8 @@ var (
 
 	// Task errors
 	ErrTaskNotFound = errors.New("task not found")
+
+	// Event errors
+	ErrEventNotFound    = errors.New("event not found")
+	ErrInvalidTimeRange = errors.New("end time must be after start time")
 )
