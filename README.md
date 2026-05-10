@@ -37,11 +37,10 @@ sekre-project/
 
 ### Prerequisites
 
+- PostgreSQL 16+ (local installation)
+- Redis (via Docker)
 - Go 1.22+
 - Node.js 20+ (or Bun)
-- Docker & Docker Compose
-- PostgreSQL 16+
-- Redis 7+
 
 ### Local Development
 
@@ -50,8 +49,8 @@ sekre-project/
 git clone <repo-url>
 cd sekre-project
 
-# Start infrastructure (PostgreSQL, Redis)
-docker-compose up -d
+# Start infrastructure (Redis only, PostgreSQL uses local installation)
+./scripts/setup-dev.sh
 
 # Backend
 cd sekre-backend
