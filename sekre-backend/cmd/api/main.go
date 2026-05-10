@@ -11,11 +11,14 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
-	"github.com/username/sekre-backend/internal/auth/delivery"
-	"github.com/username/sekre-backend/internal/auth/repository"
-	"github.com/username/sekre-backend/internal/auth/usecase"
+	authDelivery "github.com/username/sekre-backend/internal/auth/delivery"
+	authRepository "github.com/username/sekre-backend/internal/auth/repository"
+	authUsecase "github.com/username/sekre-backend/internal/auth/usecase"
 	"github.com/username/sekre-backend/internal/config"
 	"github.com/username/sekre-backend/internal/middleware"
+	orgDelivery "github.com/username/sekre-backend/internal/organization/delivery"
+	orgRepository "github.com/username/sekre-backend/internal/organization/repository"
+	orgUsecase "github.com/username/sekre-backend/internal/organization/usecase"
 	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/token"
 )
@@ -48,10 +51,12 @@ func main() {
 	)
 
 	// Initialize repositories
-	authRepo := repository.NewAuthRepository(db)
+	authRepo := authRepository.NewAuthRepository(db)
+	divisionRepo := orgRepository.NewDivisionRepository(db)
 
 	// Initialize usecases
-	authUsecase := usecase.NewAuthUsecase(authRepo, tokenManager)
+	authUsecaseInst := authUsecase.NewAuthUsecase(authRepo, tokenManager)
+	divisionUsecaseInst := orgUsecase.NewDivisionUsecase(divisionRepo)
 
 	// Initialize router
 	router := mux.NewRouter()
@@ -62,10 +67,17 @@ func main() {
 
 	// API v1 routes
 	apiV1 := router.PathPrefix("/api/v1").Subrouter()
+	
+	// Apply auth middleware to protected routes
+	protected := apiV1.PathPrefix("").Subrouter()
+	protected.Use(middleware.AuthMiddleware(tokenManager))
 
 	// Register handlers
-	authHandler := delivery.NewAuthHandler(authUsecase, tokenManager)
+	authHandler := authDelivery.NewAuthHandler(authUsecaseInst, tokenManager)
 	authHandler.RegisterRoutes(apiV1)
+	
+	divisionHandler := orgDelivery.NewDivisionHandler(divisionUsecaseInst)
+	divisionHandler.RegisterRoutes(protected)
 
 	// Health check endpoint
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

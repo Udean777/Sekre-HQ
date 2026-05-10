@@ -17,4 +17,14 @@ var (
 	// Validation errors
 	ErrInvalidInput = errors.New("invalid input")
 	ErrRequired     = errors.New("required field missing")
+
+	// Division errors
+	ErrDivisionLimitReached = errors.New("division limit reached for FREE plan")
+	ErrMemberLimitReached   = errors.New("member limit reached for division")
+	ErrDivisionNotFound     = errors.New("division not found")
+	ErrAlreadyMember        = errors.New("user already member of division")
+	ErrNotDivisionMember    = errors.New("user not member of division")
+	ErrMustHaveHead         = errors.New("division must have at least one HEAD")
+	ErrCannotRemoveHead     = errors.New("cannot remove HEAD without assigning new HEAD first")
+	ErrDivisionHasData      = errors.New("cannot delete division with active tasks/events/transactions")
 )
