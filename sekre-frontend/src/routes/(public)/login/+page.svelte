@@ -1,8 +1,21 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { authService } from '$lib/features/auth/services';
 	import { authStore } from '$lib/features/auth/stores';
 	import type { LoginRequest } from '$lib/features/auth/types';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card';
+	import { Alert, AlertDescription } from '$lib/components/ui/alert';
+	import { Loader2 } from 'lucide-svelte';
 
 	let formData = $state<LoginRequest>({
 		email: '',
@@ -11,6 +24,13 @@
 
 	let isLoading = $state(false);
 	let error = $state('');
+
+	onMount(() => {
+		const token = authService.getAccessToken();
+		if (token) {
+			goto('/dashboard', { replaceState: true });
+		}
+	});
 
 	async function handleSubmit() {
 		error = '';
@@ -39,74 +59,80 @@
 	<title>Login - Sekre</title>
 </svelte:head>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-	<div class="max-w-md w-full space-y-8">
-		<div>
-			<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-				Sign in to your account
-			</h2>
-			<p class="mt-2 text-center text-sm text-gray-600">
-				Don't have an account?
-				<a href="/register" class="font-medium text-blue-600 hover:text-blue-500">
-					Create one now
-				</a>
-			</p>
+<div
+	class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8"
+>
+	<div class="w-full max-w-md">
+		<div class="text-center mb-8">
+			<h1 class="text-4xl font-bold text-gray-900 mb-2">Sekre</h1>
+			<p class="text-gray-600">Organization Management System</p>
 		</div>
 
-		<form
-			class="mt-8 space-y-6"
-			onsubmit={(e) => {
-				e.preventDefault();
-				handleSubmit();
-			}}
-		>
-			{#if error}
-				<div class="rounded-md bg-red-50 p-4">
-					<p class="text-sm text-red-800">{error}</p>
-				</div>
-			{/if}
-
-			<div class="rounded-md shadow-sm space-y-4">
-				<div>
-					<label for="email" class="block text-sm font-medium text-gray-700"> Email Address </label>
-					<input
-						id="email"
-						name="email"
-						type="email"
-						required
-						bind:value={formData.email}
-						class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-						placeholder="john@example.com"
-					/>
-				</div>
-
-				<div>
-					<label for="password" class="block text-sm font-medium text-gray-700"> Password </label>
-					<input
-						id="password"
-						name="password"
-						type="password"
-						required
-						bind:value={formData.password}
-						class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-						placeholder="••••••••"
-					/>
-				</div>
-			</div>
-
-			<div>
-				<button
-					type="submit"
-					disabled={isLoading}
-					class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+		<Card>
+			<CardHeader>
+				<CardTitle class="text-2xl">Sign in to your account</CardTitle>
+				<CardDescription>
+					Don't have an account?
+					<a href="/register" class="font-medium text-primary hover:underline"> Create one now </a>
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<form
+					class="space-y-4"
+					onsubmit={(e) => {
+						e.preventDefault();
+						handleSubmit();
+					}}
 				>
-					{#if isLoading}
-						<span>Signing in...</span>
-					{:else}
-						<span>Sign In</span>
+					{#if error}
+						<Alert variant="destructive">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
 					{/if}
-				</button>
-			</div>
-		</form>
+
+					<div class="space-y-2">
+						<Label for="email">Email Address</Label>
+						<Input
+							id="email"
+							name="email"
+							type="email"
+							required
+							bind:value={formData.email}
+							placeholder="john@example.com"
+							disabled={isLoading}
+						/>
+					</div>
+
+					<div class="space-y-2">
+						<Label for="password">Password</Label>
+						<Input
+							id="password"
+							name="password"
+							type="password"
+							required
+							bind:value={formData.password}
+							placeholder="••••••••"
+							disabled={isLoading}
+						/>
+					</div>
+
+					<Button type="submit" class="w-full" disabled={isLoading}>
+						{#if isLoading}
+							<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+							Signing in...
+						{:else}
+							Sign In
+						{/if}
+					</Button>
+				</form>
+			</CardContent>
+		</Card>
+
+		<p class="mt-4 text-center text-sm text-gray-600">
+			By signing in, you agree to our
+			<a href="#" class="font-medium text-primary hover:underline">Terms of Service</a>
+			and
+			<a href="#" class="font-medium text-primary hover:underline">Privacy Policy</a>
+		</p>
 	</div>
 </div>

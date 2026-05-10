@@ -6,9 +6,9 @@
 	onMount(() => {
 		const token = authService.getAccessToken();
 		if (token) {
-			goto('/dashboard');
+			goto('/dashboard', { replaceState: true });
 		} else {
-			goto('/register');
+			goto('/register', { replaceState: true });
 		}
 	});
 </script>

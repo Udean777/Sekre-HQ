@@ -1,8 +1,15 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { authService } from '$lib/features/auth/services';
 	import { authStore } from '$lib/features/auth/stores';
 	import type { RegisterRequest } from '$lib/features/auth/types';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Alert, AlertDescription } from '$lib/components/ui/alert';
+	import { Loader2 } from 'lucide-svelte';
 
 	let formData = $state<RegisterRequest>({
 		organization_name: '',
@@ -16,10 +23,16 @@
 	let isLoading = $state(false);
 	let error = $state('');
 
+	onMount(() => {
+		const token = authService.getAccessToken();
+		if (token) {
+			goto('/dashboard', { replaceState: true });
+		}
+	});
+
 	async function handleSubmit() {
 		error = '';
 
-		// Validation
 		if (
 			!formData.organization_name ||
 			!formData.subdomain ||
@@ -60,136 +73,140 @@
 	<title>Register - Sekre</title>
 </svelte:head>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-	<div class="max-w-md w-full space-y-8">
-		<div>
-			<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-				Create your organization
-			</h2>
-			<p class="mt-2 text-center text-sm text-gray-600">
-				Already have an account?
-				<a href="/login" class="font-medium text-blue-600 hover:text-blue-500"> Sign in </a>
-			</p>
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+	<div class="w-full max-w-md">
+		<div class="text-center mb-8">
+			<h1 class="text-4xl font-bold text-gray-900 mb-2">Sekre</h1>
+			<p class="text-gray-600">Organization Management System</p>
 		</div>
 
-		<form
-			class="mt-8 space-y-6"
-			onsubmit={(e) => {
-				e.preventDefault();
-				handleSubmit();
-			}}
-		>
-			{#if error}
-				<div class="rounded-md bg-red-50 p-4">
-					<p class="text-sm text-red-800">{error}</p>
-				</div>
-			{/if}
+		<Card>
+			<CardHeader>
+				<CardTitle class="text-2xl">Create your organization</CardTitle>
+				<CardDescription>
+					Already have an account?
+					<a href="/login" class="font-medium text-primary hover:underline">
+						Sign in
+					</a>
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<form
+					class="space-y-4"
+					onsubmit={(e) => {
+						e.preventDefault();
+						handleSubmit();
+					}}
+				>
+					{#if error}
+						<Alert variant="destructive">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					{/if}
 
-			<div class="rounded-md shadow-sm space-y-4">
-				<div>
-					<label for="organization_name" class="block text-sm font-medium text-gray-700">
-						Organization Name
-					</label>
-					<input
-						id="organization_name"
-						name="organization_name"
-						type="text"
-						required
-						bind:value={formData.organization_name}
-						class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-						placeholder="e.g., HIMTI UNPAB"
-					/>
-				</div>
-
-				<div>
-					<label for="subdomain" class="block text-sm font-medium text-gray-700"> Subdomain </label>
-					<div class="mt-1 flex rounded-md shadow-sm">
-						<input
-							id="subdomain"
-							name="subdomain"
+					<div class="space-y-2">
+						<Label for="organization_name">Organization Name</Label>
+						<Input
+							id="organization_name"
+							name="organization_name"
 							type="text"
 							required
-							bind:value={formData.subdomain}
-							class="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-							placeholder="himti"
+							bind:value={formData.organization_name}
+							placeholder="e.g., HIMTI UNPAB"
+							disabled={isLoading}
 						/>
-						<span
-							class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm"
-						>
-							.sekre.app
-						</span>
 					</div>
-					<p class="mt-1 text-xs text-gray-500">Only lowercase letters, numbers, and hyphens</p>
-				</div>
 
-				<div>
-					<label for="full_name" class="block text-sm font-medium text-gray-700"> Full Name </label>
-					<input
-						id="full_name"
-						name="full_name"
-						type="text"
-						required
-						bind:value={formData.full_name}
-						class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-						placeholder="John Doe"
-					/>
-				</div>
+					<div class="space-y-2">
+						<Label for="subdomain">Subdomain</Label>
+						<div class="flex">
+							<Input
+								id="subdomain"
+								name="subdomain"
+								type="text"
+								required
+								bind:value={formData.subdomain}
+								placeholder="himti"
+								class="rounded-r-none"
+								disabled={isLoading}
+							/>
+							<span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-input bg-muted text-muted-foreground text-sm">
+								.sekre.app
+							</span>
+						</div>
+						<p class="text-xs text-muted-foreground">Only lowercase letters, numbers, and hyphens</p>
+					</div>
 
-				<div>
-					<label for="email" class="block text-sm font-medium text-gray-700"> Email Address </label>
-					<input
-						id="email"
-						name="email"
-						type="email"
-						required
-						bind:value={formData.email}
-						class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-						placeholder="john@example.com"
-					/>
-				</div>
+					<div class="space-y-2">
+						<Label for="full_name">Full Name</Label>
+						<Input
+							id="full_name"
+							name="full_name"
+							type="text"
+							required
+							bind:value={formData.full_name}
+							placeholder="John Doe"
+							disabled={isLoading}
+						/>
+					</div>
 
-				<div>
-					<label for="password" class="block text-sm font-medium text-gray-700"> Password </label>
-					<input
-						id="password"
-						name="password"
-						type="password"
-						required
-						bind:value={formData.password}
-						class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-						placeholder="••••••••"
-					/>
-				</div>
+					<div class="space-y-2">
+						<Label for="email">Email Address</Label>
+						<Input
+							id="email"
+							name="email"
+							type="email"
+							required
+							bind:value={formData.email}
+							placeholder="john@example.com"
+							disabled={isLoading}
+						/>
+					</div>
 
-				<div>
-					<label for="confirm_password" class="block text-sm font-medium text-gray-700">
-						Confirm Password
-					</label>
-					<input
-						id="confirm_password"
-						name="confirm_password"
-						type="password"
-						required
-						bind:value={confirmPassword}
-						class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-						placeholder="••••••••"
-					/>
-				</div>
-			</div>
+					<div class="space-y-2">
+						<Label for="password">Password</Label>
+						<Input
+							id="password"
+							name="password"
+							type="password"
+							required
+							bind:value={formData.password}
+							placeholder="••••••••"
+							disabled={isLoading}
+						/>
+						<p class="text-xs text-muted-foreground">Minimum 8 characters</p>
+					</div>
 
-			<div>
-				<button
-					type="submit"
-					disabled={isLoading}
-					class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-				>
-					{#if isLoading}
-						<span>Creating account...</span>
-					{:else}
-						<span>Create Account</span>
-					{/if}
-				</button>
-			</div>
-		</form>
+					<div class="space-y-2">
+						<Label for="confirm_password">Confirm Password</Label>
+						<Input
+							id="confirm_password"
+							name="confirm_password"
+							type="password"
+							required
+							bind:value={confirmPassword}
+							placeholder="••••••••"
+							disabled={isLoading}
+						/>
+					</div>
+
+					<Button type="submit" class="w-full" disabled={isLoading}>
+						{#if isLoading}
+							<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+							Creating account...
+						{:else}
+							Create Account
+						{/if}
+					</Button>
+				</form>
+			</CardContent>
+		</Card>
+
+		<p class="mt-4 text-center text-sm text-gray-600">
+			By creating an account, you agree to our
+			<a href="#" class="font-medium text-primary hover:underline">Terms of Service</a>
+			and
+			<a href="#" class="font-medium text-primary hover:underline">Privacy Policy</a>
+		</p>
 	</div>
 </div>

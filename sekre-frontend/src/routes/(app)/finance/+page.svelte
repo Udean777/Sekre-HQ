@@ -8,6 +8,29 @@
 		FinanceSummary
 	} from '$lib/features/finance/types';
 	import type { Division } from '$lib/features/divisions/types';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import {
+		Dialog,
+		DialogContent,
+		DialogDescription,
+		DialogFooter,
+		DialogHeader,
+		DialogTitle
+	} from '$lib/components/ui/dialog';
+	import {
+		Table,
+		TableBody,
+		TableCell,
+		TableHead,
+		TableHeader,
+		TableRow
+	} from '$lib/components/ui/table';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Alert, AlertDescription } from '$lib/components/ui/alert';
+	import { Plus, TrendingUp, TrendingDown, DollarSign, Loader2, Trash2 } from 'lucide-svelte';
 
 	let transactions = $state<Transaction[]>([]);
 	let summary = $state<FinanceSummary>({ total_income: 0, total_expense: 0, balance: 0 });
@@ -17,7 +40,6 @@
 	let isLoading = $state(true);
 	let error = $state('');
 
-	// Modal state
 	let showModal = $state(false);
 	let formData = $state<CreateTransactionRequest>({
 		division_id: '',
@@ -45,7 +67,6 @@
 			divisions = divisionsData;
 			transactions = transactionsData;
 
-			// Load summary
 			if (selectedDivision) {
 				summary = await financeService.getSummary(selectedDivision);
 			} else {
@@ -129,8 +150,8 @@
 		}).format(amount);
 	}
 
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString('id-ID', {
+	function formatDate(date: string): string {
+		return new Date(date).toLocaleDateString('id-ID', {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric'
@@ -143,155 +164,195 @@
 </svelte:head>
 
 <div class="space-y-6">
-	<!-- Header -->
 	<div class="flex items-center justify-between">
-		<h1 class="text-2xl font-bold text-gray-900">Finance</h1>
-		<button
-			onclick={openModal}
-			class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-		>
-			+ Add Transaction
-		</button>
+		<div>
+			<h1 class="text-3xl font-bold tracking-tight">Finance</h1>
+			<p class="text-muted-foreground">Manage your organization's financial transactions</p>
+		</div>
+		<Button onclick={openModal}>
+			<Plus class="mr-2 h-4 w-4" />
+			New Transaction
+		</Button>
 	</div>
 
 	{#if error}
-		<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-			{error}
-		</div>
+		<Alert variant="destructive">
+			<AlertDescription>{error}</AlertDescription>
+		</Alert>
 	{/if}
 
 	<!-- Summary Cards -->
-	<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-		<div class="bg-white rounded-lg shadow p-6">
-			<div class="text-sm text-gray-600 mb-1">Total Income</div>
-			<div class="text-2xl font-bold text-green-600">{formatCurrency(summary.total_income)}</div>
-		</div>
-		<div class="bg-white rounded-lg shadow p-6">
-			<div class="text-sm text-gray-600 mb-1">Total Expense</div>
-			<div class="text-2xl font-bold text-red-600">{formatCurrency(summary.total_expense)}</div>
-		</div>
-		<div class="bg-white rounded-lg shadow p-6">
-			<div class="text-sm text-gray-600 mb-1">Balance</div>
-			<div class="text-2xl font-bold text-blue-600">{formatCurrency(summary.balance)}</div>
-		</div>
+	<div class="grid gap-4 md:grid-cols-3">
+		<Card>
+			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+				<CardTitle class="text-sm font-medium">Total Income</CardTitle>
+				<TrendingUp class="h-4 w-4 text-green-600" />
+			</CardHeader>
+			<CardContent>
+				<div class="text-2xl font-bold text-green-600">{formatCurrency(summary.total_income)}</div>
+			</CardContent>
+		</Card>
+
+		<Card>
+			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+				<CardTitle class="text-sm font-medium">Total Expense</CardTitle>
+				<TrendingDown class="h-4 w-4 text-red-600" />
+			</CardHeader>
+			<CardContent>
+				<div class="text-2xl font-bold text-red-600">{formatCurrency(summary.total_expense)}</div>
+			</CardContent>
+		</Card>
+
+		<Card>
+			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+				<CardTitle class="text-sm font-medium">Balance</CardTitle>
+				<DollarSign class="h-4 w-4 text-blue-600" />
+			</CardHeader>
+			<CardContent>
+				<div class="text-2xl font-bold text-blue-600">{formatCurrency(summary.balance)}</div>
+			</CardContent>
+		</Card>
 	</div>
 
 	<!-- Filters -->
-	<div class="bg-white rounded-lg shadow p-4">
-		<div class="flex gap-4">
-			<div class="flex-1">
-				<label for="filter-division" class="block text-sm font-medium text-gray-700 mb-1"
-					>Division</label
-				>
-				<select
-					id="filter-division"
-					bind:value={selectedDivision}
-					onchange={handleFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-				>
-					<option value="">All Divisions</option>
-					{#each divisions as division}
-						<option value={division.id}>{division.name}</option>
-					{/each}
-				</select>
-			</div>
-			<div class="flex-1">
-				<label for="filter-type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-				<select
-					id="filter-type"
-					bind:value={selectedType}
-					onchange={handleFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-				>
-					<option value="">All Types</option>
-					<option value="INCOME">Income</option>
-					<option value="EXPENSE">Expense</option>
-				</select>
-			</div>
-		</div>
-	</div>
+	<Card>
+		<CardHeader>
+			<CardTitle>Filters</CardTitle>
+		</CardHeader>
+		<CardContent>
+			<div class="grid gap-4 md:grid-cols-2">
+				<div class="space-y-2">
+					<Label for="filter-division">Division</Label>
+					<select
+						id="filter-division"
+						bind:value={selectedDivision}
+						onchange={handleFilter}
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					>
+						<option value="">All Divisions</option>
+						{#each divisions as division}
+							<option value={division.id}>{division.name}</option>
+						{/each}
+					</select>
+				</div>
 
-	<!-- Transactions List -->
-	<div class="bg-white rounded-lg shadow">
-		<div class="px-6 py-4 border-b border-gray-200">
-			<h2 class="text-lg font-semibold text-gray-900">Transactions</h2>
-		</div>
-		<div class="divide-y divide-gray-200">
+				<div class="space-y-2">
+					<Label for="filter-type">Type</Label>
+					<select
+						id="filter-type"
+						bind:value={selectedType}
+						onchange={handleFilter}
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					>
+						<option value="">All Types</option>
+						<option value="INCOME">Income</option>
+						<option value="EXPENSE">Expense</option>
+					</select>
+				</div>
+			</div>
+		</CardContent>
+	</Card>
+
+	<!-- Transactions Table -->
+	<Card>
+		<CardHeader>
+			<CardTitle>Transactions</CardTitle>
+			<CardDescription>A list of all financial transactions</CardDescription>
+		</CardHeader>
+		<CardContent>
 			{#if isLoading}
-				<div class="px-6 py-8 text-center text-gray-500">Loading...</div>
+				<div class="flex items-center justify-center py-8">
+					<Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+				</div>
 			{:else if transactions.length === 0}
-				<div class="px-6 py-8 text-center text-gray-500">No transactions found</div>
+				<div class="text-center py-8 text-muted-foreground">
+					No transactions found
+				</div>
 			{:else}
-				{#each transactions as transaction}
-					<div class="px-6 py-4 hover:bg-gray-50">
-						<div class="flex items-center justify-between">
-							<div class="flex-1">
-								<div class="flex items-center gap-3">
-									<span
-										class="px-2 py-1 text-xs font-medium rounded {transaction.type === 'INCOME'
-											? 'bg-green-100 text-green-800'
-											: 'bg-red-100 text-red-800'}"
-									>
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead>Date</TableHead>
+							<TableHead>Description</TableHead>
+							<TableHead>Type</TableHead>
+							<TableHead>Status</TableHead>
+							<TableHead class="text-right">Amount</TableHead>
+							<TableHead class="text-right">Actions</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{#each transactions as transaction}
+							<TableRow>
+								<TableCell class="font-medium">{formatDate(transaction.created_at)}</TableCell>
+								<TableCell>{transaction.description}</TableCell>
+								<TableCell>
+									<Badge variant={transaction.type === 'INCOME' ? 'default' : 'secondary'}>
 										{transaction.type}
+									</Badge>
+								</TableCell>
+								<TableCell>
+									<Badge
+										variant={transaction.status === 'APPROVED'
+											? 'default'
+											: transaction.status === 'PENDING'
+												? 'secondary'
+												: 'destructive'}
+									>
+										{transaction.status}
+									</Badge>
+								</TableCell>
+								<TableCell class="text-right font-medium">
+									<span class={transaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}>
+										{transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(transaction.amount)}
 									</span>
-									<span class="font-medium text-gray-900">{transaction.description}</span>
-								</div>
-								<div class="mt-1 text-sm text-gray-500">
-									{formatDate(transaction.created_at)}
-								</div>
-							</div>
-							<div class="flex items-center gap-4">
-								<div
-									class="text-lg font-semibold {transaction.type === 'INCOME'
-										? 'text-green-600'
-										: 'text-red-600'}"
-								>
-									{transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(transaction.amount)}
-								</div>
-								<button
-									onclick={() => handleDelete(transaction.id)}
-									class="text-red-600 hover:text-red-800"
-								>
-									Delete
-								</button>
-							</div>
-						</div>
-					</div>
-				{/each}
+								</TableCell>
+								<TableCell class="text-right">
+									<Button
+										variant="ghost"
+										size="sm"
+										onclick={() => handleDelete(transaction.id)}
+									>
+										<Trash2 class="h-4 w-4" />
+									</Button>
+								</TableCell>
+							</TableRow>
+						{/each}
+					</TableBody>
+				</Table>
 			{/if}
-		</div>
-	</div>
+		</CardContent>
+	</Card>
 </div>
 
-<!-- Create Transaction Modal -->
-{#if showModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-			<div class="px-6 py-4 border-b border-gray-200">
-				<h3 class="text-lg font-semibold text-gray-900">Add Transaction</h3>
-			</div>
-			<form
-				onsubmit={(e) => {
-					e.preventDefault();
-					handleSubmit();
-				}}
-				class="p-6 space-y-4"
-			>
+<!-- Create Transaction Dialog -->
+<Dialog bind:open={showModal}>
+	<DialogContent>
+		<DialogHeader>
+			<DialogTitle>Create Transaction</DialogTitle>
+			<DialogDescription>Add a new financial transaction</DialogDescription>
+		</DialogHeader>
+
+		<form
+			onsubmit={(e) => {
+				e.preventDefault();
+				handleSubmit();
+			}}
+		>
+			<div class="space-y-4 py-4">
 				{#if formError}
-					<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
-						{formError}
-					</div>
+					<Alert variant="destructive">
+						<AlertDescription>{formError}</AlertDescription>
+					</Alert>
 				{/if}
 
-				<div>
-					<label for="form-division" class="block text-sm font-medium text-gray-700 mb-1"
-						>Division</label
-					>
+				<div class="space-y-2">
+					<Label for="form-division">Division</Label>
 					<select
 						id="form-division"
 						bind:value={formData.division_id}
 						required
-						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+						disabled={isSubmitting}
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
 						<option value="">Select division</option>
 						{#each divisions as division}
@@ -300,67 +361,60 @@
 					</select>
 				</div>
 
-				<div>
-					<label for="form-type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+				<div class="space-y-2">
+					<Label for="form-type">Type</Label>
 					<select
 						id="form-type"
 						bind:value={formData.type}
 						required
-						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+						disabled={isSubmitting}
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
 						<option value="INCOME">Income</option>
 						<option value="EXPENSE">Expense</option>
 					</select>
 				</div>
 
-				<div>
-					<label for="form-amount" class="block text-sm font-medium text-gray-700 mb-1"
-						>Amount (IDR)</label
-					>
-					<input
+				<div class="space-y-2">
+					<Label for="form-amount">Amount (IDR)</Label>
+					<Input
 						id="form-amount"
 						type="number"
 						bind:value={formData.amount}
 						required
 						min="1"
 						step="1000"
-						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 						placeholder="1000000"
+						disabled={isSubmitting}
 					/>
 				</div>
 
-				<div>
-					<label for="form-description" class="block text-sm font-medium text-gray-700 mb-1"
-						>Description</label
-					>
-					<textarea
+				<div class="space-y-2">
+					<Label for="form-description">Description</Label>
+					<Input
 						id="form-description"
+						type="text"
 						bind:value={formData.description}
 						required
-						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 						placeholder="Enter transaction description"
-					></textarea>
+						disabled={isSubmitting}
+					/>
 				</div>
+			</div>
 
-				<div class="flex gap-3 pt-4">
-					<button
-						type="button"
-						onclick={closeModal}
-						disabled={isSubmitting}
-						class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-					>
-						Cancel
-					</button>
-					<button
-						type="submit"
-						disabled={isSubmitting}
-						class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-					>
-						{isSubmitting ? 'Creating...' : 'Create'}
-					</button>
-				</div>
-			</form>
-		</div>
-	</div>
-{/if}
+			<DialogFooter>
+				<Button type="button" variant="outline" onclick={closeModal} disabled={isSubmitting}>
+					Cancel
+				</Button>
+				<Button type="submit" disabled={isSubmitting}>
+					{#if isSubmitting}
+						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+						Creating...
+					{:else}
+						Create
+					{/if}
+				</Button>
+			</DialogFooter>
+		</form>
+	</DialogContent>
+</Dialog>

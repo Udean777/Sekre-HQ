@@ -16,15 +16,12 @@
 		authStore.init().then(() => {
 			isLoading = false;
 		});
+	});
 
-		// Redirect to login if not authenticated
-		const unsubscribe = isAuthenticated.subscribe((value) => {
-			if (!isLoading && !value) {
-				goto('/login');
-			}
-		});
-
-		return unsubscribe;
+	$effect(() => {
+		if (!isLoading && !$isAuthenticated) {
+			goto('/login', { replaceState: true });
+		}
 	});
 
 	function handleLogout() {
