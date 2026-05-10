@@ -27,4 +27,7 @@ var (
 	ErrMustHaveHead         = errors.New("division must have at least one HEAD")
 	ErrCannotRemoveHead     = errors.New("cannot remove HEAD without assigning new HEAD first")
 	ErrDivisionHasData      = errors.New("cannot delete division with active tasks/events/transactions")
+
+	// Task errors
+	ErrTaskNotFound = errors.New("task not found")
 )

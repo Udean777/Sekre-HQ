@@ -19,6 +19,9 @@ import (
 	orgDelivery "github.com/username/sekre-backend/internal/organization/delivery"
 	orgRepository "github.com/username/sekre-backend/internal/organization/repository"
 	orgUsecase "github.com/username/sekre-backend/internal/organization/usecase"
+	taskDelivery "github.com/username/sekre-backend/internal/task/delivery"
+	taskRepository "github.com/username/sekre-backend/internal/task/repository"
+	taskUsecase "github.com/username/sekre-backend/internal/task/usecase"
 	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/token"
 )
@@ -53,10 +56,12 @@ func main() {
 	// Initialize repositories
 	authRepo := authRepository.NewAuthRepository(db)
 	divisionRepo := orgRepository.NewDivisionRepository(db)
+	taskRepo := taskRepository.NewTaskRepository(db)
 
 	// Initialize usecases
 	authUsecaseInst := authUsecase.NewAuthUsecase(authRepo, tokenManager)
 	divisionUsecaseInst := orgUsecase.NewDivisionUsecase(divisionRepo)
+	taskUsecaseInst := taskUsecase.NewTaskUsecase(taskRepo)
 
 	// Initialize router
 	router := mux.NewRouter()
@@ -78,6 +83,9 @@ func main() {
 	
 	divisionHandler := orgDelivery.NewDivisionHandler(divisionUsecaseInst)
 	divisionHandler.RegisterRoutes(protected)
+	
+	taskHandler := taskDelivery.NewTaskHandler(taskUsecaseInst)
+	taskHandler.RegisterRoutes(protected)
 
 	// Health check endpoint
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
