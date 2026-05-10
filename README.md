@@ -52,10 +52,13 @@ cd sekre-project
 # Start infrastructure (Redis only, PostgreSQL uses local installation)
 ./scripts/setup-dev.sh
 
-# Backend
+# Backend (with live reload - recommended)
 cd sekre-backend
 go mod download
-go run cmd/api/main.go
+make dev              # or: air
+
+# Backend (without live reload)
+make run              # or: go run cmd/api/main.go
 
 # Frontend
 cd sekre-frontend
