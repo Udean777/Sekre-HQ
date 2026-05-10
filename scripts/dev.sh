@@ -1,6 +1,15 @@
 #!/bin/bash
 # Quick commands for Sekre development
 
+# Load env if exists
+if [ -f sekre-backend/.env ]; then
+    source sekre-backend/.env
+fi
+
+# Defaults
+SERVER_PORT=${SERVER_PORT:-8080}
+API_URL="http://localhost:${SERVER_PORT}"
+
 case "$1" in
   "start")
     echo "Starting backend with live reload..."
@@ -10,7 +19,7 @@ case "$1" in
     sleep 3
     echo "Backend started! PID: $(cat /tmp/backend.pid)"
     echo "Health check:"
-    curl -s http://localhost:8080/health | jq .
+    curl -s ${API_URL}/health | jq .
     ;;
     
   "stop")
@@ -35,9 +44,9 @@ case "$1" in
     
   "status")
     echo "=== Backend Status ==="
-    if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+    if curl -s ${API_URL}/health > /dev/null 2>&1; then
       echo "✅ Backend is running"
-      curl -s http://localhost:8080/health | jq .
+      curl -s ${API_URL}/health | jq .
     else
       echo "❌ Backend is not running"
     fi
@@ -49,14 +58,14 @@ case "$1" in
   "test")
     echo "=== Testing Backend ==="
     echo "1. Health check:"
-    curl -s http://localhost:8080/health | jq .
+    curl -s ${API_URL}/health | jq .
     echo ""
     echo "2. CORS preflight:"
-    curl -s -X OPTIONS http://localhost:8080/api/v1/auth/login \
+    curl -s -X OPTIONS ${API_URL}/api/v1/auth/login \
       -H "Origin: http://localhost:5173" -I 2>&1 | grep -E "HTTP|Access-Control"
     echo ""
     echo "3. Login test:"
-    curl -s -X POST http://localhost:8080/api/v1/auth/login \
+    curl -s -X POST ${API_URL}/api/v1/auth/login \
       -H "Content-Type: application/json" \
       -d '{"email":"test@example.com","password":"password123"}' | jq '.success, .message'
     ;;
