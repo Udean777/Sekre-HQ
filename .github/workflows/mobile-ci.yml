@@ -1,0 +1,103 @@
+name: Mobile CI
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'sekre-mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'sekre-mobile/**'
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: Run ktlint
+        working-directory: sekre-mobile
+        run: ./gradlew ktlintCheck
+
+      - name: Run tests
+        working-directory: sekre-mobile
+        run: ./gradlew test
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: Build Android APK
+        working-directory: sekre-mobile
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: sekre-mobile/composeApp/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: lint-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: Build iOS Framework
+        working-directory: sekre-mobile
+        run: ./gradlew linkDebugFrameworkIosArm64
+
+      - name: Build iOS App
+        working-directory: sekre-mobile/iosApp
+        run: |
+          xcodebuild -scheme iosApp \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -archivePath build/iosApp.xcarchive \
+            archive

@@ -1,0 +1,89 @@
+# Organization ERP Lite & Finance Hub (SaaS)
+
+Platform SaaS multi-tenant untuk organisasi, komunitas, dan himpunan mahasiswa dalam mengelola operasional harian dengan dukungan AI.
+
+## 🏗️ Repository Structure (Monorepo)
+
+```
+sekre-project/
+├── sekre-backend/          # Golang API (Modular Monolith)
+├── sekre-frontend/         # SvelteKit Web Dashboard
+├── sekre-mobile/           # Compose Multiplatform (Android/iOS)
+├── docs/                   # Documentation
+│   ├── api/                # API specifications (OpenAPI)
+│   ├── architecture/       # Architecture decision records
+│   └── deployment/         # Deployment guides
+├── scripts/                # Utility scripts
+└── .github/workflows/      # CI/CD pipelines
+```
+
+## 🚀 Tech Stack
+
+- **Backend:** Golang + PostgreSQL + Redis
+- **Web:** SvelteKit (SSR)
+- **Mobile:** Compose Multiplatform
+- **AI:** LLM Integration (OpenAI/Gemini/Local)
+
+## 📋 Development Phases
+
+- [x] Phase 0: Foundation Setup
+- [ ] Phase 1: MVP Development
+- [ ] Phase 2: Beta Testing
+- [ ] Phase 3: Monetization Features
+- [ ] Phase 4: Mobile App
+- [ ] Phase 5: Scale & Pro Features
+
+## 🛠️ Quick Start
+
+### Prerequisites
+
+- Go 1.22+
+- Node.js 20+ (or Bun)
+- Docker & Docker Compose
+- PostgreSQL 16+
+- Redis 7+
+
+### Local Development
+
+```bash
+# Clone repository
+git clone <repo-url>
+cd sekre-project
+
+# Start infrastructure (PostgreSQL, Redis)
+docker-compose up -d
+
+# Backend
+cd sekre-backend
+go mod download
+go run cmd/api/main.go
+
+# Frontend
+cd sekre-frontend
+bun install
+bun run dev
+
+# Mobile
+cd sekre-mobile
+./gradlew :composeApp:run
+```
+
+## 📚 Documentation
+
+- [Developer Quick Start Guide](./docs/DEVELOPER-GUIDE.md) - **Start here!**
+- [Phase 0 Summary](./docs/PHASE-0-SUMMARY.md) - Foundation setup completion
+- [Project Summary](./Project-Summary.md) - Complete project overview
+- [API Documentation](./docs/api/openapi.yaml) - OpenAPI specification
+- [Architecture Decisions](./docs/architecture/) - ADRs
+- [Deployment Guide](./docs/deployment/) - Production deployment
+
+## 🤝 Contributing
+
+1. Create feature branch from `dev`
+2. Make changes with conventional commits
+3. Submit PR to `dev` branch
+4. Wait for CI checks to pass
+
+## 📄 License
+
+Proprietary - All rights reserved
