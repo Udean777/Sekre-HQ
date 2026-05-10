@@ -15,6 +15,12 @@ import (
 	authRepository "github.com/username/sekre-backend/internal/auth/repository"
 	authUsecase "github.com/username/sekre-backend/internal/auth/usecase"
 	"github.com/username/sekre-backend/internal/config"
+	eventDelivery "github.com/username/sekre-backend/internal/event/delivery"
+	eventRepository "github.com/username/sekre-backend/internal/event/repository"
+	eventUsecase "github.com/username/sekre-backend/internal/event/usecase"
+	financeDelivery "github.com/username/sekre-backend/internal/finance/delivery"
+	financeRepository "github.com/username/sekre-backend/internal/finance/repository"
+	financeUsecase "github.com/username/sekre-backend/internal/finance/usecase"
 	"github.com/username/sekre-backend/internal/middleware"
 	orgDelivery "github.com/username/sekre-backend/internal/organization/delivery"
 	orgRepository "github.com/username/sekre-backend/internal/organization/repository"
@@ -22,9 +28,6 @@ import (
 	taskDelivery "github.com/username/sekre-backend/internal/task/delivery"
 	taskRepository "github.com/username/sekre-backend/internal/task/repository"
 	taskUsecase "github.com/username/sekre-backend/internal/task/usecase"
-	eventDelivery "github.com/username/sekre-backend/internal/event/delivery"
-	eventRepository "github.com/username/sekre-backend/internal/event/repository"
-	eventUsecase "github.com/username/sekre-backend/internal/event/usecase"
 	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/token"
 )
@@ -61,12 +64,14 @@ func main() {
 	divisionRepo := orgRepository.NewDivisionRepository(db)
 	taskRepo := taskRepository.NewTaskRepository(db)
 	eventRepo := eventRepository.NewEventRepository(db)
+	financeRepo := financeRepository.NewFinanceRepository(db)
 
 	// Initialize usecases
 	authUsecaseInst := authUsecase.NewAuthUsecase(authRepo, tokenManager)
 	divisionUsecaseInst := orgUsecase.NewDivisionUsecase(divisionRepo)
 	taskUsecaseInst := taskUsecase.NewTaskUsecase(taskRepo)
 	eventUsecaseInst := eventUsecase.NewEventUsecase(*eventRepo)
+	financeUsecaseInst := financeUsecase.NewFinanceUsecase(*financeRepo)
 
 	// Initialize router
 	router := mux.NewRouter()
@@ -77,7 +82,7 @@ func main() {
 
 	// API v1 routes
 	apiV1 := router.PathPrefix("/api/v1").Subrouter()
-	
+
 	// Apply auth middleware to protected routes
 	protected := apiV1.PathPrefix("").Subrouter()
 	protected.Use(middleware.AuthMiddleware(tokenManager))
@@ -85,15 +90,18 @@ func main() {
 	// Register handlers
 	authHandler := authDelivery.NewAuthHandler(authUsecaseInst, tokenManager)
 	authHandler.RegisterRoutes(apiV1)
-	
+
 	divisionHandler := orgDelivery.NewDivisionHandler(divisionUsecaseInst)
 	divisionHandler.RegisterRoutes(protected)
-	
+
 	taskHandler := taskDelivery.NewTaskHandler(taskUsecaseInst)
 	taskHandler.RegisterRoutes(protected)
-	
+
 	eventHandler := eventDelivery.NewEventHandler(eventUsecaseInst)
 	eventHandler.RegisterRoutes(protected)
+
+	financeHandler := financeDelivery.NewFinanceHandler(financeUsecaseInst)
+	financeHandler.RegisterRoutes(protected)
 
 	// Health check endpoint
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

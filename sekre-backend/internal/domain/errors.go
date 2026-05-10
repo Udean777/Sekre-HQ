@@ -34,4 +34,8 @@ var (
 	// Event errors
 	ErrEventNotFound    = errors.New("event not found")
 	ErrInvalidTimeRange = errors.New("end time must be after start time")
+
+	// Finance errors
+	ErrTransactionNotFound = errors.New("transaction not found")
+	ErrInvalidAmount       = errors.New("amount must be greater than 0")
 )
