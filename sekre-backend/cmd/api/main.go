@@ -73,6 +73,15 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	}).Methods("GET")
 
+	// Handle OPTIONS for all routes (CORS preflight)
+	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}).Methods("OPTIONS")
+
 	// Start server
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
 	server := &http.Server{
