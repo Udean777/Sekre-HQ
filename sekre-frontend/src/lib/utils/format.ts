@@ -1,11 +1,6 @@
-/**
- * Formatting Utilities
- * Helper functions for formatting data
- */
+// Formatting utilities for display
 
-/**
- * Format currency in IDR
- */
+// Format currency as Indonesian Rupiah
 export function formatCurrency(amount: number): string {
 	return new Intl.NumberFormat('id-ID', {
 		style: 'currency',
@@ -15,130 +10,118 @@ export function formatCurrency(amount: number): string {
 	}).format(amount);
 }
 
-/**
- * Format number with thousand separators
- */
-export function formatNumber(num: number): string {
-	return new Intl.NumberFormat('id-ID').format(num);
+// Format date to readable format
+export function formatDate(dateString: string): string {
+	const date = new Date(dateString);
+	return new Intl.DateTimeFormat('id-ID', {
+		year: 'numeric',
+		month: 'long',
+		day: 'numeric'
+	}).format(date);
 }
 
-/**
- * Format date
- */
-export function formatDate(date: string | Date, format: 'short' | 'long' | 'full' = 'short'): string {
-	const d = typeof date === 'string' ? new Date(date) : date;
-	
-	const optionsMap: Record<'short' | 'long' | 'full', Intl.DateTimeFormatOptions> = {
-		short: { year: 'numeric', month: 'short', day: 'numeric' },
-		long: { year: 'numeric', month: 'long', day: 'numeric' },
-		full: { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-	};
-
-	return new Intl.DateTimeFormat('id-ID', optionsMap[format]).format(d);
-}
-
-/**
- * Format date and time
- */
-export function formatDateTime(date: string | Date): string {
-	const d = typeof date === 'string' ? new Date(date) : date;
-	
+// Format date to short format
+export function formatDateShort(dateString: string): string {
+	const date = new Date(dateString);
 	return new Intl.DateTimeFormat('id-ID', {
 		year: 'numeric',
 		month: 'short',
+		day: 'numeric'
+	}).format(date);
+}
+
+// Format datetime to readable format
+export function formatDateTime(dateString: string): string {
+	const date = new Date(dateString);
+	return new Intl.DateTimeFormat('id-ID', {
+		year: 'numeric',
+		month: 'long',
 		day: 'numeric',
 		hour: '2-digit',
 		minute: '2-digit'
-	}).format(d);
+	}).format(date);
 }
 
-/**
- * Format relative time (e.g., "2 hours ago")
- */
-export function formatRelativeTime(date: string | Date): string {
-	const d = typeof date === 'string' ? new Date(date) : date;
+// Format time only
+export function formatTime(dateString: string): string {
+	const date = new Date(dateString);
+	return new Intl.DateTimeFormat('id-ID', {
+		hour: '2-digit',
+		minute: '2-digit'
+	}).format(date);
+}
+
+// Format relative time (e.g., "2 days ago")
+export function formatRelativeTime(dateString: string): string {
+	const date = new Date(dateString);
 	const now = new Date();
-	const diffInSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
+	const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-	if (diffInSeconds < 60) return 'baru saja';
-	if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} menit yang lalu`;
-	if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} jam yang lalu`;
-	if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} hari yang lalu`;
-	if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)} minggu yang lalu`;
-	if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)} bulan yang lalu`;
-	return `${Math.floor(diffInSeconds / 31536000)} tahun yang lalu`;
+	if (diffInSeconds < 60) {
+		return 'just now';
+	}
+
+	const diffInMinutes = Math.floor(diffInSeconds / 60);
+	if (diffInMinutes < 60) {
+		return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+	}
+
+	const diffInHours = Math.floor(diffInMinutes / 60);
+	if (diffInHours < 24) {
+		return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+	}
+
+	const diffInDays = Math.floor(diffInHours / 24);
+	if (diffInDays < 30) {
+		return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+	}
+
+	const diffInMonths = Math.floor(diffInDays / 30);
+	if (diffInMonths < 12) {
+		return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+	}
+
+	const diffInYears = Math.floor(diffInMonths / 12);
+	return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
 }
 
-/**
- * Truncate text with ellipsis
- */
-export function truncate(text: string, length: number): string {
-	if (text.length <= length) return text;
-	return text.slice(0, length) + '...';
+// Check if date is overdue
+export function isOverdue(dateString: string): boolean {
+	const date = new Date(dateString);
+	const now = new Date();
+	return date < now;
 }
 
-/**
- * Capitalize first letter
- */
+// Format date for input[type="datetime-local"]
+export function formatDateTimeLocal(dateString: string): string {
+	const date = new Date(dateString);
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	const hours = String(date.getHours()).padStart(2, '0');
+	const minutes = String(date.getMinutes()).padStart(2, '0');
+	return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+// Parse datetime-local input to ISO string
+export function parseDateTimeLocal(dateTimeLocal: string): string {
+	return new Date(dateTimeLocal).toISOString();
+}
+
+// Truncate text with ellipsis
+export function truncate(text: string, maxLength: number): string {
+	if (text.length <= maxLength) {
+		return text;
+	}
+	return text.slice(0, maxLength) + '...';
+}
+
+// Capitalize first letter
 export function capitalize(text: string): string {
 	return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 }
 
-/**
- * Convert to title case
- */
-export function titleCase(text: string): string {
-	return text
-		.toLowerCase()
-		.split(' ')
-		.map(word => word.charAt(0).toUpperCase() + word.slice(1))
-		.join(' ');
-}
-
-/**
- * Get initials from name
- */
-export function getInitials(name: string): string {
-	return name
-		.split(' ')
-		.map(word => word.charAt(0))
-		.join('')
-		.toUpperCase()
-		.slice(0, 2);
-}
-
-/**
- * Format file size
- */
-export function formatFileSize(bytes: number): string {
-	if (bytes === 0) return '0 Bytes';
-	
-	const k = 1024;
-	const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-	const i = Math.floor(Math.log(bytes) / Math.log(k));
-	
-	return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-}
-
-/**
- * Generate random color from string (for avatars)
- */
-export function stringToColor(str: string): string {
-	let hash = 0;
-	for (let i = 0; i < str.length; i++) {
-		hash = str.charCodeAt(i) + ((hash << 5) - hash);
-	}
-	
-	const colors = [
-		'#3B82F6', // blue
-		'#8B5CF6', // purple
-		'#EC4899', // pink
-		'#F59E0B', // amber
-		'#10B981', // green
-		'#06B6D4', // cyan
-		'#EF4444', // red
-		'#6366F1'  // indigo
-	];
-	
-	return colors[Math.abs(hash) % colors.length];
+// Format subscription plan badge
+export function formatPlanBadge(plan: 'FREE' | 'LITE' | 'PRO'): string {
+	return plan.charAt(0) + plan.slice(1).toLowerCase();
 }

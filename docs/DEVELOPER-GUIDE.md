@@ -129,16 +129,41 @@ docker volume rm sekre-project_postgres_data sekre-project_redis_data
 
 ## Testing
 
+### Seed Demo Data
+
+Before testing, seed the database with demo data:
+
+```bash
+# Seed demo data
+./scripts/seed.sh
+```
+
+This will create:
+- 2 demo organizations (HIMTI UNPAB, BEM Universitas)
+- 4 demo users
+- Sample divisions, tasks, events, and transactions
+
 ### Test Accounts
+
+**HIMTI UNPAB (FREE Plan)**
 ```
 Email: sajudin@himti.org
 Password: password123
-Organization: HIMTI UNPAB (himti)
 Role: OWNER
 
+Email: zulhamdani@himti.org
+Password: password123
+Role: ADMIN
+
+Email: gilang@himti.org
+Password: password123
+Role: MEMBER
+```
+
+**BEM Universitas (LITE Plan)**
+```
 Email: admin@bem.org
 Password: password123
-Organization: BEM Universitas (bem)
 Role: OWNER
 ```
 
@@ -160,8 +185,7 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "sajudin@himti.org",
-    "password": "password123",
-    "subdomain": "himti"
+    "password": "password123"
   }'
 
 # Get organization (with JWT token)

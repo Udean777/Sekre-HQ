@@ -52,6 +52,9 @@ cd sekre-project
 # Start infrastructure (Redis only, PostgreSQL uses local installation)
 ./scripts/setup-dev.sh
 
+# Seed demo data (optional but recommended)
+./scripts/seed.sh
+
 # Backend (with live reload - recommended)
 cd sekre-backend
 go mod download
@@ -69,6 +72,12 @@ bun run dev
 cd sekre-mobile
 ./gradlew :composeApp:run
 ```
+
+### Demo Login
+
+After seeding, you can login with:
+- **Email:** sajudin@himti.org
+- **Password:** password123
 
 ## 📚 Documentation
 
