@@ -46,6 +46,10 @@ const (
 	// CodeInternal indicates an unexpected failure that is not the caller's
 	// fault (database down, serializer bug, etc.).
 	CodeInternal ErrorCode = "INTERNAL"
+
+	// CodeTimeout indicates the request exceeded its deadline. This typically
+	// occurs when a handler or repository operation takes too long.
+	CodeTimeout ErrorCode = "TIMEOUT"
 )
 
 // DomainError is the single error type used across domain, usecase, and

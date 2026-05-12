@@ -19,6 +19,7 @@ var errorCodeToHTTP = map[domainerrors.ErrorCode]int{
 	domainerrors.CodeConflict:     http.StatusConflict,
 	domainerrors.CodePrecondition: http.StatusPreconditionFailed,
 	domainerrors.CodeInternal:     http.StatusInternalServerError,
+	domainerrors.CodeTimeout:      http.StatusRequestTimeout, // 408
 }
 
 // HandleError is the canonical entry point for turning an error returned by

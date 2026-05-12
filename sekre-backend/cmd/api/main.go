@@ -109,6 +109,7 @@ func main() {
 	// Apply global middleware. RequestID runs first so every downstream
 	// middleware and handler can read the correlation ID from context.
 	router.Use(middleware.RequestID)
+	router.Use(middleware.Timeout(30 * time.Second)) // 30-second timeout for all requests
 	router.Use(middleware.CORS)
 	router.Use(middleware.Logging)
 

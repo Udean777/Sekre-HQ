@@ -115,3 +115,9 @@ func Precondition(message string) *DomainError {
 func Internal(message string, cause error) *DomainError {
 	return Wrap(CodeInternal, message, cause)
 }
+
+// Timeout reports that the request exceeded its deadline. This typically
+// occurs when a handler or repository operation takes too long.
+func Timeout(message string) *DomainError {
+	return New(CodeTimeout, message)
+}
