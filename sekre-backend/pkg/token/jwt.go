@@ -6,12 +6,13 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/username/sekre-backend/internal/domain/types"
 )
 
 type Claims struct {
-	UserID         uuid.UUID `json:"user_id"`
-	OrganizationID uuid.UUID `json:"organization_id"`
-	Role           string    `json:"role"`
+	UserID         uuid.UUID  `json:"user_id"`
+	OrganizationID uuid.UUID  `json:"organization_id"`
+	Role           types.Role `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -35,7 +36,11 @@ func NewManager(secret string, accessTokenTTL, refreshTokenTTL int) *Manager {
 }
 
 // GenerateTokenPair generates both access and refresh tokens
-func (m *Manager) GenerateTokenPair(userID, organizationID uuid.UUID, role string) (*TokenPair, error) {
+func (m *Manager) GenerateTokenPair(userID, organizationID uuid.UUID, role types.Role) (*TokenPair, error) {
+	if err := role.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid role for token: %w", err)
+	}
+
 	accessToken, err := m.generateToken(userID, organizationID, role, m.accessTokenTTL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
@@ -52,7 +57,7 @@ func (m *Manager) GenerateTokenPair(userID, organizationID uuid.UUID, role strin
 	}, nil
 }
 
-func (m *Manager) generateToken(userID, organizationID uuid.UUID, role string, ttl time.Duration) (string, error) {
+func (m *Manager) generateToken(userID, organizationID uuid.UUID, role types.Role, ttl time.Duration) (string, error) {
 	now := time.Now()
 	claims := Claims{
 		UserID:         userID,
@@ -83,6 +88,9 @@ func (m *Manager) ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		if err := claims.Role.Validate(); err != nil {
+			return nil, fmt.Errorf("token carries invalid role: %w", err)
+		}
 		return claims, nil
 	}
 

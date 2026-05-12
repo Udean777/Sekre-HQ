@@ -4,8 +4,10 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/username/sekre-backend/internal/domain"
+	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/response"
 	"github.com/username/sekre-backend/pkg/token"
 )
@@ -64,7 +66,7 @@ func CORS(next http.Handler) http.Handler {
 		if origin == "" {
 			origin = "*"
 		}
-		
+
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept")
@@ -81,10 +83,38 @@ func CORS(next http.Handler) http.Handler {
 	})
 }
 
-// Logging middleware
+// Logging middleware with beautiful colored output
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Simple logging - can be enhanced with structured logging
-		next.ServeHTTP(w, r)
+		start := time.Now()
+
+		// Create a response writer wrapper to capture status code
+		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+
+		// Process request
+		next.ServeHTTP(wrapped, r)
+
+		// Calculate duration
+		duration := time.Since(start)
+
+		// Get client IP
+		ip := r.RemoteAddr
+		if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+			ip = forwarded
+		}
+
+		// Log the request
+		logger.HTTPRequest(r.Method, r.URL.Path, wrapped.statusCode, duration, ip)
 	})
+}
+
+// responseWriter wraps http.ResponseWriter to capture status code
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
 }

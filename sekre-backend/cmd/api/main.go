@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,47 +9,54 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
-	authDelivery "github.com/username/sekre-backend/internal/auth/delivery"
-	authRepository "github.com/username/sekre-backend/internal/auth/repository"
-	authUsecase "github.com/username/sekre-backend/internal/auth/usecase"
+	authApp "github.com/username/sekre-backend/internal/application/auth"
+	eventApp "github.com/username/sekre-backend/internal/application/event"
+	financeApp "github.com/username/sekre-backend/internal/application/finance"
+	orgApp "github.com/username/sekre-backend/internal/application/organization"
+	taskApp "github.com/username/sekre-backend/internal/application/task"
 	"github.com/username/sekre-backend/internal/config"
-	eventDelivery "github.com/username/sekre-backend/internal/event/delivery"
-	eventRepository "github.com/username/sekre-backend/internal/event/repository"
-	eventUsecase "github.com/username/sekre-backend/internal/event/usecase"
-	financeDelivery "github.com/username/sekre-backend/internal/finance/delivery"
-	financeRepository "github.com/username/sekre-backend/internal/finance/repository"
-	financeUsecase "github.com/username/sekre-backend/internal/finance/usecase"
-	"github.com/username/sekre-backend/internal/middleware"
-	orgDelivery "github.com/username/sekre-backend/internal/organization/delivery"
-	orgRepository "github.com/username/sekre-backend/internal/organization/repository"
-	orgUsecase "github.com/username/sekre-backend/internal/organization/usecase"
-	taskDelivery "github.com/username/sekre-backend/internal/task/delivery"
-	taskRepository "github.com/username/sekre-backend/internal/task/repository"
-	taskUsecase "github.com/username/sekre-backend/internal/task/usecase"
+	"github.com/username/sekre-backend/internal/delivery/http/handler"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
+	"github.com/username/sekre-backend/internal/infrastructure/auth"
+	gormRepo "github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/repository"
+	sharedRepo "github.com/username/sekre-backend/internal/repository"
+	"github.com/username/sekre-backend/pkg/database"
 	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/token"
 )
 
 func main() {
-	// Initialize logger
+	// Initialize logger with beautiful output
 	logger.Init()
-	logger.Info.Println("Starting Sekre Backend API...")
+	logger.Info("🚀 Starting Sekre Backend API...")
 
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
-		logger.Error.Fatalf("Failed to load config: %v", err)
+		logger.Fatalf("Failed to load config: %v", err)
 	}
+	logger.Info("✓ Configuration loaded successfully")
 
-	// Connect to database
-	db, err := connectDB(cfg.Database)
+	// Connect to database with GORM
+	logger.Info("Connecting to database...")
+	db, err := database.NewGormDB(database.Config{
+		Host:     cfg.Database.Host,
+		Port:     cfg.Database.Port,
+		User:     cfg.Database.User,
+		Password: cfg.Database.Password,
+		DBName:   cfg.Database.DBName,
+		SSLMode:  cfg.Database.SSLMode,
+	})
 	if err != nil {
-		logger.Error.Fatalf("Failed to connect to database: %v", err)
+		logger.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer database.Close(db)
 
-	logger.Info.Println("Database connected successfully")
+	logger.Logger.Info().
+		Str("host", cfg.Database.Host).
+		Str("port", cfg.Database.Port).
+		Str("dbname", cfg.Database.DBName).
+		Msg("✓ Database connected successfully")
 
 	// Initialize token manager
 	tokenManager := token.NewManager(
@@ -59,26 +65,43 @@ func main() {
 		cfg.JWT.RefreshTokenTTL,
 	)
 
-	// Initialize repositories
-	authRepo := authRepository.NewAuthRepository(db)
-	divisionRepo := orgRepository.NewDivisionRepository(db)
-	userRepo := orgRepository.NewUserRepository(db)
-	memberRepo := orgRepository.NewMemberRepository(db)
-	organizationRepo := orgRepository.NewOrganizationRepository(db)
-	taskRepo := taskRepository.NewTaskRepository(db)
-	eventRepo := eventRepository.NewEventRepository(db)
-	financeRepo := financeRepository.NewFinanceRepository(db)
+	// Initialize shared infrastructure
+	txRunner := sharedRepo.NewTxRunner(db)
+
+	// Auth services (single-responsibility wrappers used by usecases).
+	passwordHasher := auth.NewBcryptHasher(0)
+	tokenGenerator := auth.NewJWTTokenGenerator(tokenManager)
+	registrationValidator := auth.NewRegistrationValidator()
+
+	// Initialize repositories (all go through the gorm repo package now).
+	userRepo := gormRepo.NewUserRepository(db)
+	orgRepo := gormRepo.NewOrganizationRepository(db)
+	userOrgRepo := gormRepo.NewUserOrganizationRepository(db)
+	userProfileRepo := gormRepo.NewUserProfileRepository(db)
+	memberRepo := gormRepo.NewMemberRepository(db)
+	divisionRepo := gormRepo.NewDivisionRepository(db)
+	taskRepo := gormRepo.NewTaskRepository(db)
+	eventRepo := gormRepo.NewEventRepository(db)
+	financeRepo := gormRepo.NewTransactionRepository(db)
 
 	// Initialize usecases
-	authUsecaseInst := authUsecase.NewAuthUsecase(authRepo, tokenManager)
-	divisionUsecaseInst := orgUsecase.NewDivisionUsecase(divisionRepo)
-	userUsecaseInst := orgUsecase.NewUserUsecase(userRepo)
-	memberUsecaseInst := orgUsecase.NewMemberUsecase(memberRepo)
-	memberCreationUsecaseInst := orgUsecase.NewMemberCreationUsecase(memberRepo, divisionRepo)
-	organizationUsecaseInst := orgUsecase.NewOrganizationUsecase(organizationRepo)
-	taskUsecaseInst := taskUsecase.NewTaskUsecase(taskRepo)
-	eventUsecaseInst := eventUsecase.NewEventUsecase(*eventRepo)
-	financeUsecaseInst := financeUsecase.NewFinanceUsecase(*financeRepo)
+	authUsecaseInst := authApp.NewAuthUsecase(
+		userRepo,
+		orgRepo,
+		userOrgRepo,
+		txRunner,
+		passwordHasher,
+		tokenGenerator,
+		registrationValidator,
+	)
+	divisionUsecaseInst := orgApp.NewDivisionUsecase(divisionRepo, taskRepo, eventRepo, financeRepo)
+	userUsecaseInst := orgApp.NewUserUsecase(userProfileRepo, passwordHasher)
+	memberUsecaseInst := orgApp.NewMemberUsecase(memberRepo)
+	memberCreationUsecaseInst := orgApp.NewMemberCreationUsecase(memberRepo, divisionRepo, txRunner, passwordHasher)
+	organizationUsecaseInst := orgApp.NewOrganizationUsecase(orgRepo)
+	taskUsecaseInst := taskApp.NewTaskUsecase(taskRepo)
+	eventUsecaseInst := eventApp.NewEventUsecase(eventRepo)
+	financeUsecaseInst := financeApp.NewFinanceUsecase(financeRepo)
 
 	// Initialize router
 	router := mux.NewRouter()
@@ -95,36 +118,36 @@ func main() {
 	protected.Use(middleware.AuthMiddleware(tokenManager))
 
 	// Register handlers
-	authHandler := authDelivery.NewAuthHandler(authUsecaseInst, tokenManager)
+	authHandler := handler.NewAuthHandler(authUsecaseInst, tokenManager)
 	authHandler.RegisterRoutes(apiV1)
 
 	// Public template download (no auth required)
-	memberCreationHandler := orgDelivery.NewMemberCreationHandler(memberCreationUsecaseInst)
+	memberCreationHandler := handler.NewMemberCreationHandler(memberCreationUsecaseInst)
 	apiV1.HandleFunc("/members/template", memberCreationHandler.DownloadTemplate).Methods("GET")
 
-	divisionHandler := orgDelivery.NewDivisionHandler(divisionUsecaseInst)
+	divisionHandler := handler.NewDivisionHandler(divisionUsecaseInst)
 	divisionHandler.RegisterRoutes(protected)
 
-	userHandler := orgDelivery.NewUserHandler(userUsecaseInst)
+	userHandler := handler.NewUserHandler(userUsecaseInst)
 	userHandler.RegisterRoutes(protected)
 
-	memberHandler := orgDelivery.NewMemberHandler(memberUsecaseInst)
+	memberHandler := handler.NewMemberHandler(memberUsecaseInst)
 	memberHandler.RegisterRoutes(protected)
 
-	organizationHandler := orgDelivery.NewOrganizationHandler(organizationUsecaseInst)
+	organizationHandler := handler.NewOrganizationHandler(organizationUsecaseInst)
 	organizationHandler.RegisterRoutes(protected)
 
 	// Protected member creation routes
 	protected.HandleFunc("/members/create", memberCreationHandler.CreateMember).Methods("POST")
 	protected.HandleFunc("/members/bulk-import", memberCreationHandler.BulkImport).Methods("POST")
 
-	taskHandler := taskDelivery.NewTaskHandler(taskUsecaseInst)
+	taskHandler := handler.NewTaskHandler(taskUsecaseInst)
 	taskHandler.RegisterRoutes(protected)
 
-	eventHandler := eventDelivery.NewEventHandler(eventUsecaseInst)
+	eventHandler := handler.NewEventHandler(eventUsecaseInst)
 	eventHandler.RegisterRoutes(protected)
 
-	financeHandler := financeDelivery.NewFinanceHandler(financeUsecaseInst)
+	financeHandler := handler.NewFinanceHandler(financeUsecaseInst)
 	financeHandler.RegisterRoutes(protected)
 
 	// Health check endpoint
@@ -154,9 +177,13 @@ func main() {
 
 	// Graceful shutdown
 	go func() {
-		logger.Info.Printf("Server starting on %s", addr)
+		logger.Logger.Info().
+			Str("port", cfg.Server.Port).
+			Str("address", addr).
+			Msg("🌐 Server starting...")
+
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error.Fatalf("Server failed to start: %v", err)
+			logger.Fatalf("Server failed to start: %v", err)
 		}
 	}()
 
@@ -165,24 +192,5 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Info.Println("Server shutting down...")
-}
-
-func connectDB(cfg config.DatabaseConfig) (*sql.DB, error) {
-	db, err := sql.Open("postgres", cfg.ConnectionString())
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
-	}
-
-	// Test connection
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	// Set connection pool settings
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
-	return db, nil
+	logger.Warn("⚠️  Received shutdown signal, gracefully shutting down...")
 }
