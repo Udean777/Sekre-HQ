@@ -1,14 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/organization"
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
-	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
@@ -27,9 +24,9 @@ func (h *MemberHandler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *MemberHandler) List(w http.ResponseWriter, r *http.Request) {
-	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
-	if !ok {
-		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
+	orgID, err := GetOrgIDFromContext(r)
+	if err != nil {
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -43,46 +40,25 @@ func (h *MemberHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MemberHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
-	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
-	if !ok {
-		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
-		return
-	}
-
-	vars := mux.Vars(r)
-	userID, err := uuid.Parse(vars["userId"])
-	if err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("userId", "invalid UUID"))
-		return
-	}
-
 	var req struct {
 		Role string `json:"role"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
-		return
-	}
 
-	if err := h.usecase.UpdateMemberRole(r.Context(), orgID, userID, req.Role); err != nil {
+	HandleUpdateRequest(w, r, "userId", &req, func(orgID, userID uuid.UUID) error {
+		return h.usecase.UpdateMemberRole(r.Context(), orgID, userID, req.Role)
+	}, "member role updated")
+}
+
+func (h *MemberHandler) Remove(w http.ResponseWriter, r *http.Request) {
+	orgID, err := GetOrgIDFromContext(r)
+	if err != nil {
 		response.HandleError(w, r, err)
 		return
 	}
 
-	response.Success(w, http.StatusOK, "member role updated", nil)
-}
-
-func (h *MemberHandler) Remove(w http.ResponseWriter, r *http.Request) {
-	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
-	if !ok {
-		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
-		return
-	}
-
-	vars := mux.Vars(r)
-	userID, err := uuid.Parse(vars["userId"])
+	userID, err := ParseUUIDFromPath(r, "userId")
 	if err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("userId", "invalid UUID"))
+		response.HandleError(w, r, err)
 		return
 	}
 

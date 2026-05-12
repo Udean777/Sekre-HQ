@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -10,7 +9,6 @@ import (
 	"github.com/username/sekre-backend/internal/domain/entity"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/types"
-	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
@@ -32,15 +30,15 @@ func (h *TaskHandler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
-	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
-	if !ok {
-		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
+	orgID, err := GetOrgIDFromContext(r)
+	if err != nil {
+		response.HandleError(w, r, err)
 		return
 	}
 
 	var req task.CreateTaskRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
+	if err := DecodeJSONBody(r, &req); err != nil {
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -54,9 +52,9 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
-	if !ok {
-		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
+	orgID, err := GetOrgIDFromContext(r)
+	if err != nil {
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -96,16 +94,15 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
-	if !ok {
-		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
+	orgID, err := GetOrgIDFromContext(r)
+	if err != nil {
+		response.HandleError(w, r, err)
 		return
 	}
 
-	vars := mux.Vars(r)
-	id, err := uuid.Parse(vars["id"])
+	id, err := ParseUUIDFromPath(r, "id")
 	if err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid task id"))
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -119,22 +116,21 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
-	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
-	if !ok {
-		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
+	orgID, err := GetOrgIDFromContext(r)
+	if err != nil {
+		response.HandleError(w, r, err)
 		return
 	}
 
-	vars := mux.Vars(r)
-	id, err := uuid.Parse(vars["id"])
+	id, err := ParseUUIDFromPath(r, "id")
 	if err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid task id"))
+		response.HandleError(w, r, err)
 		return
 	}
 
 	var req task.UpdateTaskRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
+	if err := DecodeJSONBody(r, &req); err != nil {
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -148,46 +144,25 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
-	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
-	if !ok {
-		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
-		return
-	}
-
-	vars := mux.Vars(r)
-	id, err := uuid.Parse(vars["id"])
-	if err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid task id"))
-		return
-	}
-
 	var req struct {
 		Status string `json:"status"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
-		return
-	}
 
-	if err := h.usecase.UpdateStatus(r.Context(), orgID, id, req.Status); err != nil {
+	HandleUpdateRequest(w, r, "id", &req, func(orgID, id uuid.UUID) error {
+		return h.usecase.UpdateStatus(r.Context(), orgID, id, req.Status)
+	}, "task status updated")
+}
+
+func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	orgID, err := GetOrgIDFromContext(r)
+	if err != nil {
 		response.HandleError(w, r, err)
 		return
 	}
 
-	response.Success(w, http.StatusOK, "task status updated", nil)
-}
-
-func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
-	if !ok {
-		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
-		return
-	}
-
-	vars := mux.Vars(r)
-	id, err := uuid.Parse(vars["id"])
+	id, err := ParseUUIDFromPath(r, "id")
 	if err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid task id"))
+		response.HandleError(w, r, err)
 		return
 	}
 

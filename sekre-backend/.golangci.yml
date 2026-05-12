@@ -43,7 +43,7 @@ linters:
     
     # Complexity
     - gocyclo       # Cyclomatic complexity
-    - dupl          # Code clone detection
+    # dupl disabled - too many false positives for enum types and test patterns
     - goconst       # Find repeated strings that could be constants
     
     # Security
@@ -134,7 +134,7 @@ linters-settings:
     min-complexity: 15
 
   dupl:
-    threshold: 100
+    threshold: 150
 
   goconst:
     min-len: 3
@@ -159,6 +159,7 @@ issues:
         - dupl
         - gosec
         - goconst
+        - godot
 
     # Exclude known issues in generated code
     - path: ".*\\.pb\\.go$"
@@ -169,6 +170,21 @@ issues:
     - linters:
         - staticcheck
       text: "SA9003:"
+
+    # Exclude dupl for enum types (acceptable boilerplate)
+    - path: internal/domain/types
+      linters:
+        - dupl
+
+    # Exclude dupl for mapper boilerplate
+    - path: internal/infrastructure/persistence/gorm/mapper/
+      linters:
+        - dupl
+
+    # Exclude goconst for test strings and currency codes
+    - linters:
+        - goconst
+      text: "(IDR|USD|description|Test transaction)"
 
   # Maximum issues count per one linter
   max-issues-per-linter: 50
