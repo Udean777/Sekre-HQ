@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/username/sekre-backend/internal/application/organization"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/pkg/response"
@@ -28,33 +29,25 @@ func NewMemberCreationHandler(usecase organization.MemberCreationUsecase) *Membe
 func (h *MemberCreationHandler) CreateMember(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid user context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
 		return
 	}
 
 	var req entity.CreateMemberRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
 		return
 	}
 
 	createdMember, err := h.usecase.CreateMember(r.Context(), req, orgID, userID)
 	if err != nil {
-		if strings.Contains(err.Error(), "email already exists") {
-			response.BadRequest(w, err.Error())
-			return
-		}
-		if strings.Contains(err.Error(), "division") {
-			response.BadRequest(w, err.Error())
-			return
-		}
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -65,26 +58,26 @@ func (h *MemberCreationHandler) CreateMember(w http.ResponseWriter, r *http.Requ
 func (h *MemberCreationHandler) BulkImport(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid user context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
 		return
 	}
 
 	// Parse multipart form (max 10MB)
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		response.BadRequest(w, "failed to parse form")
+		response.HandleError(w, r, domainerrors.InvalidInput("form", "failed to parse multipart form"))
 		return
 	}
 
 	// Get file from form
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		response.BadRequest(w, "file is required")
+		response.HandleError(w, r, domainerrors.InvalidInput("file", "is required"))
 		return
 	}
 	defer file.Close()
@@ -92,26 +85,26 @@ func (h *MemberCreationHandler) BulkImport(w http.ResponseWriter, r *http.Reques
 	// Read file content
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		response.InternalServerError(w, "failed to read file")
+		response.HandleError(w, r, domainerrors.Internal("read uploaded file", err))
 		return
 	}
 
 	// Parse Excel file
 	members, err := h.parseExcelFile(fileBytes)
 	if err != nil {
-		response.BadRequest(w, fmt.Sprintf("failed to parse Excel file: %s", err.Error()))
+		response.HandleError(w, r, domainerrors.InvalidInput("file", err.Error()))
 		return
 	}
 
 	if len(members) == 0 {
-		response.BadRequest(w, "no valid members found in file")
+		response.HandleError(w, r, domainerrors.InvalidInput("file", "no valid members found in file"))
 		return
 	}
 
 	// Import members
 	result, err := h.usecase.BulkImportMembers(r.Context(), members, orgID, userID)
 	if err != nil {
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -120,25 +113,20 @@ func (h *MemberCreationHandler) BulkImport(w http.ResponseWriter, r *http.Reques
 
 // DownloadTemplate generates and downloads Excel template
 func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("[DownloadTemplate] Starting template generation...")
-	
 	f := excelize.NewFile()
 	defer f.Close()
 
 	sheetName := "Members"
-	
+
 	// Create new sheet
 	index, err := f.NewSheet(sheetName)
 	if err != nil {
-		fmt.Println("[DownloadTemplate] Error creating sheet:", err)
-		http.Error(w, "failed to create sheet", http.StatusInternalServerError)
+		response.HandleError(w, r, domainerrors.Internal("create excel sheet", err))
 		return
 	}
-	fmt.Println("[DownloadTemplate] Sheet created, index:", index)
 
 	// Delete default Sheet1
 	f.DeleteSheet("Sheet1")
-	fmt.Println("[DownloadTemplate] Default sheet deleted")
 
 	// Set headers with bold style
 	headerStyle, err := f.NewStyle(&excelize.Style{
@@ -164,7 +152,6 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 		cell := fmt.Sprintf("%c1", 'A'+i)
 		f.SetCellValue(sheetName, cell, header)
 	}
-	fmt.Println("[DownloadTemplate] Headers set")
 
 	// Add example data. Using typed enum constants keeps the template rows
 	// aligned with the accepted Role / DivisionRole values; any future rename
@@ -183,7 +170,6 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 			f.SetCellValue(sheetName, cell, value)
 		}
 	}
-	fmt.Println("[DownloadTemplate] Example data added")
 
 	// Set column widths
 	f.SetColWidth(sheetName, "A", "A", 25) // Email
@@ -191,24 +177,18 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 	f.SetColWidth(sheetName, "C", "C", 12) // Role
 	f.SetColWidth(sheetName, "D", "D", 15) // Division
 	f.SetColWidth(sheetName, "E", "E", 15) // Division Role
-	fmt.Println("[DownloadTemplate] Column widths set")
 
 	// Set active sheet
 	f.SetActiveSheet(index)
-	fmt.Println("[DownloadTemplate] Active sheet set")
 
 	// Write to response
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", "attachment; filename=member_import_template.xlsx")
-	fmt.Println("[DownloadTemplate] Headers set, writing file...")
 
 	if err := f.Write(w); err != nil {
-		fmt.Println("[DownloadTemplate] Error writing file:", err)
-		http.Error(w, "failed to write file", http.StatusInternalServerError)
+		response.HandleError(w, r, domainerrors.Internal("write excel file", err))
 		return
 	}
-	
-	fmt.Println("[DownloadTemplate] Template sent successfully")
 }
 
 // parseExcelFile parses Excel file and returns member requests
@@ -239,7 +219,7 @@ func (h *MemberCreationHandler) parseExcelFile(fileBytes []byte) ([]entity.BulkI
 	var members []entity.BulkImportMemberRequest
 	for i := 1; i < len(rows); i++ {
 		row := rows[i]
-		
+
 		// Skip empty rows
 		if len(row) == 0 || (len(row) > 0 && strings.TrimSpace(row[0]) == "") {
 			continue

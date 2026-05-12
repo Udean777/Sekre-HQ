@@ -2,14 +2,13 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/username/sekre-backend/internal/domain"
-	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/internal/application/organization"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
+	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
@@ -34,10 +33,12 @@ func (h *DivisionHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/divisions/{id}/members", h.GetMembers).Methods("GET")
 }
 
+// orgFromContext extracts the authenticated organization ID from the request
+// context, writing an error response and returning ok=false when missing.
 func orgFromContext(r *http.Request, w http.ResponseWriter) (uuid.UUID, bool) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return uuid.Nil, false
 	}
 	return orgID, true
@@ -51,13 +52,13 @@ func (h *DivisionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var req organization.CreateDivisionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
 		return
 	}
 
 	division, err := h.usecase.Create(r.Context(), orgID, &req)
 	if err != nil {
-		response.BadRequest(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -72,7 +73,7 @@ func (h *DivisionHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	divisions, err := h.usecase.List(r.Context(), orgID)
 	if err != nil {
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -88,17 +89,13 @@ func (h *DivisionHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := uuid.Parse(vars["id"])
 	if err != nil {
-		response.BadRequest(w, "invalid division id")
+		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid division id"))
 		return
 	}
 
 	division, err := h.usecase.GetByID(r.Context(), orgID, id)
 	if err != nil {
-		if errors.Is(err, domain.ErrDivisionNotFound) {
-			response.NotFound(w, err.Error())
-			return
-		}
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -114,23 +111,19 @@ func (h *DivisionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := uuid.Parse(vars["id"])
 	if err != nil {
-		response.BadRequest(w, "invalid division id")
+		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid division id"))
 		return
 	}
 
 	var req organization.UpdateDivisionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
 		return
 	}
 
 	division, err := h.usecase.Update(r.Context(), orgID, id, &req)
 	if err != nil {
-		if errors.Is(err, domain.ErrDivisionNotFound) {
-			response.NotFound(w, err.Error())
-			return
-		}
-		response.BadRequest(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -146,16 +139,12 @@ func (h *DivisionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := uuid.Parse(vars["id"])
 	if err != nil {
-		response.BadRequest(w, "invalid division id")
+		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid division id"))
 		return
 	}
 
 	if err := h.usecase.Delete(r.Context(), orgID, id); err != nil {
-		if errors.Is(err, domain.ErrDivisionNotFound) {
-			response.NotFound(w, err.Error())
-			return
-		}
-		response.BadRequest(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -171,22 +160,18 @@ func (h *DivisionHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	divisionID, err := uuid.Parse(vars["id"])
 	if err != nil {
-		response.BadRequest(w, "invalid division id")
+		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid division id"))
 		return
 	}
 
 	var req organization.AddMemberRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
 		return
 	}
 
 	if err := h.usecase.AddMember(r.Context(), orgID, divisionID, &req); err != nil {
-		if errors.Is(err, domain.ErrDivisionNotFound) {
-			response.NotFound(w, err.Error())
-			return
-		}
-		response.BadRequest(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -202,22 +187,18 @@ func (h *DivisionHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	divisionID, err := uuid.Parse(vars["id"])
 	if err != nil {
-		response.BadRequest(w, "invalid division id")
+		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid division id"))
 		return
 	}
 
 	userID, err := uuid.Parse(vars["userId"])
 	if err != nil {
-		response.BadRequest(w, "invalid user id")
+		response.HandleError(w, r, domainerrors.InvalidInput("userId", "invalid user id"))
 		return
 	}
 
 	if err := h.usecase.RemoveMember(r.Context(), orgID, divisionID, userID); err != nil {
-		if errors.Is(err, domain.ErrDivisionNotFound) {
-			response.NotFound(w, err.Error())
-			return
-		}
-		response.BadRequest(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -233,13 +214,13 @@ func (h *DivisionHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Reques
 	vars := mux.Vars(r)
 	divisionID, err := uuid.Parse(vars["id"])
 	if err != nil {
-		response.BadRequest(w, "invalid division id")
+		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid division id"))
 		return
 	}
 
 	userID, err := uuid.Parse(vars["userId"])
 	if err != nil {
-		response.BadRequest(w, "invalid user id")
+		response.HandleError(w, r, domainerrors.InvalidInput("userId", "invalid user id"))
 		return
 	}
 
@@ -247,16 +228,12 @@ func (h *DivisionHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Reques
 		Role string `json:"role"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
 		return
 	}
 
 	if err := h.usecase.UpdateMemberRole(r.Context(), orgID, divisionID, userID, req.Role); err != nil {
-		if errors.Is(err, domain.ErrDivisionNotFound) {
-			response.NotFound(w, err.Error())
-			return
-		}
-		response.BadRequest(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -272,17 +249,13 @@ func (h *DivisionHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	divisionID, err := uuid.Parse(vars["id"])
 	if err != nil {
-		response.BadRequest(w, "invalid division id")
+		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid division id"))
 		return
 	}
 
 	members, err := h.usecase.GetMembers(r.Context(), orgID, divisionID)
 	if err != nil {
-		if errors.Is(err, domain.ErrDivisionNotFound) {
-			response.NotFound(w, err.Error())
-			return
-		}
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 

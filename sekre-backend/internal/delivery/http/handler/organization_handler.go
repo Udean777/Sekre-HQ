@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/organization"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/pkg/response"
 )
@@ -28,13 +29,13 @@ func (h *OrganizationHandler) RegisterRoutes(router *mux.Router) {
 func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid user context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
 		return
 	}
 
@@ -43,13 +44,13 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
 		return
 	}
 
 	org, err := h.usecase.UpdateOrganization(r.Context(), orgID, userID, req.Name)
 	if err != nil {
-		response.BadRequest(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -60,18 +61,18 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid user context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
 		return
 	}
 
 	if err := h.usecase.DeleteOrganization(r.Context(), orgID, userID); err != nil {
-		response.BadRequest(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 

@@ -2,15 +2,14 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/event"
-	"github.com/username/sekre-backend/internal/domain"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/pkg/response"
 )
@@ -43,31 +42,31 @@ type CreateEventRequest struct {
 func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	var req CreateEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
 		return
 	}
 
 	divisionID, err := uuid.Parse(req.DivisionID)
 	if err != nil {
-		response.BadRequest(w, "invalid division_id")
+		response.HandleError(w, r, domainerrors.InvalidInput("division_id", "invalid UUID"))
 		return
 	}
 
 	startTime, err := time.Parse(time.RFC3339, req.StartTime)
 	if err != nil {
-		response.BadRequest(w, "invalid start_time format")
+		response.HandleError(w, r, domainerrors.InvalidInput("start_time", "invalid RFC3339 format"))
 		return
 	}
 
 	endTime, err := time.Parse(time.RFC3339, req.EndTime)
 	if err != nil {
-		response.BadRequest(w, "invalid end_time format")
+		response.HandleError(w, r, domainerrors.InvalidInput("end_time", "invalid RFC3339 format"))
 		return
 	}
 
@@ -82,7 +81,7 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.usecase.Create(r.Context(), orgID, ev); err != nil {
-		response.Error(w, http.StatusBadRequest, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -92,25 +91,25 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	divID := r.URL.Query().Get("division_id")
 	if divID == "" {
-		response.BadRequest(w, "division_id required")
+		response.HandleError(w, r, domainerrors.InvalidInput("division_id", "is required"))
 		return
 	}
 
 	divisionID, err := uuid.Parse(divID)
 	if err != nil {
-		response.BadRequest(w, "invalid division_id")
+		response.HandleError(w, r, domainerrors.InvalidInput("division_id", "invalid UUID"))
 		return
 	}
 
 	events, err := h.usecase.List(r.Context(), orgID, divisionID)
 	if err != nil {
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -120,24 +119,20 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *EventHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	vars := mux.Vars(r)
 	id, err := uuid.Parse(vars["id"])
 	if err != nil {
-		response.BadRequest(w, "invalid event id")
+		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid event id"))
 		return
 	}
 
 	ev, err := h.usecase.GetByID(r.Context(), orgID, id)
 	if err != nil {
-		if errors.Is(err, domain.ErrEventNotFound) {
-			response.NotFound(w, err.Error())
-			return
-		}
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -147,42 +142,38 @@ func (h *EventHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	vars := mux.Vars(r)
 	id, err := uuid.Parse(vars["id"])
 	if err != nil {
-		response.BadRequest(w, "invalid event id")
+		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid event id"))
 		return
 	}
 
 	existing, err := h.usecase.GetByID(r.Context(), orgID, id)
 	if err != nil {
-		if errors.Is(err, domain.ErrEventNotFound) {
-			response.NotFound(w, err.Error())
-			return
-		}
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
 	var req CreateEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
 		return
 	}
 
 	startTime, err := time.Parse(time.RFC3339, req.StartTime)
 	if err != nil {
-		response.BadRequest(w, "invalid start_time format")
+		response.HandleError(w, r, domainerrors.InvalidInput("start_time", "invalid RFC3339 format"))
 		return
 	}
 
 	endTime, err := time.Parse(time.RFC3339, req.EndTime)
 	if err != nil {
-		response.BadRequest(w, "invalid end_time format")
+		response.HandleError(w, r, domainerrors.InvalidInput("end_time", "invalid RFC3339 format"))
 		return
 	}
 
@@ -197,7 +188,7 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.usecase.Update(r.Context(), orgID, id, ev); err != nil {
-		response.Error(w, http.StatusBadRequest, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -207,23 +198,19 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	vars := mux.Vars(r)
 	id, err := uuid.Parse(vars["id"])
 	if err != nil {
-		response.BadRequest(w, "invalid event id")
+		response.HandleError(w, r, domainerrors.InvalidInput("id", "invalid event id"))
 		return
 	}
 
 	if err := h.usecase.Delete(r.Context(), orgID, id); err != nil {
-		if errors.Is(err, domain.ErrEventNotFound) {
-			response.NotFound(w, err.Error())
-			return
-		}
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 

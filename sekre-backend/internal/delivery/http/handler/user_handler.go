@@ -6,8 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/internal/application/organization"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
+	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
@@ -30,19 +31,19 @@ func (h *UserHandler) RegisterRoutes(router *mux.Router) {
 func (h *UserHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	query := r.URL.Query().Get("q")
 	if query == "" {
-		response.BadRequest(w, "search query is required")
+		response.HandleError(w, r, domainerrors.InvalidInput("q", "search query is required"))
 		return
 	}
 
 	users, err := h.usecase.SearchUsers(r.Context(), orgID, query)
 	if err != nil {
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -53,13 +54,13 @@ func (h *UserHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid organization context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
 		return
 	}
 
 	users, err := h.usecase.GetOrganizationUsers(r.Context(), orgID)
 	if err != nil {
-		response.InternalServerError(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -70,7 +71,7 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid user context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
 		return
 	}
 
@@ -80,13 +81,13 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
 		return
 	}
 
 	user, err := h.usecase.UpdateProfile(r.Context(), userID, req.FullName, req.Email)
 	if err != nil {
-		response.BadRequest(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -97,7 +98,7 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
 	if !ok {
-		response.Unauthorized(w, "invalid user context")
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
 		return
 	}
 
@@ -107,12 +108,12 @@ func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
 		return
 	}
 
 	if err := h.usecase.ChangePassword(r.Context(), userID, req.CurrentPassword, req.NewPassword); err != nil {
-		response.BadRequest(w, err.Error())
+		response.HandleError(w, r, err)
 		return
 	}
 
