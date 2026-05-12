@@ -59,4 +59,6 @@ var (
 
 	ErrTransactionNotFound = NotFound("transaction", nil)
 	ErrInvalidAmount       = InvalidInput("amount", "must be greater than 0")
+	ErrCurrencyMismatch    = InvalidInput("currency", "currency mismatch in operation")
+	ErrInvalidCurrency     = InvalidInput("currency", "invalid currency code")
 )
