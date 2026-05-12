@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -50,7 +51,7 @@ func main() {
 	if err != nil {
 		logger.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer database.Close(db)
+	// Database will be closed explicitly during shutdown
 
 	logger.Logger.Info().
 		Str("host", cfg.Database.Host).
@@ -196,4 +197,25 @@ func main() {
 	<-quit
 
 	logger.Warn("⚠️  Received shutdown signal, gracefully shutting down...")
+
+	// Create shutdown context with timeout from config
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
+
+	// Attempt graceful shutdown
+	logger.Logger.Info().
+		Dur("timeout", cfg.Server.ShutdownTimeout).
+		Msg("Shutting down server...")
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		logger.Logger.Error().
+			Err(err).
+			Msg("❌ Server forced to shutdown")
+		shutdownCancel()
+		database.Close(db)
+		os.Exit(1)
+	}
+
+	shutdownCancel()
+	database.Close(db)
+	logger.Logger.Info().Msg("✓ Server gracefully stopped")
 }
