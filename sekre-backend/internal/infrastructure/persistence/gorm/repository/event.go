@@ -3,10 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/mapper"
@@ -26,7 +25,7 @@ func (r *eventRepository) Create(ctx context.Context, orgID uuid.UUID, event *en
 	event.OrganizationID = orgID
 	model := mapper.EventToModel(event)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create event: %w", err)
+		return domainerrors.Internal("create event", err)
 	}
 	event.CreatedAt = model.CreatedAt
 	event.UpdatedAt = model.UpdatedAt
@@ -40,9 +39,9 @@ func (r *eventRepository) GetByID(ctx context.Context, orgID, eventID uuid.UUID)
 		First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrEventNotFound
+			return nil, domainerrors.ErrEventNotFound
 		}
-		return nil, fmt.Errorf("failed to get event: %w", err)
+		return nil, domainerrors.Internal("get event", err)
 	}
 	return mapper.EventToEntity(&model), nil
 }
@@ -54,7 +53,7 @@ func (r *eventRepository) List(ctx context.Context, orgID, divisionID uuid.UUID)
 		Order("start_time DESC").
 		Find(&models).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to list events: %w", err)
+		return nil, domainerrors.Internal("list events", err)
 	}
 
 	events := make([]entity.Event, len(models))
@@ -76,10 +75,10 @@ func (r *eventRepository) Update(ctx context.Context, orgID uuid.UUID, event *en
 			"location":    event.Location,
 		})
 	if result.Error != nil {
-		return fmt.Errorf("failed to update event: %w", result.Error)
+		return domainerrors.Internal("update event", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrEventNotFound
+		return domainerrors.ErrEventNotFound
 	}
 	return nil
 }
@@ -89,10 +88,10 @@ func (r *eventRepository) Delete(ctx context.Context, orgID, eventID uuid.UUID) 
 		Where("id = ? AND organization_id = ?", eventID, orgID).
 		Delete(&models.Event{})
 	if result.Error != nil {
-		return fmt.Errorf("failed to delete event: %w", result.Error)
+		return domainerrors.Internal("delete event", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrEventNotFound
+		return domainerrors.ErrEventNotFound
 	}
 	return nil
 }
@@ -104,7 +103,7 @@ func (r *eventRepository) CountUpcomingByDivision(ctx context.Context, orgID, di
 		Where("organization_id = ? AND division_id = ? AND start_time > NOW()", orgID, divisionID).
 		Count(&count).Error
 	if err != nil {
-		return 0, fmt.Errorf("failed to count upcoming events: %w", err)
+		return 0, domainerrors.Internal("count upcoming events", err)
 	}
 	return count, nil
 }

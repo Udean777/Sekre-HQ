@@ -3,10 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
@@ -43,7 +42,7 @@ func (r *memberRepository) GetOrganizationMembers(ctx context.Context, orgID uui
 		Order("u.full_name").
 		Scan(&rows).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get members: %w", err)
+		return nil, domainerrors.Internal("get members", err)
 	}
 
 	members := make([]entity.UserWithOrgRole, 0, len(rows))
@@ -64,10 +63,10 @@ func (r *memberRepository) UpdateMemberRole(ctx context.Context, orgID, userID u
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Update("role", role)
 	if result.Error != nil {
-		return fmt.Errorf("failed to update role: %w", result.Error)
+		return domainerrors.Internal("update role", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrUserNotInOrg
+		return domainerrors.ErrUserNotInOrg
 	}
 	return nil
 }
@@ -77,10 +76,10 @@ func (r *memberRepository) RemoveMember(ctx context.Context, orgID, userID uuid.
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Delete(&models.UserOrganization{})
 	if result.Error != nil {
-		return fmt.Errorf("failed to remove member: %w", result.Error)
+		return domainerrors.Internal("remove member", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrUserNotInOrg
+		return domainerrors.ErrUserNotInOrg
 	}
 	return nil
 }
@@ -92,7 +91,7 @@ func (r *memberRepository) IsMember(ctx context.Context, orgID, userID uuid.UUID
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Count(&count).Error
 	if err != nil {
-		return false, fmt.Errorf("failed to check membership: %w", err)
+		return false, domainerrors.Internal("check membership", err)
 	}
 	return count > 0, nil
 }
@@ -101,7 +100,7 @@ func (r *memberRepository) IsMember(ctx context.Context, orgID, userID uuid.UUID
 func (r *memberRepository) CreateUser(ctx context.Context, user *entity.User) error {
 	model := mapper.UserToModel(user)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
+		return domainerrors.Internal("create user", err)
 	}
 	user.ID = model.ID
 	user.CreatedAt = model.CreatedAt
@@ -117,7 +116,7 @@ func (r *memberRepository) AddUserToOrganization(ctx context.Context, orgID, use
 		Role:           role,
 	}
 	if err := dbFor(ctx, r.db).Create(userOrg).Error; err != nil {
-		return fmt.Errorf("failed to add user to organization: %w", err)
+		return domainerrors.Internal("add user to organization", err)
 	}
 	return nil
 }
@@ -130,7 +129,7 @@ func (r *memberRepository) AddMemberToDivision(ctx context.Context, divisionID, 
 		DivisionRole: divisionRole,
 	}
 	if err := dbFor(ctx, r.db).Create(dm).Error; err != nil {
-		return fmt.Errorf("failed to add member to division: %w", err)
+		return domainerrors.Internal("add member to division", err)
 	}
 	return nil
 }
@@ -143,9 +142,9 @@ func (r *memberRepository) GetDivisionByName(ctx context.Context, orgID uuid.UUI
 		First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrDivisionNotFound
+			return nil, domainerrors.ErrDivisionNotFound
 		}
-		return nil, fmt.Errorf("failed to get division: %w", err)
+		return nil, domainerrors.Internal("get division", err)
 	}
 	return mapper.DivisionToEntity(&model), nil
 }
@@ -154,7 +153,7 @@ func (r *memberRepository) GetDivisionByName(ctx context.Context, orgID uuid.UUI
 func (r *memberRepository) CreateAuditLog(ctx context.Context, log *entity.AuditLog) error {
 	model := mapper.AuditLogToModel(log)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create audit log: %w", err)
+		return domainerrors.Internal("create audit log", err)
 	}
 	log.ID = model.ID
 	log.CreatedAt = model.CreatedAt

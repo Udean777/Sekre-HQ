@@ -3,10 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/mapper"
@@ -26,7 +25,7 @@ func (r *taskRepository) Create(ctx context.Context, orgID uuid.UUID, task *enti
 	task.OrganizationID = orgID
 	model := mapper.TaskToModel(task)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create task: %w", err)
+		return domainerrors.Internal("create task", err)
 	}
 	task.CreatedAt = model.CreatedAt
 	task.UpdatedAt = model.UpdatedAt
@@ -40,9 +39,9 @@ func (r *taskRepository) GetByID(ctx context.Context, orgID, taskID uuid.UUID) (
 		First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrTaskNotFound
+			return nil, domainerrors.ErrTaskNotFound
 		}
-		return nil, fmt.Errorf("failed to get task: %w", err)
+		return nil, domainerrors.Internal("get task", err)
 	}
 	return mapper.TaskToEntity(&model), nil
 }
@@ -54,7 +53,7 @@ func (r *taskRepository) List(ctx context.Context, orgID, divisionID uuid.UUID) 
 		Order("created_at DESC").
 		Find(&models).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to list tasks: %w", err)
+		return nil, domainerrors.Internal("list tasks", err)
 	}
 
 	tasks := make([]entity.Task, len(models))
@@ -72,7 +71,7 @@ func (r *taskRepository) ListWithAssignee(ctx context.Context, orgID, divisionID
 		Order("created_at DESC").
 		Find(&rows).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to list tasks with assignee: %w", err)
+		return nil, domainerrors.Internal("list tasks with assignee", err)
 	}
 
 	tasks := make([]entity.TaskWithAssignee, len(rows))
@@ -102,7 +101,7 @@ func (r *taskRepository) ListFiltered(ctx context.Context, orgID uuid.UUID, filt
 
 	var rows []models.Task
 	if err := query.Order("created_at DESC").Find(&rows).Error; err != nil {
-		return nil, fmt.Errorf("failed to list tasks: %w", err)
+		return nil, domainerrors.Internal("list tasks", err)
 	}
 
 	tasks := make([]entity.TaskWithAssignee, len(rows))
@@ -127,10 +126,10 @@ func (r *taskRepository) Update(ctx context.Context, orgID uuid.UUID, task *enti
 			"due_date":    task.DueDate,
 		})
 	if result.Error != nil {
-		return fmt.Errorf("failed to update task: %w", result.Error)
+		return domainerrors.Internal("update task", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrTaskNotFound
+		return domainerrors.ErrTaskNotFound
 	}
 	return nil
 }
@@ -140,10 +139,10 @@ func (r *taskRepository) Delete(ctx context.Context, orgID, taskID uuid.UUID) er
 		Where("id = ? AND organization_id = ?", taskID, orgID).
 		Delete(&models.Task{})
 	if result.Error != nil {
-		return fmt.Errorf("failed to delete task: %w", result.Error)
+		return domainerrors.Internal("delete task", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrTaskNotFound
+		return domainerrors.ErrTaskNotFound
 	}
 	return nil
 }
@@ -154,10 +153,10 @@ func (r *taskRepository) UpdateStatus(ctx context.Context, orgID, taskID uuid.UU
 		Where("id = ? AND organization_id = ?", taskID, orgID).
 		Update("status", status)
 	if result.Error != nil {
-		return fmt.Errorf("failed to update task status: %w", result.Error)
+		return domainerrors.Internal("update task status", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrTaskNotFound
+		return domainerrors.ErrTaskNotFound
 	}
 	return nil
 }
@@ -169,7 +168,7 @@ func (r *taskRepository) CountActiveByDivision(ctx context.Context, orgID, divis
 		Where("organization_id = ? AND division_id = ? AND status != ?", orgID, divisionID, "DONE").
 		Count(&count).Error
 	if err != nil {
-		return 0, fmt.Errorf("failed to count active tasks: %w", err)
+		return 0, domainerrors.Internal("count active tasks", err)
 	}
 	return count, nil
 }

@@ -3,11 +3,10 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/mapper"
@@ -37,7 +36,7 @@ func NewUserRepository(db *gorm.DB) repository.UserRepository {
 func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
 	model := mapper.UserToModel(user)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
+		return domainerrors.Internal("create user", err)
 	}
 	user.CreatedAt = model.CreatedAt
 	user.UpdatedAt = model.UpdatedAt
@@ -49,9 +48,9 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*entity.
 	err := dbFor(ctx, r.db).Where("email = ?", email).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrInvalidCredentials
+			return nil, domainerrors.ErrInvalidCredentials
 		}
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		return nil, domainerrors.Internal("get user by email", err)
 	}
 	return mapper.UserToEntity(&model), nil
 }
@@ -64,9 +63,9 @@ func (r *userRepository) GetByID(ctx context.Context, orgID, userID uuid.UUID) (
 		First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("user not found")
+			return nil, domainerrors.NotFound("user", userID).WithDetail("orgID", orgID)
 		}
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		return nil, domainerrors.Internal("get user by ID", err)
 	}
 	return mapper.UserToEntity(&model), nil
 }
@@ -76,7 +75,7 @@ func (r *userRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, p
 		Model(&models.User{}).
 		Where("id = ?", userID).
 		Update("password_hash", passwordHash).Error; err != nil {
-		return fmt.Errorf("failed to update user password: %w", err)
+		return domainerrors.Internal("update user password", err)
 	}
 	return nil
 }
@@ -86,7 +85,7 @@ func (r *userRepository) SetMustResetPassword(ctx context.Context, userID uuid.U
 		Model(&models.User{}).
 		Where("id = ?", userID).
 		Update("must_reset_password", mustReset).Error; err != nil {
-		return fmt.Errorf("failed to set must reset password: %w", err)
+		return domainerrors.Internal("set must reset password", err)
 	}
 	return nil
 }
@@ -98,7 +97,7 @@ func (r *userRepository) List(ctx context.Context, orgID uuid.UUID) ([]entity.Us
 		Where("user_organizations.organization_id = ?", orgID).
 		Find(&models).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to list users: %w", err)
+		return nil, domainerrors.Internal("list users", err)
 	}
 	
 	users := make([]entity.User, len(models))
@@ -117,7 +116,7 @@ func (r *userRepository) SearchByEmail(ctx context.Context, orgID uuid.UUID, ema
 		Limit(10).
 		Find(&models).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to search users: %w", err)
+		return nil, domainerrors.Internal("search users by email", err)
 	}
 	
 	users := make([]entity.UserBasic, len(models))
@@ -146,7 +145,7 @@ func NewOrganizationRepository(db *gorm.DB) repository.OrganizationRepository {
 func (r *organizationRepository) Create(ctx context.Context, org *entity.Organization) error {
 	model := mapper.OrganizationToModel(org)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create organization: %w", err)
+		return domainerrors.Internal("create organization", err)
 	}
 	org.CreatedAt = model.CreatedAt
 	org.UpdatedAt = model.UpdatedAt
@@ -158,9 +157,9 @@ func (r *organizationRepository) GetByID(ctx context.Context, orgID uuid.UUID) (
 	err := dbFor(ctx, r.db).Where("id = ?", orgID).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("organization not found")
+			return nil, domainerrors.NotFound("organization", orgID)
 		}
-		return nil, fmt.Errorf("failed to get organization: %w", err)
+		return nil, domainerrors.Internal("get organization", err)
 	}
 	return mapper.OrganizationToEntity(&model), nil
 }
@@ -172,7 +171,7 @@ func (r *organizationRepository) CheckSubdomainExists(ctx context.Context, subdo
 		Where("subdomain = ?", subdomain).
 		Count(&count).Error
 	if err != nil {
-		return false, fmt.Errorf("failed to check subdomain: %w", err)
+		return false, domainerrors.Internal("check subdomain", err)
 	}
 	return count > 0, nil
 }
@@ -186,14 +185,14 @@ func (r *organizationRepository) Update(ctx context.Context, orgID uuid.UUID, na
 			"name": name,
 		}).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to update organization: %w", err)
+		return nil, domainerrors.Internal("update organization", err)
 	}
 
 	if err := dbFor(ctx, r.db).Where("id = ?", orgID).First(&model).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrOrganizationNotFound
+			return nil, domainerrors.ErrOrganizationNotFound
 		}
-		return nil, fmt.Errorf("failed to get updated organization: %w", err)
+		return nil, domainerrors.Internal("get updated organization", err)
 	}
 	return mapper.OrganizationToEntity(&model), nil
 }
@@ -201,10 +200,10 @@ func (r *organizationRepository) Update(ctx context.Context, orgID uuid.UUID, na
 func (r *organizationRepository) Delete(ctx context.Context, orgID uuid.UUID) error {
 	result := dbFor(ctx, r.db).Delete(&models.Organization{}, orgID)
 	if result.Error != nil {
-		return fmt.Errorf("failed to delete organization: %w", result.Error)
+		return domainerrors.Internal("delete organization", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrOrganizationNotFound
+		return domainerrors.ErrOrganizationNotFound
 	}
 	return nil
 }
@@ -216,9 +215,9 @@ func (r *organizationRepository) GetMemberRole(ctx context.Context, orgID, userI
 		First(&userOrg).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", domain.ErrUserNotInOrg
+			return "", domainerrors.ErrUserNotInOrg
 		}
-		return "", fmt.Errorf("failed to get member role: %w", err)
+		return "", domainerrors.Internal("get member role", err)
 	}
 	return userOrg.Role, nil
 }
@@ -238,7 +237,7 @@ func NewUserOrganizationRepository(db *gorm.DB) repository.UserOrganizationRepos
 func (r *userOrganizationRepository) Create(ctx context.Context, userOrg *entity.UserOrganization) error {
 	model := mapper.UserOrganizationToModel(userOrg)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create user organization: %w", err)
+		return domainerrors.Internal("create user organization", err)
 	}
 	userOrg.CreatedAt = model.CreatedAt
 	return nil
@@ -251,9 +250,9 @@ func (r *userOrganizationRepository) GetByUserAndOrg(ctx context.Context, userID
 		First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("user organization not found")
+			return nil, domainerrors.NotFound("user_organization", nil)
 		}
-		return nil, fmt.Errorf("failed to get user organization: %w", err)
+		return nil, domainerrors.Internal("get user organization", err)
 	}
 	return mapper.UserOrganizationToEntity(&model), nil
 }
@@ -267,9 +266,9 @@ func (r *userOrganizationRepository) GetUserWithOrganization(ctx context.Context
 		First(&userOrg).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("user organization not found")
+			return nil, domainerrors.NotFound("user_organization", nil)
 		}
-		return nil, fmt.Errorf("failed to get user with organization: %w", err)
+		return nil, domainerrors.Internal("get user with organization", err)
 	}
 
 	return &entity.UserWithOrganization{
@@ -286,7 +285,7 @@ func (r *userOrganizationRepository) GetUsersByOrganization(ctx context.Context,
 		Where("organization_id = ?", orgID).
 		Find(&userOrgs).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get users by organization: %w", err)
+		return nil, domainerrors.Internal("get users by organization", err)
 	}
 
 	users := make([]entity.UserWithOrgRole, len(userOrgs))
@@ -306,7 +305,7 @@ func (r *userOrganizationRepository) UpdateRole(ctx context.Context, orgID, user
 		Model(&models.UserOrganization{}).
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Update("role", role).Error; err != nil {
-		return fmt.Errorf("failed to update role: %w", err)
+		return domainerrors.Internal("update role", err)
 	}
 	return nil
 }
@@ -315,7 +314,7 @@ func (r *userOrganizationRepository) Delete(ctx context.Context, orgID, userID u
 	if err := dbFor(ctx, r.db).
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Delete(&models.UserOrganization{}).Error; err != nil {
-		return fmt.Errorf("failed to delete user organization: %w", err)
+		return domainerrors.Internal("delete user organization", err)
 	}
 	return nil
 }
@@ -335,7 +334,7 @@ func NewPasswordResetRepository(db *gorm.DB) repository.PasswordResetRepository 
 func (r *passwordResetRepository) Create(ctx context.Context, reset *entity.PasswordReset) error {
 	model := mapper.PasswordResetToModel(reset)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create password reset: %w", err)
+		return domainerrors.Internal("create password reset", err)
 	}
 	reset.CreatedAt = model.CreatedAt
 	return nil
@@ -350,7 +349,7 @@ func (r *passwordResetRepository) GetByToken(ctx context.Context, token string) 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("password reset token not found or already used")
 		}
-		return nil, fmt.Errorf("failed to get password reset: %w", err)
+		return nil, domainerrors.Internal("get password reset", err)
 	}
 	return mapper.PasswordResetToEntity(&model), nil
 }
@@ -362,7 +361,7 @@ func (r *passwordResetRepository) MarkAsUsed(ctx context.Context, resetID uuid.U
 		Where("id = ?", resetID).
 		Update("used_at", db.NowFunc()).Error
 	if err != nil {
-		return fmt.Errorf("failed to mark password reset as used: %w", err)
+		return domainerrors.Internal("mark password reset as used", err)
 	}
 	return nil
 }
@@ -382,7 +381,7 @@ func NewAuditLogRepository(db *gorm.DB) repository.AuditLogRepository {
 func (r *auditLogRepository) Create(ctx context.Context, log *entity.AuditLog) error {
 	model := mapper.AuditLogToModel(log)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create audit log: %w", err)
+		return domainerrors.Internal("create audit log", err)
 	}
 	log.CreatedAt = model.CreatedAt
 	return nil
@@ -397,7 +396,7 @@ func (r *auditLogRepository) List(ctx context.Context, orgID uuid.UUID, limit, o
 		Offset(offset).
 		Find(&models).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to list audit logs: %w", err)
+		return nil, domainerrors.Internal("list audit logs", err)
 	}
 
 	logs := make([]entity.AuditLog, len(models))

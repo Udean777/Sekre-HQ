@@ -3,11 +3,10 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
@@ -47,7 +46,7 @@ func (r *userProfileRepository) SearchUsers(ctx context.Context, orgID uuid.UUID
 		Limit(limit).
 		Find(&results).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to search users: %w", err)
+		return nil, domainerrors.Internal("search users", err)
 	}
 
 	users := make([]entity.UserBasic, len(results))
@@ -76,7 +75,7 @@ func (r *userProfileRepository) GetUsersByOrganization(ctx context.Context, orgI
 		Order("u.full_name").
 		Find(&results).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get users: %w", err)
+		return nil, domainerrors.Internal("get users", err)
 	}
 
 	users := make([]entity.UserWithOrgRole, len(results))
@@ -99,9 +98,9 @@ func (r *userProfileRepository) GetUserByID(ctx context.Context, userID uuid.UUI
 		First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrUserNotFound
+			return nil, domainerrors.ErrUserNotFound
 		}
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		return nil, domainerrors.Internal("get user", err)
 	}
 	return &entity.UserBasic{
 		ID:       user.ID,
@@ -119,15 +118,15 @@ func (r *userProfileRepository) UpdateProfile(ctx context.Context, userID uuid.U
 			"email":     email,
 		}).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to update profile: %w", err)
+		return nil, domainerrors.Internal("update profile", err)
 	}
 
 	var user models.User
 	if err := dbFor(ctx, r.db).Where("id = ?", userID).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrUserNotFound
+			return nil, domainerrors.ErrUserNotFound
 		}
-		return nil, fmt.Errorf("failed to get updated user: %w", err)
+		return nil, domainerrors.Internal("get updated user", err)
 	}
 	return mapper.UserToEntity(&user), nil
 }
@@ -137,9 +136,9 @@ func (r *userProfileRepository) GetUserWithPasswordByID(ctx context.Context, use
 	err := dbFor(ctx, r.db).Where("id = ?", userID).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrUserNotFound
+			return nil, domainerrors.ErrUserNotFound
 		}
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		return nil, domainerrors.Internal("get user", err)
 	}
 	return mapper.UserToEntity(&user), nil
 }
@@ -153,10 +152,10 @@ func (r *userProfileRepository) UpdatePassword(ctx context.Context, userID uuid.
 			"must_reset_password": false,
 		})
 	if result.Error != nil {
-		return fmt.Errorf("failed to update password: %w", result.Error)
+		return domainerrors.Internal("update password", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrUserNotFound
+		return domainerrors.ErrUserNotFound
 	}
 	return nil
 }
@@ -168,7 +167,7 @@ func (r *userProfileRepository) CheckEmailExists(ctx context.Context, email stri
 		Where("LOWER(email) = LOWER(?) AND id != ?", email, excludeUserID).
 		Count(&count).Error
 	if err != nil {
-		return false, fmt.Errorf("failed to check email existence: %w", err)
+		return false, domainerrors.Internal("check email existence", err)
 	}
 	return count > 0, nil
 }

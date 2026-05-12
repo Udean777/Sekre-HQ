@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
@@ -31,7 +31,7 @@ func (r *divisionRepository) Create(ctx context.Context, orgID uuid.UUID, divisi
 	division.OrganizationID = orgID
 	model := mapper.DivisionToModel(division)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create division: %w", err)
+		return domainerrors.Internal("create division", err)
 	}
 	division.CreatedAt = model.CreatedAt
 	division.UpdatedAt = model.UpdatedAt
@@ -45,9 +45,9 @@ func (r *divisionRepository) GetByID(ctx context.Context, orgID, divisionID uuid
 		First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrDivisionNotFound
+			return nil, domainerrors.ErrDivisionNotFound
 		}
-		return nil, fmt.Errorf("failed to get division: %w", err)
+		return nil, domainerrors.Internal("get division", err)
 	}
 	return mapper.DivisionToEntity(&model), nil
 }
@@ -59,7 +59,7 @@ func (r *divisionRepository) List(ctx context.Context, orgID uuid.UUID) ([]entit
 		Order("created_at DESC").
 		Find(&models).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to list divisions: %w", err)
+		return nil, domainerrors.Internal("list divisions", err)
 	}
 
 	divisions := make([]entity.Division, len(models))
@@ -78,10 +78,10 @@ func (r *divisionRepository) Update(ctx context.Context, orgID uuid.UUID, divisi
 			"description": division.Description,
 		})
 	if result.Error != nil {
-		return fmt.Errorf("failed to update division: %w", result.Error)
+		return domainerrors.Internal("update division", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrDivisionNotFound
+		return domainerrors.ErrDivisionNotFound
 	}
 	return nil
 }
@@ -91,10 +91,10 @@ func (r *divisionRepository) Delete(ctx context.Context, orgID, divisionID uuid.
 		Where("id = ? AND organization_id = ?", divisionID, orgID).
 		Delete(&models.Division{})
 	if result.Error != nil {
-		return fmt.Errorf("failed to delete division: %w", result.Error)
+		return domainerrors.Internal("delete division", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrDivisionNotFound
+		return domainerrors.ErrDivisionNotFound
 	}
 	return nil
 }
@@ -105,7 +105,7 @@ func (r *divisionRepository) GetByNames(ctx context.Context, orgID uuid.UUID, na
 		Where("organization_id = ? AND name IN ?", orgID, names).
 		Find(&models).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get divisions by names: %w", err)
+		return nil, domainerrors.Internal("get divisions by names", err)
 	}
 
 	divisions := make([]entity.Division, len(models))
@@ -122,7 +122,7 @@ func (r *divisionRepository) CountByOrganization(ctx context.Context, orgID uuid
 		Where("organization_id = ?", orgID).
 		Count(&count).Error
 	if err != nil {
-		return 0, fmt.Errorf("failed to count divisions: %w", err)
+		return 0, domainerrors.Internal("count divisions", err)
 	}
 	return int(count), nil
 }
@@ -134,7 +134,7 @@ func (r *divisionRepository) AddMember(ctx context.Context, divisionID, userID u
 		DivisionRole: role,
 	}
 	if err := dbFor(ctx, r.db).Create(member).Error; err != nil {
-		return fmt.Errorf("failed to add member to division: %w", err)
+		return domainerrors.Internal("add member to division", err)
 	}
 	return nil
 }
@@ -144,10 +144,10 @@ func (r *divisionRepository) RemoveMember(ctx context.Context, orgID, divisionID
 		Where("division_id = ? AND user_id = ?", divisionID, userID).
 		Delete(&models.DivisionMember{})
 	if result.Error != nil {
-		return fmt.Errorf("failed to remove member from division: %w", result.Error)
+		return domainerrors.Internal("remove member from division", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrNotDivisionMember
+		return domainerrors.ErrNotDivisionMember
 	}
 	return nil
 }
@@ -159,7 +159,7 @@ func (r *divisionRepository) GetMembers(ctx context.Context, orgID, divisionID u
 		Where("division_id = ?", divisionID).
 		Find(&members).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get division members: %w", err)
+		return nil, domainerrors.Internal("get division members", err)
 	}
 
 	result := make([]entity.UserWithRole, len(members))
@@ -183,10 +183,10 @@ func (r *divisionRepository) UpdateMemberRole(ctx context.Context, orgID, divisi
 		Where("division_id = ? AND user_id = ?", divisionID, userID).
 		Update("role", role)
 	if result.Error != nil {
-		return fmt.Errorf("failed to update member role: %w", result.Error)
+		return domainerrors.Internal("update member role", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrNotDivisionMember
+		return domainerrors.ErrNotDivisionMember
 	}
 	return nil
 }
@@ -198,7 +198,7 @@ func (r *divisionRepository) CountHeads(ctx context.Context, divisionID uuid.UUI
 		Where("division_id = ? AND role = ?", divisionID, "HEAD").
 		Count(&count).Error
 	if err != nil {
-		return 0, fmt.Errorf("failed to count heads: %w", err)
+		return 0, domainerrors.Internal("count heads", err)
 	}
 	return int(count), nil
 }
@@ -210,7 +210,7 @@ func (r *divisionRepository) CountMembers(ctx context.Context, divisionID uuid.U
 		Where("division_id = ?", divisionID).
 		Count(&count).Error
 	if err != nil {
-		return 0, fmt.Errorf("failed to count members: %w", err)
+		return 0, domainerrors.Internal("count members", err)
 	}
 	return int(count), nil
 }
@@ -236,14 +236,14 @@ func (r *divisionMemberRepository) AddMember(ctx context.Context, orgID uuid.UUI
 		First(&div).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return domain.ErrDivisionNotFound
+			return domainerrors.ErrDivisionNotFound
 		}
-		return fmt.Errorf("failed to verify division: %w", err)
+		return domainerrors.Internal("verify division", err)
 	}
 
 	model := mapper.DivisionMemberToModel(member)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to add division member: %w", err)
+		return domainerrors.Internal("add division member", err)
 	}
 	member.JoinedAt = model.JoinedAt
 	return nil
@@ -257,16 +257,16 @@ func (r *divisionMemberRepository) RemoveMember(ctx context.Context, orgID, divi
 		First(&div).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return domain.ErrDivisionNotFound
+			return domainerrors.ErrDivisionNotFound
 		}
-		return fmt.Errorf("failed to verify division: %w", err)
+		return domainerrors.Internal("verify division", err)
 	}
 
 	result := dbFor(ctx, r.db).
 		Where("division_id = ? AND user_id = ?", divisionID, userID).
 		Delete(&models.DivisionMember{})
 	if result.Error != nil {
-		return fmt.Errorf("failed to remove division member: %w", result.Error)
+		return domainerrors.Internal("remove division member", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("member not found in division")
@@ -282,9 +282,9 @@ func (r *divisionMemberRepository) GetMembers(ctx context.Context, orgID, divisi
 		First(&div).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrDivisionNotFound
+			return nil, domainerrors.ErrDivisionNotFound
 		}
-		return nil, fmt.Errorf("failed to verify division: %w", err)
+		return nil, domainerrors.Internal("verify division", err)
 	}
 
 	var members []models.DivisionMember
@@ -293,7 +293,7 @@ func (r *divisionMemberRepository) GetMembers(ctx context.Context, orgID, divisi
 		Where("division_id = ?", divisionID).
 		Find(&members).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get division members: %w", err)
+		return nil, domainerrors.Internal("get division members", err)
 	}
 
 	users := make([]entity.UserWithRole, len(members))
@@ -315,9 +315,9 @@ func (r *divisionMemberRepository) UpdateRole(ctx context.Context, orgID, divisi
 		First(&div).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return domain.ErrDivisionNotFound
+			return domainerrors.ErrDivisionNotFound
 		}
-		return fmt.Errorf("failed to verify division: %w", err)
+		return domainerrors.Internal("verify division", err)
 	}
 
 	result := dbFor(ctx, r.db).
@@ -325,7 +325,7 @@ func (r *divisionMemberRepository) UpdateRole(ctx context.Context, orgID, divisi
 		Where("division_id = ? AND user_id = ?", divisionID, userID).
 		Update("division_role", role)
 	if result.Error != nil {
-		return fmt.Errorf("failed to update member role: %w", result.Error)
+		return domainerrors.Internal("update member role", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("member not found in division")
@@ -348,7 +348,7 @@ func NewInvitationRepository(db *gorm.DB) repository.InvitationRepository {
 func (r *invitationRepository) Create(ctx context.Context, invitation *entity.Invitation) error {
 	model := mapper.InvitationToModel(invitation)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create invitation: %w", err)
+		return domainerrors.Internal("create invitation", err)
 	}
 	invitation.CreatedAt = model.CreatedAt
 	return nil
@@ -361,9 +361,9 @@ func (r *invitationRepository) GetByToken(ctx context.Context, token string) (*e
 		First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("invitation not found")
+			return nil, domainerrors.NotFound("invitation", nil)
 		}
-		return nil, fmt.Errorf("failed to get invitation: %w", err)
+		return nil, domainerrors.Internal("get invitation", err)
 	}
 	return mapper.InvitationToEntity(&model), nil
 }
@@ -374,7 +374,7 @@ func (r *invitationRepository) UpdateStatus(ctx context.Context, invitationID uu
 		Where("id = ?", invitationID).
 		Update("status", status)
 	if result.Error != nil {
-		return fmt.Errorf("failed to update invitation status: %w", result.Error)
+		return domainerrors.Internal("update invitation status", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("invitation not found")

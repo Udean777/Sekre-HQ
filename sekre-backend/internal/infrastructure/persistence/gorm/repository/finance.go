@@ -3,10 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
@@ -27,7 +26,7 @@ func (r *transactionRepository) Create(ctx context.Context, orgID uuid.UUID, tra
 	transaction.OrganizationID = orgID
 	model := mapper.TransactionToModel(transaction)
 	if err := dbFor(ctx, r.db).Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create transaction: %w", err)
+		return domainerrors.Internal("create transaction", err)
 	}
 	transaction.CreatedAt = model.CreatedAt
 	transaction.UpdatedAt = model.UpdatedAt
@@ -41,9 +40,9 @@ func (r *transactionRepository) GetByID(ctx context.Context, orgID, transactionI
 		First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrTransactionNotFound
+			return nil, domainerrors.ErrTransactionNotFound
 		}
-		return nil, fmt.Errorf("failed to get transaction: %w", err)
+		return nil, domainerrors.Internal("get transaction", err)
 	}
 	return mapper.TransactionToEntity(&model), nil
 }
@@ -55,7 +54,7 @@ func (r *transactionRepository) List(ctx context.Context, orgID, divisionID uuid
 		Order("created_at DESC").
 		Find(&rows).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to list transactions: %w", err)
+		return nil, domainerrors.Internal("list transactions", err)
 	}
 
 	transactions := make([]entity.Transaction, len(rows))
@@ -85,7 +84,7 @@ func (r *transactionRepository) ListFiltered(ctx context.Context, orgID uuid.UUI
 
 	var rows []models.Transaction
 	if err := query.Order("created_at DESC").Find(&rows).Error; err != nil {
-		return nil, fmt.Errorf("failed to list transactions: %w", err)
+		return nil, domainerrors.Internal("list transactions", err)
 	}
 
 	transactions := make([]entity.Transaction, len(rows))
@@ -108,10 +107,10 @@ func (r *transactionRepository) Update(ctx context.Context, orgID uuid.UUID, tra
 			"receipt_url": transaction.ReceiptURL,
 		})
 	if result.Error != nil {
-		return fmt.Errorf("failed to update transaction: %w", result.Error)
+		return domainerrors.Internal("update transaction", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrTransactionNotFound
+		return domainerrors.ErrTransactionNotFound
 	}
 	return nil
 }
@@ -121,10 +120,10 @@ func (r *transactionRepository) Delete(ctx context.Context, orgID, transactionID
 		Where("id = ? AND organization_id = ?", transactionID, orgID).
 		Delete(&models.Transaction{})
 	if result.Error != nil {
-		return fmt.Errorf("failed to delete transaction: %w", result.Error)
+		return domainerrors.Internal("delete transaction", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return domain.ErrTransactionNotFound
+		return domainerrors.ErrTransactionNotFound
 	}
 	return nil
 }
@@ -149,7 +148,7 @@ func (r *transactionRepository) GetSummary(ctx context.Context, orgID uuid.UUID,
 		types.TransactionTypeIncome, types.TransactionTypeExpense,
 	).Scan(&result).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get finance summary: %w", err)
+		return nil, domainerrors.Internal("get finance summary", err)
 	}
 
 	return &entity.FinanceSummary{
@@ -166,7 +165,7 @@ func (r *transactionRepository) CountRecentByDivision(ctx context.Context, orgID
 		Where("organization_id = ? AND division_id = ? AND created_at > NOW() - INTERVAL '30 days'", orgID, divisionID).
 		Count(&count).Error
 	if err != nil {
-		return 0, fmt.Errorf("failed to count recent transactions: %w", err)
+		return 0, domainerrors.Internal("count recent transactions", err)
 	}
 	return count, nil
 }
