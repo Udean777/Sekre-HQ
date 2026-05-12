@@ -27,11 +27,11 @@ type Manager struct {
 	refreshTokenTTL time.Duration
 }
 
-func NewManager(secret string, accessTokenTTL, refreshTokenTTL int) *Manager {
+func NewManager(secret string, accessExpiry, refreshExpiry time.Duration) *Manager {
 	return &Manager{
 		secret:          secret,
-		accessTokenTTL:  time.Duration(accessTokenTTL) * time.Hour,
-		refreshTokenTTL: time.Duration(refreshTokenTTL) * time.Hour,
+		accessTokenTTL:  accessExpiry,
+		refreshTokenTTL: refreshExpiry,
 	}
 }
 

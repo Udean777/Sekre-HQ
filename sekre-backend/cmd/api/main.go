@@ -27,26 +27,31 @@ import (
 )
 
 func main() {
-	// Initialize logger with beautiful output
-	logger.Init()
-	logger.Info("🚀 Starting Sekre Backend API...")
-
-	// Load configuration
+	// Load configuration first (before logger to get log level)
 	cfg, err := config.Load()
 	if err != nil {
+		// Use default logger for config errors
+		logger.Init()
 		logger.Fatalf("Failed to load config: %v", err)
 	}
+
+	// Initialize logger with configured level
+	logger.InitWithLevel(cfg.Log.Level)
+	logger.Info("🚀 Starting Sekre Backend API...")
 	logger.Info("✓ Configuration loaded successfully")
 
 	// Connect to database with GORM
 	logger.Info("Connecting to database...")
 	db, err := database.NewGormDB(database.Config{
-		Host:     cfg.Database.Host,
-		Port:     cfg.Database.Port,
-		User:     cfg.Database.User,
-		Password: cfg.Database.Password,
-		DBName:   cfg.Database.DBName,
-		SSLMode:  cfg.Database.SSLMode,
+		Host:            cfg.Database.Host,
+		Port:            cfg.Database.Port,
+		User:            cfg.Database.User,
+		Password:        cfg.Database.Password,
+		DBName:          cfg.Database.DBName,
+		SSLMode:         cfg.Database.SSLMode,
+		MaxOpenConns:    cfg.Database.MaxOpenConns,
+		MaxIdleConns:    cfg.Database.MaxIdleConns,
+		ConnMaxLifetime: cfg.Database.ConnMaxLifetime,
 	})
 	if err != nil {
 		logger.Fatalf("Failed to connect to database: %v", err)
@@ -62,8 +67,8 @@ func main() {
 	// Initialize token manager
 	tokenManager := token.NewManager(
 		cfg.JWT.Secret,
-		cfg.JWT.AccessTokenTTL,
-		cfg.JWT.RefreshTokenTTL,
+		cfg.JWT.AccessExpiry,
+		cfg.JWT.RefreshExpiry,
 	)
 
 	// Initialize shared infrastructure
@@ -174,8 +179,8 @@ func main() {
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  60 * time.Second,
 	}
 

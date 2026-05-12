@@ -16,6 +16,7 @@ var (
 	ErrInvalidCredentials = Unauthorized("invalid email or password")
 	ErrInvalidToken       = Unauthorized("invalid or expired token")
 	ErrUnauthorized       = Unauthorized("unauthorized")
+	ErrForbidden          = Forbidden("access", "resource") // Generic forbidden error
 	ErrSubdomainTaken     = Conflict("subdomain", "unique_subdomain")
 	ErrEmailAlreadyExists = Conflict("email", "unique_email")
 

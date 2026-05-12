@@ -18,6 +18,11 @@ var (
 
 // Init initializes the logger with beautiful console output
 func Init() {
+	InitWithLevel("info")
+}
+
+// InitWithLevel initializes the logger with specified log level
+func InitWithLevel(level string) {
 	// Set up console writer with colors
 	output := zerolog.ConsoleWriter{
 		Out:        os.Stdout,
@@ -86,22 +91,41 @@ func Init() {
 	// Set global logger
 	log.Logger = Logger
 
-	// Set log level based on environment
-	env := os.Getenv("ENV")
-	switch env {
-	case "production", "prod":
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	case "development", "dev":
+	// Set log level
+	setLogLevel(level)
+
+	Logger.Info().Str("level", level).Msg("Logger initialized with beautiful console output")
+}
+
+// setLogLevel sets the global log level
+func setLogLevel(level string) {
+	switch strings.ToLower(level) {
+	case "trace":
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	case "debug":
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "info":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "warn", "warning":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	case "fatal":
+		zerolog.SetGlobalLevel(zerolog.FatalLevel)
+	case "panic":
+		zerolog.SetGlobalLevel(zerolog.PanicLevel)
 	default:
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
-
-	Logger.Info().Msg("Logger initialized with beautiful console output")
 }
 
 // InitWithFile initializes logger with both console and file output
 func InitWithFile(logFilePath string) error {
+	return InitWithFileAndLevel(logFilePath, "info")
+}
+
+// InitWithFileAndLevel initializes logger with both console and file output and specified log level
+func InitWithFileAndLevel(logFilePath string, level string) error {
 	// Create log directory if not exists
 	logDir := filepath.Dir(logFilePath)
 	if err := os.MkdirAll(logDir, 0755); err != nil {
@@ -179,17 +203,9 @@ func InitWithFile(logFilePath string) error {
 	log.Logger = Logger
 
 	// Set log level
-	env := os.Getenv("ENV")
-	switch env {
-	case "production", "prod":
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	case "development", "dev":
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	default:
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	}
+	setLogLevel(level)
 
-	Logger.Info().Str("log_file", logFilePath).Msg("Logger initialized with file output")
+	Logger.Info().Str("log_file", logFilePath).Str("level", level).Msg("Logger initialized with file output")
 	return nil
 }
 
