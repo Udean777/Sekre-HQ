@@ -62,6 +62,9 @@ func main() {
 	// Initialize repositories
 	authRepo := authRepository.NewAuthRepository(db)
 	divisionRepo := orgRepository.NewDivisionRepository(db)
+	userRepo := orgRepository.NewUserRepository(db)
+	memberRepo := orgRepository.NewMemberRepository(db)
+	organizationRepo := orgRepository.NewOrganizationRepository(db)
 	taskRepo := taskRepository.NewTaskRepository(db)
 	eventRepo := eventRepository.NewEventRepository(db)
 	financeRepo := financeRepository.NewFinanceRepository(db)
@@ -69,6 +72,10 @@ func main() {
 	// Initialize usecases
 	authUsecaseInst := authUsecase.NewAuthUsecase(authRepo, tokenManager)
 	divisionUsecaseInst := orgUsecase.NewDivisionUsecase(divisionRepo)
+	userUsecaseInst := orgUsecase.NewUserUsecase(userRepo)
+	memberUsecaseInst := orgUsecase.NewMemberUsecase(memberRepo)
+	memberCreationUsecaseInst := orgUsecase.NewMemberCreationUsecase(memberRepo, divisionRepo)
+	organizationUsecaseInst := orgUsecase.NewOrganizationUsecase(organizationRepo)
 	taskUsecaseInst := taskUsecase.NewTaskUsecase(taskRepo)
 	eventUsecaseInst := eventUsecase.NewEventUsecase(*eventRepo)
 	financeUsecaseInst := financeUsecase.NewFinanceUsecase(*financeRepo)
@@ -91,8 +98,25 @@ func main() {
 	authHandler := authDelivery.NewAuthHandler(authUsecaseInst, tokenManager)
 	authHandler.RegisterRoutes(apiV1)
 
+	// Public template download (no auth required)
+	memberCreationHandler := orgDelivery.NewMemberCreationHandler(memberCreationUsecaseInst)
+	apiV1.HandleFunc("/members/template", memberCreationHandler.DownloadTemplate).Methods("GET")
+
 	divisionHandler := orgDelivery.NewDivisionHandler(divisionUsecaseInst)
 	divisionHandler.RegisterRoutes(protected)
+
+	userHandler := orgDelivery.NewUserHandler(userUsecaseInst)
+	userHandler.RegisterRoutes(protected)
+
+	memberHandler := orgDelivery.NewMemberHandler(memberUsecaseInst)
+	memberHandler.RegisterRoutes(protected)
+
+	organizationHandler := orgDelivery.NewOrganizationHandler(organizationUsecaseInst)
+	organizationHandler.RegisterRoutes(protected)
+
+	// Protected member creation routes
+	protected.HandleFunc("/members/create", memberCreationHandler.CreateMember).Methods("POST")
+	protected.HandleFunc("/members/bulk-import", memberCreationHandler.BulkImport).Methods("POST")
 
 	taskHandler := taskDelivery.NewTaskHandler(taskUsecaseInst)
 	taskHandler.RegisterRoutes(protected)

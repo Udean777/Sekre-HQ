@@ -53,13 +53,13 @@ func (r *authRepository) CreateUser(ctx context.Context, user *domain.User) erro
 
 func (r *authRepository) CreateUserOrganization(ctx context.Context, userOrg *domain.UserOrganization) error {
 	query := `
-		INSERT INTO user_organizations (id, user_id, organization_id, role)
-		VALUES ($1, $2, $3, $4)
-		RETURNING created_at
+		INSERT INTO organization_members (organization_id, user_id, role)
+		VALUES ($1, $2, $3)
+		RETURNING joined_at
 	`
 	return r.db.QueryRowContext(
 		ctx, query,
-		userOrg.ID, userOrg.UserID, userOrg.OrganizationID, userOrg.Role,
+		userOrg.OrganizationID, userOrg.UserID, userOrg.Role,
 	).Scan(&userOrg.CreatedAt)
 }
 
@@ -85,13 +85,13 @@ func (r *authRepository) GetUserByEmail(ctx context.Context, email string) (*dom
 
 func (r *authRepository) GetUserOrganization(ctx context.Context, userID, orgID uuid.UUID) (*domain.UserOrganization, error) {
 	query := `
-		SELECT id, user_id, organization_id, role, created_at
-		FROM user_organizations
+		SELECT organization_id, user_id, role, joined_at
+		FROM organization_members
 		WHERE user_id = $1 AND organization_id = $2
 	`
 	userOrg := &domain.UserOrganization{}
 	err := r.db.QueryRowContext(ctx, query, userID, orgID).Scan(
-		&userOrg.ID, &userOrg.UserID, &userOrg.OrganizationID,
+		&userOrg.OrganizationID, &userOrg.UserID,
 		&userOrg.Role, &userOrg.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -108,10 +108,10 @@ func (r *authRepository) GetUserWithOrganization(ctx context.Context, userID uui
 		SELECT 
 			u.id, u.email, u.full_name, u.created_at, u.updated_at,
 			o.id, o.name, o.subdomain, o.subscription_plan, o.created_at, o.updated_at,
-			uo.role
+			om.role
 		FROM users u
-		JOIN user_organizations uo ON u.id = uo.user_id
-		JOIN organizations o ON uo.organization_id = o.id
+		JOIN organization_members om ON u.id = om.user_id
+		JOIN organizations o ON om.organization_id = o.id
 		WHERE u.id = $1
 		LIMIT 1
 	`

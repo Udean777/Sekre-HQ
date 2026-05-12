@@ -17,7 +17,7 @@ type DivisionRepository interface {
 	Update(ctx context.Context, div *domain.Division) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	CountByOrganization(ctx context.Context, orgID uuid.UUID) (int, error)
-	
+
 	// Member management
 	AddMember(ctx context.Context, divisionID, userID uuid.UUID, role string) error
 	RemoveMember(ctx context.Context, divisionID, userID uuid.UUID) error
@@ -26,7 +26,7 @@ type DivisionRepository interface {
 	UpdateMemberRole(ctx context.Context, divisionID, userID uuid.UUID, role string) error
 	IsMember(ctx context.Context, divisionID, userID uuid.UUID) (bool, error)
 	CountHeads(ctx context.Context, divisionID uuid.UUID) (int, error)
-	
+
 	// Data checks
 	HasActiveTasks(ctx context.Context, divisionID uuid.UUID) (bool, error)
 	HasUpcomingEvents(ctx context.Context, divisionID uuid.UUID) (bool, error)
@@ -43,25 +43,25 @@ func NewDivisionRepository(db *sql.DB) DivisionRepository {
 
 func (r *divisionRepository) Create(ctx context.Context, div *domain.Division) error {
 	query := `
-		INSERT INTO divisions (id, organization_id, name, description)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO divisions (id, organization_id, name)
+		VALUES ($1, $2, $3)
 		RETURNING created_at, updated_at
 	`
 	return r.db.QueryRowContext(
 		ctx, query,
-		div.ID, div.OrganizationID, div.Name, div.Description,
+		div.ID, div.OrganizationID, div.Name,
 	).Scan(&div.CreatedAt, &div.UpdatedAt)
 }
 
 func (r *divisionRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Division, error) {
 	query := `
-		SELECT id, organization_id, name, description, created_at, updated_at
+		SELECT id, organization_id, name, created_at, updated_at
 		FROM divisions
 		WHERE id = $1
 	`
 	div := &domain.Division{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&div.ID, &div.OrganizationID, &div.Name, &div.Description,
+		&div.ID, &div.OrganizationID, &div.Name,
 		&div.CreatedAt, &div.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -75,7 +75,7 @@ func (r *divisionRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain
 
 func (r *divisionRepository) GetByOrganization(ctx context.Context, orgID uuid.UUID) ([]domain.Division, error) {
 	query := `
-		SELECT id, organization_id, name, description, created_at, updated_at
+		SELECT id, organization_id, name, created_at, updated_at
 		FROM divisions
 		WHERE organization_id = $1
 		ORDER BY created_at DESC
@@ -90,7 +90,7 @@ func (r *divisionRepository) GetByOrganization(ctx context.Context, orgID uuid.U
 	for rows.Next() {
 		var div domain.Division
 		if err := rows.Scan(
-			&div.ID, &div.OrganizationID, &div.Name, &div.Description,
+			&div.ID, &div.OrganizationID, &div.Name,
 			&div.CreatedAt, &div.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan division: %w", err)
@@ -103,13 +103,13 @@ func (r *divisionRepository) GetByOrganization(ctx context.Context, orgID uuid.U
 func (r *divisionRepository) Update(ctx context.Context, div *domain.Division) error {
 	query := `
 		UPDATE divisions
-		SET name = $1, description = $2, updated_at = NOW()
-		WHERE id = $3
+		SET name = $1, updated_at = NOW()
+		WHERE id = $2
 		RETURNING updated_at
 	`
 	return r.db.QueryRowContext(
 		ctx, query,
-		div.Name, div.Description, div.ID,
+		div.Name, div.ID,
 	).Scan(&div.UpdatedAt)
 }
 
@@ -234,14 +234,14 @@ func (r *divisionRepository) HasActiveTasks(ctx context.Context, divisionID uuid
 }
 
 func (r *divisionRepository) HasUpcomingEvents(ctx context.Context, divisionID uuid.UUID) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM events WHERE division_id = $1 AND start_date > NOW())`
+	query := `SELECT EXISTS(SELECT 1 FROM events WHERE division_id = $1 AND start_time > NOW())`
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, divisionID).Scan(&exists)
 	return exists, err
 }
 
 func (r *divisionRepository) HasRecentTransactions(ctx context.Context, divisionID uuid.UUID) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM transactions WHERE division_id = $1 AND transaction_date > NOW() - INTERVAL '30 days')`
+	query := `SELECT EXISTS(SELECT 1 FROM transactions WHERE division_id = $1 AND created_at > NOW() - INTERVAL '30 days')`
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, divisionID).Scan(&exists)
 	return exists, err

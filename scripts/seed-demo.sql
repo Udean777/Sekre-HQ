@@ -3,7 +3,7 @@
 
 -- Temporarily disable RLS for seeding
 ALTER TABLE organizations DISABLE ROW LEVEL SECURITY;
-ALTER TABLE user_organizations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE organization_members DISABLE ROW LEVEL SECURITY;
 ALTER TABLE divisions DISABLE ROW LEVEL SECURITY;
 ALTER TABLE division_members DISABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks DISABLE ROW LEVEL SECURITY;
@@ -29,8 +29,8 @@ VALUES
     ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'zulhamdani@himti.org', '$2a$10$xb4r2CBzIupxG2nMniiW3eGTxtXC0Y1EWiEmhrSLe5WusSuC2J00K', 'Zulhamdani', NOW()),
     ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'gilang@himti.org', '$2a$10$xb4r2CBzIupxG2nMniiW3eGTxtXC0Y1EWiEmhrSLe5WusSuC2J00K', 'Gilang Gemilang', NOW());
 
--- Organization Members (using user_organizations table)
-INSERT INTO user_organizations (user_id, organization_id, role, created_at)
+-- Organization Members (using organization_members table)
+INSERT INTO organization_members (user_id, organization_id, role, joined_at)
 VALUES 
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 'OWNER', NOW()),
     ('cccccccc-cccc-cccc-cccc-cccccccccccc', '11111111-1111-1111-1111-111111111111', 'ADMIN', NOW()),
@@ -108,7 +108,7 @@ END $$;
 
 -- Re-enable RLS after seeding
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organization_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE divisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE division_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;

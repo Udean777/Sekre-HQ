@@ -13,6 +13,7 @@ var (
 	// Organization errors
 	ErrOrganizationNotFound = errors.New("organization not found")
 	ErrUserNotInOrg         = errors.New("user not in organization")
+	ErrUserNotFound         = errors.New("user not found")
 
 	// Validation errors
 	ErrInvalidInput = errors.New("invalid input")

@@ -1,10 +1,13 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
+
   interface Props {
     variant?: "success" | "error" | "warning" | "info";
     title?: string;
-    message: string;
+    message?: string;
     dismissible?: boolean;
     onDismiss?: () => void;
+    children?: Snippet;
   }
 
   let {
@@ -13,6 +16,7 @@
     message,
     dismissible = false,
     onDismiss,
+    children,
   }: Props = $props();
 
   const variantClasses = {
@@ -88,12 +92,16 @@
       {/if}
     </div>
     <div class="ml-3 flex-1">
-      {#if title}
+      {#if children}
+        {@render children()}
+      {:else if title}
         <h3 class="text-sm font-medium">{title}</h3>
-        <div class="mt-2 text-sm">
-          <p>{message}</p>
-        </div>
-      {:else}
+        {#if message}
+          <div class="mt-2 text-sm">
+            <p>{message}</p>
+          </div>
+        {/if}
+      {:else if message}
         <p class="text-sm">{message}</p>
       {/if}
     </div>

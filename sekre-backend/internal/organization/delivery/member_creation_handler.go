@@ -1,0 +1,261 @@
+package delivery
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+
+	"github.com/google/uuid"
+	"github.com/username/sekre-backend/internal/domain"
+	"github.com/username/sekre-backend/internal/middleware"
+	"github.com/username/sekre-backend/internal/organization/usecase"
+	"github.com/username/sekre-backend/pkg/response"
+	"github.com/xuri/excelize/v2"
+)
+
+type MemberCreationHandler struct {
+	usecase usecase.MemberCreationUsecase
+}
+
+func NewMemberCreationHandler(usecase usecase.MemberCreationUsecase) *MemberCreationHandler {
+	return &MemberCreationHandler{usecase: usecase}
+}
+
+// CreateMember creates a single new member
+func (h *MemberCreationHandler) CreateMember(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
+	if !ok {
+		response.Unauthorized(w, "invalid organization context")
+		return
+	}
+
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		response.Unauthorized(w, "invalid user context")
+		return
+	}
+
+	var req domain.CreateMemberRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.BadRequest(w, "invalid request body")
+		return
+	}
+
+	createdMember, err := h.usecase.CreateMember(r.Context(), req, orgID, userID)
+	if err != nil {
+		if strings.Contains(err.Error(), "email already exists") {
+			response.BadRequest(w, err.Error())
+			return
+		}
+		if strings.Contains(err.Error(), "division") {
+			response.BadRequest(w, err.Error())
+			return
+		}
+		response.InternalServerError(w, err.Error())
+		return
+	}
+
+	response.Success(w, http.StatusCreated, "member created successfully", createdMember)
+}
+
+// BulkImport imports members from Excel file
+func (h *MemberCreationHandler) BulkImport(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
+	if !ok {
+		response.Unauthorized(w, "invalid organization context")
+		return
+	}
+
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		response.Unauthorized(w, "invalid user context")
+		return
+	}
+
+	// Parse multipart form (max 10MB)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		response.BadRequest(w, "failed to parse form")
+		return
+	}
+
+	// Get file from form
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		response.BadRequest(w, "file is required")
+		return
+	}
+	defer file.Close()
+
+	// Read file content
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		response.InternalServerError(w, "failed to read file")
+		return
+	}
+
+	// Parse Excel file
+	members, err := h.parseExcelFile(fileBytes)
+	if err != nil {
+		response.BadRequest(w, fmt.Sprintf("failed to parse Excel file: %s", err.Error()))
+		return
+	}
+
+	if len(members) == 0 {
+		response.BadRequest(w, "no valid members found in file")
+		return
+	}
+
+	// Import members
+	result, err := h.usecase.BulkImportMembers(r.Context(), members, orgID, userID)
+	if err != nil {
+		response.InternalServerError(w, err.Error())
+		return
+	}
+
+	response.Success(w, http.StatusOK, "bulk import completed", result)
+}
+
+// DownloadTemplate generates and downloads Excel template
+func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("[DownloadTemplate] Starting template generation...")
+	
+	f := excelize.NewFile()
+	defer f.Close()
+
+	sheetName := "Members"
+	
+	// Create new sheet
+	index, err := f.NewSheet(sheetName)
+	if err != nil {
+		fmt.Println("[DownloadTemplate] Error creating sheet:", err)
+		http.Error(w, "failed to create sheet", http.StatusInternalServerError)
+		return
+	}
+	fmt.Println("[DownloadTemplate] Sheet created, index:", index)
+
+	// Delete default Sheet1
+	f.DeleteSheet("Sheet1")
+	fmt.Println("[DownloadTemplate] Default sheet deleted")
+
+	// Set headers with bold style
+	headerStyle, err := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold: true,
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#E0E0E0"},
+			Pattern: 1,
+		},
+	})
+	if err == nil {
+		for i := 0; i < 5; i++ {
+			cell := fmt.Sprintf("%c1", 'A'+i)
+			f.SetCellStyle(sheetName, cell, cell, headerStyle)
+		}
+	}
+
+	// Set headers
+	headers := []string{"Email", "Full Name", "Role", "Division", "Division Role"}
+	for i, header := range headers {
+		cell := fmt.Sprintf("%c1", 'A'+i)
+		f.SetCellValue(sheetName, cell, header)
+	}
+	fmt.Println("[DownloadTemplate] Headers set")
+
+	// Add example data
+	examples := [][]string{
+		{"john@himti.org", "John Doe", "MEMBER", "IT", "HEAD"},
+		{"jane@himti.org", "Jane Smith", "MEMBER", "IT", "STAFF"},
+		{"bob@himti.org", "Bob Johnson", "ADMIN", "Finance", "HEAD"},
+	}
+
+	for i, example := range examples {
+		rowNum := i + 2
+		for j, value := range example {
+			cell := fmt.Sprintf("%c%d", 'A'+j, rowNum)
+			f.SetCellValue(sheetName, cell, value)
+		}
+	}
+	fmt.Println("[DownloadTemplate] Example data added")
+
+	// Set column widths
+	f.SetColWidth(sheetName, "A", "A", 25) // Email
+	f.SetColWidth(sheetName, "B", "B", 20) // Full Name
+	f.SetColWidth(sheetName, "C", "C", 12) // Role
+	f.SetColWidth(sheetName, "D", "D", 15) // Division
+	f.SetColWidth(sheetName, "E", "E", 15) // Division Role
+	fmt.Println("[DownloadTemplate] Column widths set")
+
+	// Set active sheet
+	f.SetActiveSheet(index)
+	fmt.Println("[DownloadTemplate] Active sheet set")
+
+	// Write to response
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Content-Disposition", "attachment; filename=member_import_template.xlsx")
+	fmt.Println("[DownloadTemplate] Headers set, writing file...")
+
+	if err := f.Write(w); err != nil {
+		fmt.Println("[DownloadTemplate] Error writing file:", err)
+		http.Error(w, "failed to write file", http.StatusInternalServerError)
+		return
+	}
+	
+	fmt.Println("[DownloadTemplate] Template sent successfully")
+}
+
+// parseExcelFile parses Excel file and returns member requests
+func (h *MemberCreationHandler) parseExcelFile(fileBytes []byte) ([]domain.BulkImportMemberRequest, error) {
+	f, err := excelize.OpenReader(strings.NewReader(string(fileBytes)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to open Excel file: %w", err)
+	}
+	defer f.Close()
+
+	// Get first sheet
+	sheetName := f.GetSheetName(0)
+	if sheetName == "" {
+		return nil, fmt.Errorf("no sheets found in Excel file")
+	}
+
+	// Get all rows
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read rows: %w", err)
+	}
+
+	if len(rows) < 2 {
+		return nil, fmt.Errorf("file must contain at least a header row and one data row")
+	}
+
+	// Skip header row
+	var members []domain.BulkImportMemberRequest
+	for i := 1; i < len(rows); i++ {
+		row := rows[i]
+		
+		// Skip empty rows
+		if len(row) == 0 || (len(row) > 0 && strings.TrimSpace(row[0]) == "") {
+			continue
+		}
+
+		// Ensure row has enough columns
+		for len(row) < 5 {
+			row = append(row, "")
+		}
+
+		member := domain.BulkImportMemberRequest{
+			Email:        strings.TrimSpace(row[0]),
+			FullName:     strings.TrimSpace(row[1]),
+			Role:         strings.ToUpper(strings.TrimSpace(row[2])),
+			Division:     strings.TrimSpace(row[3]),
+			DivisionRole: strings.ToUpper(strings.TrimSpace(row[4])),
+		}
+
+		members = append(members, member)
+	}
+
+	return members, nil
+}

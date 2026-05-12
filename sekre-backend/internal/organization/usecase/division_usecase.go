@@ -36,7 +36,7 @@ type DivisionUsecase interface {
 	List(ctx context.Context, orgID uuid.UUID) ([]domain.Division, error)
 	Update(ctx context.Context, id uuid.UUID, req *UpdateDivisionRequest) (*domain.Division, error)
 	Delete(ctx context.Context, id uuid.UUID) error
-	
+
 	AddMember(ctx context.Context, divisionID uuid.UUID, req *AddMemberRequest) error
 	RemoveMember(ctx context.Context, divisionID, userID uuid.UUID) error
 	UpdateMemberRole(ctx context.Context, divisionID, userID uuid.UUID, role string) error
@@ -71,7 +71,6 @@ func (u *divisionUsecase) Create(ctx context.Context, orgID uuid.UUID, req *Crea
 		ID:             uuid.New(),
 		OrganizationID: orgID,
 		Name:           strings.TrimSpace(req.Name),
-		Description:    strings.TrimSpace(req.Description),
 	}
 
 	if err := u.repo.Create(ctx, div); err != nil {
@@ -116,7 +115,6 @@ func (u *divisionUsecase) Update(ctx context.Context, id uuid.UUID, req *UpdateD
 
 	// Update fields
 	div.Name = strings.TrimSpace(req.Name)
-	div.Description = strings.TrimSpace(req.Description)
 
 	if err := u.repo.Update(ctx, div); err != nil {
 		return nil, fmt.Errorf("failed to update division: %w", err)

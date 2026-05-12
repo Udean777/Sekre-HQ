@@ -20,7 +20,8 @@ export async function verifyToken(token: string): Promise<UserWithOrganization |
 		const data = await api.get<UserWithOrganization>('/auth/me');
 		return data;
 	} catch (error) {
-		console.error('Token verification failed:', error);
+		// Don't log error to avoid spam in console
+		// Token is simply invalid or expired
 		return null;
 	}
 }

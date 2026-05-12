@@ -11,7 +11,7 @@ type Division struct {
 	ID             uuid.UUID `json:"id"`
 	OrganizationID uuid.UUID `json:"organization_id"`
 	Name           string    `json:"name"`
-	Description    string    `json:"description"`
+	Description    *string   `json:"description,omitempty"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
@@ -32,8 +32,8 @@ type DivisionWithMembers struct {
 
 // UserWithRole combines user + division role
 type UserWithRole struct {
-	User         User   `json:"user"`
-	DivisionRole string `json:"division_role"`
+	User         User      `json:"user"`
+	DivisionRole string    `json:"division_role"`
 	JoinedAt     time.Time `json:"joined_at"`
 }
 

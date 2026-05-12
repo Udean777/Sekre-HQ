@@ -7,13 +7,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Try to get session if token exists
 	if (token) {
-		const session = await getSession(event.cookies);
+		try {
+			const session = await getSession(event.cookies);
 
-		if (session) {
-			// Set user and organization in locals
-			event.locals.user = session.user;
-			event.locals.organization = session.organization;
-			event.locals.token = token;
+			if (session) {
+				// Set user and organization in locals
+				event.locals.user = session.user;
+				event.locals.organization = session.organization;
+				event.locals.token = token;
+			} else {
+				// Token is invalid, clear the cookie
+				event.cookies.delete(TOKEN_COOKIE_NAME, { path: '/' });
+			}
+		} catch (error) {
+			// If any error occurs during session retrieval, clear the cookie
+			event.cookies.delete(TOKEN_COOKIE_NAME, { path: '/' });
 		}
 	}
 

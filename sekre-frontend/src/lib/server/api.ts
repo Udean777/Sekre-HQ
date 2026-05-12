@@ -56,6 +56,13 @@ export class ServerApiClient {
 		const response = await this.request<T>(endpoint, {
 			method: 'GET'
 		});
+		
+		// Debug logging
+		console.log('[API Client] GET', endpoint);
+		console.log('[API Client] Response success:', response.success);
+		console.log('[API Client] Response data type:', typeof response.data);
+		console.log('[API Client] Response data:', Array.isArray(response.data) ? `Array(${response.data.length})` : response.data);
+		
 		return response.data as T;
 	}
 

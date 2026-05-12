@@ -8,6 +8,7 @@
     disabled?: boolean;
     loading?: boolean;
     onclick?: () => void;
+    title?: string;
     children: Snippet;
   }
 
@@ -18,6 +19,7 @@
     disabled = false,
     loading = false,
     onclick,
+    title,
     children,
   }: Props = $props();
 
@@ -44,7 +46,7 @@
   );
 </script>
 
-<button {type} class={classes} disabled={disabled || loading} {onclick}>
+<button {type} class={classes} disabled={disabled || loading} {onclick} {title}>
   {#if loading}
     <svg
       class="animate-spin -ml-1 mr-2 h-4 w-4"
