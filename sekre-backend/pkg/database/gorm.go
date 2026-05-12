@@ -2,12 +2,11 @@ package database
 
 import (
 	"fmt"
-	"log"
 	"time"
 
+	"github.com/username/sekre-backend/pkg/logger"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 // Config holds database configuration
@@ -27,15 +26,10 @@ func NewGormDB(cfg Config) (*gorm.DB, error) {
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode,
 	)
 
-	// Configure GORM logger
-	gormLogger := logger.New(
-		log.New(log.Writer(), "\r\n", log.LstdFlags),
-		logger.Config{
-			SlowThreshold:             200 * time.Millisecond, // Log slow queries
-			LogLevel:                  logger.Warn,            // Log level
-			IgnoreRecordNotFoundError: true,                   // Don't log ErrRecordNotFound
-			Colorful:                  true,                   // Enable color
-		},
+	// Configure GORM logger using zerolog adapter
+	gormLogger := NewGormZerologAdapter(
+		logger.Logger,
+		200*time.Millisecond, // Slow query threshold
 	)
 
 	// Open connection

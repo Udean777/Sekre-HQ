@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -13,9 +12,13 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	"github.com/username/sekre-backend/internal/config"
+	"github.com/username/sekre-backend/pkg/logger"
 )
 
 func main() {
+	// Initialize logger
+	logger.Init()
+
 	var command string
 	var steps int
 	var version uint
@@ -35,16 +38,16 @@ func main() {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		logger.Fatalf("Failed to load config: %v", err)
 	}
 
 	// Handle create command separately (doesn't need DB connection)
 	if command == "create" {
 		if name == "" {
-			log.Fatal("Migration name is required for create command")
+			logger.Fatal("Migration name is required for create command")
 		}
 		if err := createMigration(name); err != nil {
-			log.Fatalf("Failed to create migration: %v", err)
+			logger.Fatalf("Failed to create migration: %v", err)
 		}
 		return
 	}
@@ -62,14 +65,14 @@ func main() {
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		logger.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
 	// Create postgres driver instance
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		log.Fatalf("Failed to create postgres driver: %v", err)
+		logger.Fatalf("Failed to create postgres driver: %v", err)
 	}
 
 	// Create migrate instance
@@ -79,35 +82,35 @@ func main() {
 		driver,
 	)
 	if err != nil {
-		log.Fatalf("Failed to create migrate instance: %v", err)
+		logger.Fatalf("Failed to create migrate instance: %v", err)
 	}
 
 	// Execute command
 	switch command {
 	case "up":
 		if err := runUp(m, steps); err != nil {
-			log.Fatalf("Migration up failed: %v", err)
+			logger.Fatalf("Migration up failed: %v", err)
 		}
 	case "down":
 		if err := runDown(m, steps); err != nil {
-			log.Fatalf("Migration down failed: %v", err)
+			logger.Fatalf("Migration down failed: %v", err)
 		}
 	case "force":
 		if version == 0 {
-			log.Fatal("Version is required for force command")
+			logger.Fatal("Version is required for force command")
 		}
 		if err := m.Force(int(version)); err != nil {
-			log.Fatalf("Migration force failed: %v", err)
+			logger.Fatalf("Migration force failed: %v", err)
 		}
-		log.Printf("Forced migration to version %d", version)
+		logger.Infof("Forced migration to version %d", version)
 	case "version":
 		v, dirty, err := m.Version()
 		if err != nil {
-			log.Fatalf("Failed to get version: %v", err)
+			logger.Fatalf("Failed to get version: %v", err)
 		}
-		log.Printf("Current version: %d (dirty: %v)", v, dirty)
+		logger.Infof("Current version: %d (dirty: %v)", v, dirty)
 	default:
-		log.Fatalf("Unknown command: %s", command)
+		logger.Fatalf("Unknown command: %s", command)
 	}
 }
 
@@ -116,16 +119,16 @@ func runUp(m *migrate.Migrate, steps int) error {
 		if err := m.Steps(steps); err != nil {
 			return err
 		}
-		log.Printf("Successfully migrated up %d steps", steps)
+		logger.Infof("Successfully migrated up %d steps", steps)
 	} else {
 		if err := m.Up(); err != nil {
 			if err == migrate.ErrNoChange {
-				log.Println("No migrations to apply")
+				logger.Info("No migrations to apply")
 				return nil
 			}
 			return err
 		}
-		log.Println("Successfully migrated up to latest version")
+		logger.Info("Successfully migrated up to latest version")
 	}
 	return nil
 }
@@ -135,16 +138,16 @@ func runDown(m *migrate.Migrate, steps int) error {
 		if err := m.Steps(-steps); err != nil {
 			return err
 		}
-		log.Printf("Successfully migrated down %d steps", steps)
+		logger.Infof("Successfully migrated down %d steps", steps)
 	} else {
 		if err := m.Down(); err != nil {
 			if err == migrate.ErrNoChange {
-				log.Println("No migrations to rollback")
+				logger.Info("No migrations to rollback")
 				return nil
 			}
 			return err
 		}
-		log.Println("Successfully migrated down all migrations")
+		logger.Info("Successfully migrated down all migrations")
 	}
 	return nil
 }
@@ -164,7 +167,7 @@ func createMigration(name string) error {
 		return fmt.Errorf("failed to create down migration file: %w", err)
 	}
 
-	log.Printf("Created migration files:\n  %s\n  %s", upFile, downFile)
+	logger.Infof("Created migration files:\n  %s\n  %s", upFile, downFile)
 	return nil
 }
 
