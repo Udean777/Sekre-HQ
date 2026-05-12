@@ -5,10 +5,11 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
+	"github.com/username/sekre-backend/internal/domain/valueobject"
 	"github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/mapper"
 	"github.com/username/sekre-backend/internal/models"
 	"gorm.io/gorm"
@@ -95,17 +96,32 @@ func (r *transactionRepository) ListFiltered(ctx context.Context, orgID uuid.UUI
 }
 
 func (r *transactionRepository) Update(ctx context.Context, orgID uuid.UUID, transaction *entity.Transaction) error {
+	// Prepare update map with dual-write support
+	updates := map[string]interface{}{
+		"type":        transaction.Type,
+		"description": transaction.Description,
+		"status":      transaction.Status,
+		"approved_by": transaction.ApprovedBy,
+		"receipt_url": transaction.ReceiptURL,
+	}
+
+	// Dual-write: update both old and new amount fields
+	if transaction.AmountMoney != nil {
+		// New field takes precedence
+		updates["amount_cents"] = transaction.AmountMoney.AmountCents
+		updates["currency"] = transaction.AmountMoney.Currency
+		updates["amount"] = transaction.AmountMoney.ToFloat() // Backward compatibility
+	} else if transaction.Amount != 0 {
+		// Fallback to old field
+		updates["amount"] = transaction.Amount
+		updates["amount_cents"] = int64(transaction.Amount * 100)
+		updates["currency"] = "IDR"
+	}
+
 	result := dbFor(ctx, r.db).
 		Model(&models.Transaction{}).
 		Where("id = ? AND organization_id = ?", transaction.ID, orgID).
-		Updates(map[string]interface{}{
-			"type":        transaction.Type,
-			"amount":      transaction.Amount,
-			"description": transaction.Description,
-			"status":      transaction.Status,
-			"approved_by": transaction.ApprovedBy,
-			"receipt_url": transaction.ReceiptURL,
-		})
+		Updates(updates)
 	if result.Error != nil {
 		return domainerrors.Internal("update transaction", result.Error)
 	}
@@ -137,24 +153,42 @@ func (r *transactionRepository) GetSummary(ctx context.Context, orgID uuid.UUID,
 		query = query.Where("division_id = ?", *divisionID)
 	}
 
+	// Use integer arithmetic with amount_cents for precision
 	var result struct {
-		TotalIncome  float64
-		TotalExpense float64
+		TotalIncomeCents  int64
+		TotalExpenseCents int64
+		Currency          string
 	}
 
 	err := query.Select(
-		"COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) AS total_income, "+
-			"COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) AS total_expense",
+		"COALESCE(SUM(CASE WHEN type = ? THEN amount_cents ELSE 0 END), 0) AS total_income_cents, "+
+			"COALESCE(SUM(CASE WHEN type = ? THEN amount_cents ELSE 0 END), 0) AS total_expense_cents, "+
+			"COALESCE(MAX(currency), 'IDR') AS currency",
 		types.TransactionTypeIncome, types.TransactionTypeExpense,
 	).Scan(&result).Error
 	if err != nil {
 		return nil, domainerrors.Internal("get finance summary", err)
 	}
 
+	// Default currency if no transactions
+	if result.Currency == "" {
+		result.Currency = "IDR"
+	}
+
+	// Create Money objects
+	totalIncomeMoney := valueobject.NewMoney(result.TotalIncomeCents, result.Currency)
+	totalExpenseMoney := valueobject.NewMoney(result.TotalExpenseCents, result.Currency)
+	balanceMoney := valueobject.NewMoney(result.TotalIncomeCents-result.TotalExpenseCents, result.Currency)
+
 	return &entity.FinanceSummary{
-		TotalIncome:  result.TotalIncome,
-		TotalExpense: result.TotalExpense,
-		Balance:      result.TotalIncome - result.TotalExpense,
+		// Deprecated fields (for backward compatibility)
+		TotalIncome:  totalIncomeMoney.ToFloat(),
+		TotalExpense: totalExpenseMoney.ToFloat(),
+		Balance:      balanceMoney.ToFloat(),
+		// New fields (proper Money representation)
+		TotalIncomeMoney:  &totalIncomeMoney,
+		TotalExpenseMoney: &totalExpenseMoney,
+		BalanceMoney:      &balanceMoney,
 	}, nil
 }
 
