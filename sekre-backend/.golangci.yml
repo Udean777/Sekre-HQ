@@ -1,0 +1,183 @@
+# golangci-lint configuration for sekre-backend
+# See https://golangci-lint.run/usage/configuration/
+
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor
+    - third_party
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+
+output:
+  formats:
+    colored-line-number:
+      path: stdout
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+  sort-results: true
+
+linters:
+  disable-all: true
+  enable:
+    # Core linters (enabled by default)
+    - errcheck      # Check for unchecked errors
+    - govet         # Standard Go vet checks
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Advanced static analysis
+    - unused        # Find unused code
+    
+    # Style and best practices
+    - revive        # Fast, configurable, extensible linter
+    - gocritic      # Opinionated linter with many checks
+    - misspell      # Find commonly misspelled words
+    - unconvert     # Remove unnecessary type conversions
+    - unparam       # Find unused function parameters
+    - whitespace    # Check for unnecessary whitespace
+    - godot         # Check comments end with period
+    - predeclared   # Find code that shadows predeclared identifiers
+    
+    # Complexity
+    - gocyclo       # Cyclomatic complexity
+    - dupl          # Code clone detection
+    - goconst       # Find repeated strings that could be constants
+    
+    # Security
+    - gosec         # Security-focused linter
+    
+    # Error handling
+    - errname       # Check error naming (ErrXxx)
+    - errorlint     # Find code that will cause problems with Go 1.13+ error wrapping
+    - nilerr        # Find code that returns nil even if it checks that error is not nil
+    
+    # Resource management
+    - bodyclose     # Check HTTP response body is closed
+    - rowserrcheck  # Check sql.Rows.Err is checked
+    - sqlclosecheck # Check sql.Rows/Stmt are closed
+    
+    # Context usage
+    - noctx         # Find HTTP requests without context
+    
+    # Memory and performance
+    - makezero      # Find slice declarations with non-zero initial length
+    - copyloopvar   # Check for pointers to loop variables (replaces exportloopref)
+    - wastedassign  # Find wasted assignment statements
+    
+    # Testing
+    - thelper       # Detect test helpers without t.Helper()
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    exclude-functions:
+      - (*database/sql.Rows).Close
+      - (*database/sql.DB).Close
+
+  govet:
+    enable-all: true
+    disable:
+      - shadow  # Too noisy for now
+
+  revive:
+    severity: warning
+    confidence: 0.8
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+      - experimental
+      - opinionated
+    disabled-checks:
+      - whyNoLint
+      - unnamedResult
+
+  gosec:
+    severity: medium
+    confidence: medium
+    excludes:
+      - G104  # Audit errors not checked (covered by errcheck)
+      - G304  # File path provided as taint input (too many false positives)
+
+  gocyclo:
+    min-complexity: 15
+
+  dupl:
+    threshold: 100
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+    ignore-tests: true
+
+  misspell:
+    locale: US
+    ignore-words: []
+
+  whitespace:
+    multi-if: false
+    multi-func: false
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - goconst
+
+    # Exclude known issues in generated code
+    - path: ".*\\.pb\\.go$"
+      linters:
+        - all
+
+    # Exclude some staticcheck messages
+    - linters:
+        - staticcheck
+      text: "SA9003:"
+
+  # Maximum issues count per one linter
+  max-issues-per-linter: 50
+
+  # Maximum count of issues with the same text
+  max-same-issues: 3
+
+  # Show only new issues
+  new: false
+
+  # Fix found issues (if supported by linter)
+  fix: false
