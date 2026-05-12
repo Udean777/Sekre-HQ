@@ -3,11 +3,10 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/service"
@@ -86,15 +85,15 @@ func (u *authUsecase) Register(ctx context.Context, req *RegisterRequest) (*Auth
 	// still the source of truth on race).
 	exists, err := u.orgs.CheckSubdomainExists(ctx, strings.ToLower(req.Subdomain))
 	if err != nil {
-		return nil, fmt.Errorf("failed to check subdomain: %w", err)
+		return nil, domainerrors.Internal("check subdomain", err)
 	}
 	if exists {
-		return nil, domain.ErrSubdomainTaken
+		return nil, domainerrors.ErrSubdomainTaken
 	}
 
 	hashedPassword, err := u.hasher.Hash(req.Password)
 	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
+		return nil, domainerrors.Internal("hash password", err)
 	}
 
 	var (
@@ -112,7 +111,7 @@ func (u *authUsecase) Register(ctx context.Context, req *RegisterRequest) (*Auth
 			SubscriptionPlan: types.SubscriptionPlanFree,
 		}
 		if err := u.orgs.Create(txCtx, org); err != nil {
-			return fmt.Errorf("failed to create organization: %w", err)
+			return domainerrors.Internal("create organization", err)
 		}
 
 		user = &entity.User{
@@ -122,7 +121,7 @@ func (u *authUsecase) Register(ctx context.Context, req *RegisterRequest) (*Auth
 			FullName:     req.FullName,
 		}
 		if err := u.users.Create(txCtx, user); err != nil {
-			return fmt.Errorf("failed to create user: %w", err)
+			return domainerrors.Internal("create user", err)
 		}
 
 		userOrg := &entity.UserOrganization{
@@ -132,7 +131,7 @@ func (u *authUsecase) Register(ctx context.Context, req *RegisterRequest) (*Auth
 			Role:           types.RoleOwner,
 		}
 		if err := u.userOrgs.Create(txCtx, userOrg); err != nil {
-			return fmt.Errorf("failed to create user organization: %w", err)
+			return domainerrors.Internal("create user organization", err)
 		}
 
 		return nil
@@ -144,7 +143,7 @@ func (u *authUsecase) Register(ctx context.Context, req *RegisterRequest) (*Auth
 	// Tokens are only generated after the transaction commits successfully.
 	tokens, err := u.tokens.Generate(user.ID, org.ID, types.RoleOwner)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate tokens: %w", err)
+		return nil, domainerrors.Internal("generate tokens", err)
 	}
 
 	return &AuthResponse{
@@ -157,7 +156,7 @@ func (u *authUsecase) Register(ctx context.Context, req *RegisterRequest) (*Auth
 
 func (u *authUsecase) Login(ctx context.Context, req *LoginRequest) (*AuthResponse, error) {
 	if req.Email == "" || req.Password == "" {
-		return nil, domain.ErrInvalidInput
+		return nil, domainerrors.ErrInvalidInput
 	}
 
 	user, err := u.users.GetByEmail(ctx, strings.ToLower(req.Email))
@@ -167,19 +166,19 @@ func (u *authUsecase) Login(ctx context.Context, req *LoginRequest) (*AuthRespon
 
 	if err := u.hasher.Compare(user.PasswordHash, req.Password); err != nil {
 		if errors.Is(err, service.ErrPasswordMismatch) {
-			return nil, domain.ErrInvalidCredentials
+			return nil, domainerrors.ErrInvalidCredentials
 		}
 		return nil, err
 	}
 
 	userWithOrg, err := u.userOrgs.GetUserWithOrganization(ctx, user.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user organization: %w", err)
+		return nil, domainerrors.Internal("get user organization", err)
 	}
 
 	tokens, err := u.tokens.Generate(user.ID, userWithOrg.Organization.ID, userWithOrg.Role)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate tokens: %w", err)
+		return nil, domainerrors.Internal("generate tokens", err)
 	}
 
 	return &AuthResponse{
@@ -198,10 +197,10 @@ func (u *authUsecase) GetMe(ctx context.Context, userID uuid.UUID) (*entity.User
 // format checks to the registration validator service.
 func (u *authUsecase) validateRegisterRequest(req *RegisterRequest) error {
 	if req.OrganizationName == "" {
-		return fmt.Errorf("organization name is required")
+		return domainerrors.InvalidInput("organization name", "is required")
 	}
 	if req.FullName == "" {
-		return fmt.Errorf("full name is required")
+		return domainerrors.InvalidInput("full name", "is required")
 	}
 	if err := u.validator.ValidateSubdomain(req.Subdomain); err != nil {
 		return err

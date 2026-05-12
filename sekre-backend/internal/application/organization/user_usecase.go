@@ -1,9 +1,9 @@
 package organization
 
 import (
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -67,29 +67,29 @@ func (u *userUsecase) UpdateProfile(ctx context.Context, userID uuid.UUID, fullN
 	email = strings.TrimSpace(email)
 
 	if fullName == "" {
-		return nil, fmt.Errorf("full name cannot be empty")
+		return nil, domainerrors.InvalidInput("full name", "cannot be empty")
 	}
 	if len(fullName) > 100 {
-		return nil, fmt.Errorf("full name cannot exceed 100 characters")
+		return nil, domainerrors.InvalidInput("full name", "cannot exceed 100 characters")
 	}
 	if email == "" {
-		return nil, fmt.Errorf("email cannot be empty")
+		return nil, domainerrors.InvalidInput("email", "cannot be empty")
 	}
 	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
-		return nil, fmt.Errorf("invalid email format")
+		return nil, domainerrors.InvalidInput("email format", "invalid format")
 	}
 
 	exists, err := u.userRepo.CheckEmailExists(ctx, email, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check email availability: %w", err)
+		return nil, domainerrors.Internal("check email availability", err)
 	}
 	if exists {
-		return nil, fmt.Errorf("email is already in use")
+		return nil, domainerrors.Conflict("email", "unique_email")
 	}
 
 	user, err := u.userRepo.UpdateProfile(ctx, userID, fullName, email)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update profile: %w", err)
+		return nil, domainerrors.Internal("update profile", err)
 	}
 	return user, nil
 }
@@ -97,32 +97,32 @@ func (u *userUsecase) UpdateProfile(ctx context.Context, userID uuid.UUID, fullN
 // ChangePassword changes user's password.
 func (u *userUsecase) ChangePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword string) error {
 	if len(newPassword) < 8 {
-		return fmt.Errorf("new password must be at least 8 characters")
+		return domainerrors.InvalidInput("new password", "must be at least 8 characters")
 	}
 
 	user, err := u.userRepo.GetUserWithPasswordByID(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
+		return domainerrors.Internal("get user", err)
 	}
 
 	if err := u.hasher.Compare(user.PasswordHash, currentPassword); err != nil {
 		if errors.Is(err, service.ErrPasswordMismatch) {
-			return fmt.Errorf("current password is incorrect")
+			return domainerrors.Unauthorized("current password is incorrect")
 		}
-		return fmt.Errorf("failed to verify current password: %w", err)
+		return domainerrors.Internal("verify current password", err)
 	}
 
 	if err := u.hasher.Compare(user.PasswordHash, newPassword); err == nil {
-		return fmt.Errorf("new password must be different from current password")
+		return domainerrors.InvalidInput("new password", "must be different from current password")
 	}
 
 	hashedPassword, err := u.hasher.Hash(newPassword)
 	if err != nil {
-		return fmt.Errorf("failed to hash password: %w", err)
+		return domainerrors.Internal("hash password", err)
 	}
 
 	if err := u.userRepo.UpdatePassword(ctx, userID, hashedPassword); err != nil {
-		return fmt.Errorf("failed to update password: %w", err)
+		return domainerrors.Internal("update password", err)
 	}
 	return nil
 }

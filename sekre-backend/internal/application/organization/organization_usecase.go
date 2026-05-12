@@ -1,6 +1,7 @@
 package organization
 
 import (
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"context"
 	"fmt"
 	"strings"
@@ -30,7 +31,7 @@ func NewOrganizationUsecase(orgRepo repository.OrganizationRepository) Organizat
 func (u *organizationUsecase) UpdateOrganization(ctx context.Context, orgID, userID uuid.UUID, name string) (*entity.Organization, error) {
 	role, err := u.orgRepo.GetMemberRole(ctx, orgID, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check user role: %w", err)
+		return nil, domainerrors.Internal("check user role", err)
 	}
 
 	if !role.CanManageOrganization() {
@@ -39,15 +40,15 @@ func (u *organizationUsecase) UpdateOrganization(ctx context.Context, orgID, use
 
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return nil, fmt.Errorf("organization name cannot be empty")
+		return nil, domainerrors.InvalidInput("organization name", "cannot be empty")
 	}
 	if len(name) > 100 {
-		return nil, fmt.Errorf("organization name cannot exceed 100 characters")
+		return nil, domainerrors.InvalidInput("organization name", "cannot exceed 100 characters")
 	}
 
 	org, err := u.orgRepo.Update(ctx, orgID, name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update organization: %w", err)
+		return nil, domainerrors.Internal("update organization", err)
 	}
 	return org, nil
 }
@@ -56,7 +57,7 @@ func (u *organizationUsecase) UpdateOrganization(ctx context.Context, orgID, use
 func (u *organizationUsecase) DeleteOrganization(ctx context.Context, orgID, userID uuid.UUID) error {
 	role, err := u.orgRepo.GetMemberRole(ctx, orgID, userID)
 	if err != nil {
-		return fmt.Errorf("failed to check user role: %w", err)
+		return domainerrors.Internal("check user role", err)
 	}
 
 	if role != types.RoleOwner {
@@ -64,7 +65,7 @@ func (u *organizationUsecase) DeleteOrganization(ctx context.Context, orgID, use
 	}
 
 	if err := u.orgRepo.Delete(ctx, orgID); err != nil {
-		return fmt.Errorf("failed to delete organization: %w", err)
+		return domainerrors.Internal("delete organization", err)
 	}
 	return nil
 }

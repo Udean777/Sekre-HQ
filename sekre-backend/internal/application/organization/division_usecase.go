@@ -2,11 +2,10 @@ package organization
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
@@ -84,10 +83,10 @@ func (u *divisionUsecase) Create(ctx context.Context, orgID uuid.UUID, req *Crea
 
 	count, err := u.repo.CountByOrganization(ctx, orgID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to count divisions: %w", err)
+		return nil, domainerrors.Internal("count divisions", err)
 	}
 	if count >= MaxDivisionsFree {
-		return nil, domain.ErrDivisionLimitReached
+		return nil, domainerrors.ErrDivisionLimitReached
 	}
 
 	div := &entity.Division{
@@ -100,7 +99,7 @@ func (u *divisionUsecase) Create(ctx context.Context, orgID uuid.UUID, req *Crea
 	}
 
 	if err := u.repo.Create(ctx, orgID, div); err != nil {
-		return nil, fmt.Errorf("failed to create division: %w", err)
+		return nil, domainerrors.Internal("create division", err)
 	}
 	return div, nil
 }
@@ -113,7 +112,7 @@ func (u *divisionUsecase) GetByID(ctx context.Context, orgID, id uuid.UUID) (*en
 
 	members, err := u.repo.GetMembers(ctx, orgID, id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get members: %w", err)
+		return nil, domainerrors.Internal("get members", err)
 	}
 
 	return &entity.DivisionWithMembers{
@@ -144,7 +143,7 @@ func (u *divisionUsecase) Update(ctx context.Context, orgID, id uuid.UUID, req *
 	}
 
 	if err := u.repo.Update(ctx, orgID, existing); err != nil {
-		return nil, fmt.Errorf("failed to update division: %w", err)
+		return nil, domainerrors.Internal("update division", err)
 	}
 	return existing, nil
 }
@@ -156,26 +155,26 @@ func (u *divisionUsecase) Delete(ctx context.Context, orgID, id uuid.UUID) error
 
 	taskCount, err := u.tasks.CountActiveByDivision(ctx, orgID, id)
 	if err != nil {
-		return fmt.Errorf("failed to check tasks: %w", err)
+		return domainerrors.Internal("check tasks", err)
 	}
 	if taskCount > 0 {
-		return domain.ErrDivisionHasTasks
+		return domainerrors.ErrDivisionHasTasks
 	}
 
 	eventCount, err := u.events.CountUpcomingByDivision(ctx, orgID, id)
 	if err != nil {
-		return fmt.Errorf("failed to check events: %w", err)
+		return domainerrors.Internal("check events", err)
 	}
 	if eventCount > 0 {
-		return domain.ErrDivisionHasEvents
+		return domainerrors.ErrDivisionHasEvents
 	}
 
 	financeCount, err := u.finances.CountRecentByDivision(ctx, orgID, id)
 	if err != nil {
-		return fmt.Errorf("failed to check finances: %w", err)
+		return domainerrors.Internal("check finances", err)
 	}
 	if financeCount > 0 {
-		return domain.ErrDivisionHasFinances
+		return domainerrors.ErrDivisionHasFinances
 	}
 
 	return u.repo.Delete(ctx, orgID, id)
@@ -193,10 +192,10 @@ func (u *divisionUsecase) AddMember(ctx context.Context, orgID, divisionID uuid.
 
 	memberCount, err := u.repo.CountMembers(ctx, divisionID)
 	if err != nil {
-		return fmt.Errorf("failed to count members: %w", err)
+		return domainerrors.Internal("count members", err)
 	}
 	if memberCount >= MaxMembersPerDiv {
-		return domain.ErrDivisionMemberLimitReached
+		return domainerrors.ErrDivisionMemberLimitReached
 	}
 
 	return u.repo.AddMember(ctx, divisionID, req.UserID, role)
@@ -209,7 +208,7 @@ func (u *divisionUsecase) RemoveMember(ctx context.Context, orgID, divisionID, u
 
 	members, err := u.repo.GetMembers(ctx, orgID, divisionID)
 	if err != nil {
-		return fmt.Errorf("failed to get members: %w", err)
+		return domainerrors.Internal("get members", err)
 	}
 
 	var isHead bool
@@ -223,10 +222,10 @@ func (u *divisionUsecase) RemoveMember(ctx context.Context, orgID, divisionID, u
 	if isHead {
 		headCount, err := u.repo.CountHeads(ctx, divisionID)
 		if err != nil {
-			return fmt.Errorf("failed to count heads: %w", err)
+			return domainerrors.Internal("count heads", err)
 		}
 		if headCount <= 1 {
-			return domain.ErrMustHaveHead
+			return domainerrors.ErrMustHaveHead
 		}
 	}
 
@@ -246,16 +245,16 @@ func (u *divisionUsecase) UpdateMemberRole(ctx context.Context, orgID, divisionI
 	if nextRole == types.DivisionRoleHead {
 		headCount, err := u.repo.CountHeads(ctx, divisionID)
 		if err != nil {
-			return fmt.Errorf("failed to count heads: %w", err)
+			return domainerrors.Internal("count heads", err)
 		}
 		if headCount >= 3 {
-			return domain.ErrMaxHeadsReached
+			return domainerrors.ErrMaxHeadsReached
 		}
 	}
 
 	members, err := u.repo.GetMembers(ctx, orgID, divisionID)
 	if err != nil {
-		return fmt.Errorf("failed to get members: %w", err)
+		return domainerrors.Internal("get members", err)
 	}
 
 	var currentRole types.DivisionRole
@@ -269,16 +268,16 @@ func (u *divisionUsecase) UpdateMemberRole(ctx context.Context, orgID, divisionI
 	}
 
 	if !found {
-		return domain.ErrNotDivisionMember
+		return domainerrors.ErrNotDivisionMember
 	}
 
 	if currentRole == types.DivisionRoleHead && nextRole == types.DivisionRoleStaff {
 		headCount, err := u.repo.CountHeads(ctx, divisionID)
 		if err != nil {
-			return fmt.Errorf("failed to count heads: %w", err)
+			return domainerrors.Internal("count heads", err)
 		}
 		if headCount <= 1 {
-			return domain.ErrMustHaveHead
+			return domainerrors.ErrMustHaveHead
 		}
 	}
 
@@ -294,20 +293,20 @@ func (u *divisionUsecase) GetMembers(ctx context.Context, orgID, divisionID uuid
 
 func (u *divisionUsecase) validateCreateRequest(req *CreateDivisionRequest) error {
 	if strings.TrimSpace(req.Name) == "" {
-		return fmt.Errorf("division name is required")
+		return domainerrors.InvalidInput("division name", "is required")
 	}
 	if len(req.Name) > 255 {
-		return fmt.Errorf("division name too long (max 255 characters)")
+		return domainerrors.InvalidInput("division name", "too long (max 255 characters)")
 	}
 	return nil
 }
 
 func (u *divisionUsecase) validateUpdateRequest(req *UpdateDivisionRequest) error {
 	if strings.TrimSpace(req.Name) == "" {
-		return fmt.Errorf("division name is required")
+		return domainerrors.InvalidInput("division name", "is required")
 	}
 	if len(req.Name) > 255 {
-		return fmt.Errorf("division name too long (max 255 characters)")
+		return domainerrors.InvalidInput("division name", "too long (max 255 characters)")
 	}
 	return nil
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
@@ -49,7 +49,7 @@ func (u *memberUsecase) UpdateMemberRole(ctx context.Context, orgID, userID uuid
 		return err
 	}
 	if !isMember {
-		return domain.ErrUserNotInOrg
+		return domainerrors.ErrUserNotInOrg
 	}
 
 	return u.memberRepo.UpdateMemberRole(ctx, orgID, userID, typed)
@@ -61,7 +61,7 @@ func (u *memberUsecase) RemoveMember(ctx context.Context, orgID, userID uuid.UUI
 		return err
 	}
 	if !isMember {
-		return domain.ErrUserNotInOrg
+		return domainerrors.ErrUserNotInOrg
 	}
 
 	return u.memberRepo.RemoveMember(ctx, orgID, userID)

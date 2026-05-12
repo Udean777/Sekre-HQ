@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 )
@@ -30,10 +30,10 @@ func NewEventUsecase(repo repository.EventRepository) EventUsecase {
 
 func (u *eventUsecase) Create(ctx context.Context, orgID uuid.UUID, event *entity.Event) error {
 	if event.EndTime.Before(event.StartTime) || event.EndTime.Equal(event.StartTime) {
-		return domain.ErrInvalidTimeRange
+		return domainerrors.ErrInvalidTimeRange
 	}
 	if event.Title == "" {
-		return domain.ErrRequired
+		return domainerrors.ErrRequired
 	}
 
 	event.ID = uuid.New()
@@ -55,10 +55,10 @@ func (u *eventUsecase) List(ctx context.Context, orgID, divisionID uuid.UUID) ([
 
 func (u *eventUsecase) Update(ctx context.Context, orgID, id uuid.UUID, event *entity.Event) error {
 	if event.EndTime.Before(event.StartTime) || event.EndTime.Equal(event.StartTime) {
-		return domain.ErrInvalidTimeRange
+		return domainerrors.ErrInvalidTimeRange
 	}
 	if event.Title == "" {
-		return domain.ErrRequired
+		return domainerrors.ErrRequired
 	}
 
 	event.ID = id

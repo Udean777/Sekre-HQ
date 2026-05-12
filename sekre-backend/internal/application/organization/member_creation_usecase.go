@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/service"
@@ -58,12 +58,12 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 
 	tempPassword, err := password.GenerateTemporaryPassword()
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate password: %w", err)
+		return nil, domainerrors.Internal("generate password", err)
 	}
 
 	hashedPassword, err := u.hasher.Hash(tempPassword)
 	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
+		return nil, domainerrors.Internal("hash password", err)
 	}
 
 	role := types.Role(req.Role)
@@ -101,7 +101,7 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 
 		memberCount, err := u.divisionRepo.CountMembers(ctx, divisionUUID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check division members: %w", err)
+			return nil, domainerrors.Internal("check division members", err)
 		}
 		if memberCount >= MaxMembersPerDivision {
 			return nil, fmt.Errorf("division has reached maximum member limit (%d)", MaxMembersPerDivision)
@@ -110,10 +110,10 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 		if divRole == types.DivisionRoleHead {
 			headCount, err := u.divisionRepo.CountHeads(ctx, divisionUUID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to check division heads: %w", err)
+				return nil, domainerrors.Internal("check division heads", err)
 			}
 			if headCount >= 3 {
-				return nil, domain.ErrMaxHeadsReached
+				return nil, domainerrors.ErrMaxHeadsReached
 			}
 		}
 	}
@@ -121,16 +121,16 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 	var createdUser *entity.User
 	err = u.tx.WithTransaction(ctx, func(txCtx context.Context) error {
 		if err := u.memberRepo.CreateUser(txCtx, user); err != nil {
-			return fmt.Errorf("failed to create user: %w", err)
+			return domainerrors.Internal("create user", err)
 		}
 
 		if err := u.memberRepo.AddUserToOrganization(txCtx, user.ID, orgID, role); err != nil {
-			return fmt.Errorf("failed to add user to organization: %w", err)
+			return domainerrors.Internal("add user to organization", err)
 		}
 
 		if assignToDiv {
 			if err := u.divisionRepo.AddMember(txCtx, divisionUUID, user.ID, divRole); err != nil {
-				return fmt.Errorf("failed to add user to division: %w", err)
+				return domainerrors.Internal("add user to division", err)
 			}
 		}
 
@@ -182,7 +182,7 @@ func (u *memberCreationUsecase) BulkImportMembers(ctx context.Context, members [
 
 	divisions, err := u.divisionRepo.GetByNames(ctx, orgID, divisionNames)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch divisions: %w", err)
+		return nil, domainerrors.Internal("fetch divisions", err)
 	}
 
 	divisionMap := make(map[string]*entity.Division)
@@ -207,12 +207,12 @@ func (u *memberCreationUsecase) BulkImportMembers(ctx context.Context, members [
 	for _, member := range members {
 		tempPassword, err := password.GenerateTemporaryPassword()
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate password: %w", err)
+			return nil, domainerrors.Internal("generate password", err)
 		}
 
 		hashedPassword, err := u.hasher.Hash(tempPassword)
 		if err != nil {
-			return nil, fmt.Errorf("failed to hash password: %w", err)
+			return nil, domainerrors.Internal("hash password", err)
 		}
 
 		role := types.Role(member.Role)

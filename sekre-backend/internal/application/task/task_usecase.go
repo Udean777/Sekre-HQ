@@ -1,6 +1,7 @@
 package task
 
 import (
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"context"
 	"fmt"
 	"strings"
@@ -62,7 +63,7 @@ func (u *taskUsecase) Create(ctx context.Context, orgID uuid.UUID, req *CreateTa
 	}
 
 	if err := u.repo.Create(ctx, orgID, task); err != nil {
-		return nil, fmt.Errorf("failed to create task: %w", err)
+		return nil, domainerrors.Internal("create task", err)
 	}
 
 	created, err := u.repo.GetByID(ctx, orgID, task.ID)
@@ -102,7 +103,7 @@ func (u *taskUsecase) Update(ctx context.Context, orgID, id uuid.UUID, req *Upda
 	existing.Status = status
 
 	if err := u.repo.Update(ctx, orgID, existing); err != nil {
-		return nil, fmt.Errorf("failed to update task: %w", err)
+		return nil, domainerrors.Internal("update task", err)
 	}
 
 	updated, err := u.repo.GetByID(ctx, orgID, id)
@@ -126,10 +127,10 @@ func (u *taskUsecase) Delete(ctx context.Context, orgID, id uuid.UUID) error {
 
 func (u *taskUsecase) validateCreateRequest(req *CreateTaskRequest) error {
 	if strings.TrimSpace(req.Title) == "" {
-		return fmt.Errorf("task title is required")
+		return domainerrors.InvalidInput("task title", "is required")
 	}
 	if len(req.Title) > 500 {
-		return fmt.Errorf("task title too long (max 500 characters)")
+		return domainerrors.InvalidInput("task title", "too long (max 500 characters)")
 	}
 	return nil
 }
