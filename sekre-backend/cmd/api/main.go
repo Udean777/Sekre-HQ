@@ -106,7 +106,9 @@ func main() {
 	// Initialize router
 	router := mux.NewRouter()
 
-	// Apply global middleware
+	// Apply global middleware. RequestID runs first so every downstream
+	// middleware and handler can read the correlation ID from context.
+	router.Use(middleware.RequestID)
 	router.Use(middleware.CORS)
 	router.Use(middleware.Logging)
 

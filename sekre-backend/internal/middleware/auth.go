@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/username/sekre-backend/internal/domain"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/response"
 	"github.com/username/sekre-backend/pkg/token"
@@ -27,14 +27,14 @@ func AuthMiddleware(tokenManager *token.Manager) func(http.Handler) http.Handler
 			// Extract token from Authorization header
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				response.Unauthorized(w, "missing authorization header")
+				response.HandleError(w, r, domainerrors.Unauthorized("missing authorization header"))
 				return
 			}
 
 			// Check Bearer prefix
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
-				response.Unauthorized(w, "invalid authorization header format")
+				response.HandleError(w, r, domainerrors.Unauthorized("invalid authorization header format"))
 				return
 			}
 
@@ -43,7 +43,7 @@ func AuthMiddleware(tokenManager *token.Manager) func(http.Handler) http.Handler
 			// Validate token
 			claims, err := tokenManager.ValidateToken(tokenString)
 			if err != nil {
-				response.Unauthorized(w, domain.ErrInvalidToken.Error())
+				response.HandleError(w, r, domainerrors.ErrInvalidToken)
 				return
 			}
 
@@ -69,7 +69,8 @@ func CORS(next http.Handler) http.Handler {
 
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Request-ID")
+		w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Max-Age", "3600")
 
