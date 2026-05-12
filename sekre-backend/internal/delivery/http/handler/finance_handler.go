@@ -32,36 +32,25 @@ func (h *FinanceHandler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/finance/summary", h.GetSummary).Methods("GET")
 }
 
-// CreateTransactionRequest supports both old (Amount) and new (AmountCents + Currency) formats
-// for backward compatibility. New API clients should use AmountCents + Currency.
+// CreateTransactionRequest represents the request payload for creating/updating transactions.
+// Uses amount_cents (int64) and currency (ISO 4217) for precision.
 type CreateTransactionRequest struct {
 	DivisionID  string  `json:"division_id"`
 	EventID     *string `json:"event_id"`
 	Type        string  `json:"type"`
-	// Deprecated: use AmountCents + Currency instead. Kept for backward compatibility.
-	Amount      float64 `json:"amount"`
-	// New: amount in smallest currency unit (cents/sen). Takes precedence over Amount.
-	AmountCents *int64  `json:"amount_cents,omitempty"`
-	// New: ISO 4217 currency code (IDR, USD, etc). Default: IDR.
-	Currency    string  `json:"currency,omitempty"`
+	AmountCents int64   `json:"amount_cents"`       // Amount in smallest currency unit (cents/sen)
+	Currency    string  `json:"currency,omitempty"` // ISO 4217 currency code (default: IDR)
 	Description string  `json:"description"`
 	ReceiptURL  *string `json:"receipt_url"`
 }
 
-// toMoney converts the request amount fields to a Money value object
-// Prioritizes AmountCents + Currency if provided, falls back to Amount with default IDR
+// toMoney converts the request to a Money value object
 func (r *CreateTransactionRequest) toMoney() valueobject.Money {
 	currency := r.Currency
 	if currency == "" {
 		currency = "IDR" // Default currency
 	}
-
-	if r.AmountCents != nil {
-		// New format: use AmountCents directly
-		return valueobject.NewMoney(*r.AmountCents, currency)
-	}
-	// Legacy format: convert Amount (float) to Money
-	return valueobject.NewMoneyFromFloat(r.Amount, currency)
+	return valueobject.NewMoney(r.AmountCents, currency)
 }
 
 func (h *FinanceHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -124,8 +113,7 @@ func (h *FinanceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		DivisionID:     divisionID,
 		EventID:        eventID,
 		Type:           txType,
-		Amount:         money.ToFloat(), // Backward compatibility
-		AmountMoney:    &money,          // New field
+		Amount:         money,
 		Description:    req.Description,
 		RequestedBy:    userID,
 		ReceiptURL:     req.ReceiptURL,
@@ -250,8 +238,7 @@ func (h *FinanceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	existing.Type = txType
-	existing.Amount = money.ToFloat() // Backward compatibility
-	existing.AmountMoney = &money     // New field
+	existing.Amount = money
 	existing.Description = req.Description
 	existing.ReceiptURL = req.ReceiptURL
 

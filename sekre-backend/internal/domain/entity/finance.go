@@ -15,8 +15,7 @@ type Transaction struct {
 	DivisionID     uuid.UUID               `json:"division_id"`
 	EventID        *uuid.UUID              `json:"event_id"`
 	Type           types.TransactionType   `json:"type"`
-	Amount         float64                 `json:"amount"`          // Deprecated: use AmountMoney instead (kept for backward compatibility)
-	AmountMoney    *valueobject.Money      `json:"amount_money"`    // New: proper money representation
+	Amount         valueobject.Money       `json:"amount"` // Money value object with amount_cents and currency
 	Description    string                  `json:"description"`
 	Status         types.TransactionStatus `json:"status"`
 	RequestedBy    uuid.UUID               `json:"requested_by"`
@@ -28,12 +27,9 @@ type Transaction struct {
 
 // FinanceSummary represents balance summary
 type FinanceSummary struct {
-	TotalIncome      float64            `json:"total_income"`       // Deprecated: use TotalIncomeMoney instead
-	TotalExpense     float64            `json:"total_expense"`      // Deprecated: use TotalExpenseMoney instead
-	Balance          float64            `json:"balance"`            // Deprecated: use BalanceMoney instead
-	TotalIncomeMoney *valueobject.Money `json:"total_income_money"` // New: proper money representation
-	TotalExpenseMoney *valueobject.Money `json:"total_expense_money"` // New: proper money representation
-	BalanceMoney     *valueobject.Money `json:"balance_money"`      // New: proper money representation
+	TotalIncome  valueobject.Money `json:"total_income"`
+	TotalExpense valueobject.Money `json:"total_expense"`
+	Balance      valueobject.Money `json:"balance"`
 }
 
 // TransactionFilters holds optional filters for listing transactions

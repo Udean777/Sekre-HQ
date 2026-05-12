@@ -15,9 +15,8 @@ type Transaction struct {
 	DivisionID     uuid.UUID               `gorm:"type:uuid;not null;index" json:"division_id"`
 	EventID        *uuid.UUID              `gorm:"type:uuid;index" json:"event_id,omitempty"`
 	Type           types.TransactionType   `gorm:"type:varchar(20);not null" json:"type"`
-	Amount         float64                 `gorm:"type:decimal(15,2);not null" json:"amount"`     // Deprecated: kept for backward compatibility
-	AmountCents    int64                   `gorm:"type:bigint" json:"amount_cents"`               // New: amount in cents
-	Currency       string                  `gorm:"type:varchar(3);default:'IDR'" json:"currency"` // New: ISO 4217 currency code
+	AmountCents    int64                   `gorm:"type:bigint;not null" json:"amount_cents"`      // Amount in cents (smallest unit)
+	Currency       string                  `gorm:"type:varchar(3);not null;default:'IDR'" json:"currency"` // ISO 4217 currency code
 	Description    string                  `gorm:"type:text" json:"description"`
 	Status         types.TransactionStatus `gorm:"type:varchar(20);default:'PENDING'" json:"status"`
 	RequestedBy    uuid.UUID               `gorm:"type:uuid;not null" json:"requested_by"`

@@ -12,66 +12,58 @@ func TestCreateTransactionRequest_toMoney(t *testing.T) {
 		wantCurrency    string
 	}{
 		{
-			name: "legacy format with Amount only (IDR default)",
+			name: "IDR transaction",
 			request: CreateTransactionRequest{
-				Amount: 50000.00,
-			},
-			wantAmountCents: 5000000,
-			wantCurrency:    "IDR",
-		},
-		{
-			name: "new format with AmountCents and Currency",
-			request: CreateTransactionRequest{
-				AmountCents: int64Ptr(5000000),
+				AmountCents: 5000000,
 				Currency:    "IDR",
 			},
 			wantAmountCents: 5000000,
 			wantCurrency:    "IDR",
 		},
 		{
-			name: "new format USD",
+			name: "USD transaction",
 			request: CreateTransactionRequest{
-				AmountCents: int64Ptr(10050),
+				AmountCents: 10050,
 				Currency:    "USD",
 			},
 			wantAmountCents: 10050,
 			wantCurrency:    "USD",
 		},
 		{
-			name: "AmountCents takes precedence over Amount",
-			request: CreateTransactionRequest{
-				Amount:      100.00, // Should be ignored
-				AmountCents: int64Ptr(5000000),
-				Currency:    "IDR",
-			},
-			wantAmountCents: 5000000,
-			wantCurrency:    "IDR",
-		},
-		{
 			name: "empty currency defaults to IDR",
 			request: CreateTransactionRequest{
-				AmountCents: int64Ptr(5000000),
+				AmountCents: 5000000,
 				// Currency is empty
 			},
 			wantAmountCents: 5000000,
 			wantCurrency:    "IDR",
 		},
 		{
-			name: "legacy format with USD currency",
-			request: CreateTransactionRequest{
-				Amount:   100.50,
-				Currency: "USD",
-			},
-			wantAmountCents: 10050,
-			wantCurrency:    "USD",
-		},
-		{
 			name: "zero amount",
 			request: CreateTransactionRequest{
-				Amount: 0,
+				AmountCents: 0,
+				Currency:    "IDR",
 			},
 			wantAmountCents: 0,
 			wantCurrency:    "IDR",
+		},
+		{
+			name: "large amount",
+			request: CreateTransactionRequest{
+				AmountCents: 99999999999,
+				Currency:    "IDR",
+			},
+			wantAmountCents: 99999999999,
+			wantCurrency:    "IDR",
+		},
+		{
+			name: "EUR transaction",
+			request: CreateTransactionRequest{
+				AmountCents: 12345,
+				Currency:    "EUR",
+			},
+			wantAmountCents: 12345,
+			wantCurrency:    "EUR",
 		},
 	}
 
@@ -87,28 +79,4 @@ func TestCreateTransactionRequest_toMoney(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestCreateTransactionRequest_toMoney_Precision(t *testing.T) {
-	// Test that legacy float conversion preserves precision
-	request := CreateTransactionRequest{
-		Amount:   99.99,
-		Currency: "USD",
-	}
-
-	money := request.toMoney()
-
-	// 99.99 * 100 = 9999 cents
-	if money.AmountCents != 9999 {
-		t.Errorf("AmountCents = %d, want 9999", money.AmountCents)
-	}
-
-	// Round trip should preserve value
-	if money.ToFloat() != 99.99 {
-		t.Errorf("ToFloat() = %f, want 99.99", money.ToFloat())
-	}
-}
-
-func int64Ptr(v int64) *int64 {
-	return &v
 }

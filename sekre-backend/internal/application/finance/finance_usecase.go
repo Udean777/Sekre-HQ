@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
 )
@@ -32,8 +32,11 @@ func NewFinanceUsecase(repo repository.TransactionRepository) FinanceUsecase {
 }
 
 func (u *financeUsecase) CreateTransaction(ctx context.Context, tx *entity.Transaction) error {
-	if tx.Amount <= 0 {
+	if !tx.Amount.IsPositive() {
 		return domainerrors.ErrInvalidAmount
+	}
+	if err := tx.Amount.Validate(); err != nil {
+		return domainerrors.InvalidInput("currency", err.Error())
 	}
 	if tx.Description == "" {
 		return domainerrors.ErrRequired
@@ -61,8 +64,11 @@ func (u *financeUsecase) List(ctx context.Context, orgID uuid.UUID, filters enti
 }
 
 func (u *financeUsecase) Update(ctx context.Context, orgID, id uuid.UUID, tx *entity.Transaction) error {
-	if tx.Amount <= 0 {
+	if !tx.Amount.IsPositive() {
 		return domainerrors.ErrInvalidAmount
+	}
+	if err := tx.Amount.Validate(); err != nil {
+		return domainerrors.InvalidInput("currency", err.Error())
 	}
 	if tx.Description == "" {
 		return domainerrors.ErrRequired

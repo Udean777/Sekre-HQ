@@ -96,26 +96,20 @@ func (r *transactionRepository) ListFiltered(ctx context.Context, orgID uuid.UUI
 }
 
 func (r *transactionRepository) Update(ctx context.Context, orgID uuid.UUID, transaction *entity.Transaction) error {
-	// Prepare update map with dual-write support
-	updates := map[string]interface{}{
-		"type":        transaction.Type,
-		"description": transaction.Description,
-		"status":      transaction.Status,
-		"approved_by": transaction.ApprovedBy,
-		"receipt_url": transaction.ReceiptURL,
+	// Default to IDR if currency is not set
+	currency := transaction.Amount.Currency
+	if currency == "" {
+		currency = "IDR"
 	}
 
-	// Dual-write: update both old and new amount fields
-	if transaction.AmountMoney != nil {
-		// New field takes precedence
-		updates["amount_cents"] = transaction.AmountMoney.AmountCents
-		updates["currency"] = transaction.AmountMoney.Currency
-		updates["amount"] = transaction.AmountMoney.ToFloat() // Backward compatibility
-	} else if transaction.Amount != 0 {
-		// Fallback to old field
-		updates["amount"] = transaction.Amount
-		updates["amount_cents"] = int64(transaction.Amount * 100)
-		updates["currency"] = "IDR"
+	updates := map[string]interface{}{
+		"type":         transaction.Type,
+		"amount_cents": transaction.Amount.AmountCents,
+		"currency":     currency,
+		"description":  transaction.Description,
+		"status":       transaction.Status,
+		"approved_by":  transaction.ApprovedBy,
+		"receipt_url":  transaction.ReceiptURL,
 	}
 
 	result := dbFor(ctx, r.db).
@@ -175,20 +169,10 @@ func (r *transactionRepository) GetSummary(ctx context.Context, orgID uuid.UUID,
 		result.Currency = "IDR"
 	}
 
-	// Create Money objects
-	totalIncomeMoney := valueobject.NewMoney(result.TotalIncomeCents, result.Currency)
-	totalExpenseMoney := valueobject.NewMoney(result.TotalExpenseCents, result.Currency)
-	balanceMoney := valueobject.NewMoney(result.TotalIncomeCents-result.TotalExpenseCents, result.Currency)
-
 	return &entity.FinanceSummary{
-		// Deprecated fields (for backward compatibility)
-		TotalIncome:  totalIncomeMoney.ToFloat(),
-		TotalExpense: totalExpenseMoney.ToFloat(),
-		Balance:      balanceMoney.ToFloat(),
-		// New fields (proper Money representation)
-		TotalIncomeMoney:  &totalIncomeMoney,
-		TotalExpenseMoney: &totalExpenseMoney,
-		BalanceMoney:      &balanceMoney,
+		TotalIncome:  valueobject.NewMoney(result.TotalIncomeCents, result.Currency),
+		TotalExpense: valueobject.NewMoney(result.TotalExpenseCents, result.Currency),
+		Balance:      valueobject.NewMoney(result.TotalIncomeCents-result.TotalExpenseCents, result.Currency),
 	}, nil
 }
 
