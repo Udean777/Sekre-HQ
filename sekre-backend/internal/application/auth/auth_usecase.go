@@ -16,16 +16,16 @@ import (
 )
 
 type RegisterRequest struct {
-	OrganizationName string `json:"organization_name"`
-	Subdomain        string `json:"subdomain"`
-	FullName         string `json:"full_name"`
-	Email            string `json:"email"`
-	Password         string `json:"password"`
+	OrganizationName string `json:"organization_name" validate:"required,min=2,max=100"`
+	Subdomain        string `json:"subdomain" validate:"required,subdomain"`
+	FullName         string `json:"full_name" validate:"required,min=2,max=100"`
+	Email            string `json:"email" validate:"required,email,max=255"`
+	Password         string `json:"password" validate:"required,min=8,max=128"`
 }
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
 }
 
 type AuthResponse struct {

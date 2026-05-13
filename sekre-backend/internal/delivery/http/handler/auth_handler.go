@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -40,8 +39,8 @@ func (h *AuthHandler) RegisterRoutes(router *mux.Router) {
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req auth.RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
+	if err := DecodeAndValidate(r, &req); err != nil {
+		response.HandleError(w, r, err)
 		return
 	}
 
@@ -56,8 +55,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req auth.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
+	if err := DecodeAndValidate(r, &req); err != nil {
+		response.HandleError(w, r, err)
 		return
 	}
 

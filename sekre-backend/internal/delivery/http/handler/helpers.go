@@ -7,9 +7,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/delivery/http/middleware"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/pkg/response"
+	"github.com/username/sekre-backend/pkg/validator"
 )
 
 // GetOrgIDFromContext extracts organization ID from request context.
@@ -37,6 +38,24 @@ func DecodeJSONBody(r *http.Request, v interface{}) error {
 		return domainerrors.InvalidInput("body", "invalid request body")
 	}
 	return nil
+}
+
+// DecodeAndValidate decodes JSON body and validates struct tags.
+// Returns a *DomainError on either decode or validation failure.
+//
+// Use this in handlers to ensure request body is well-formed before
+// passing to usecases:
+//
+//	var req CreateTaskRequest
+//	if err := handler.DecodeAndValidate(r, &req); err != nil {
+//	    response.HandleError(w, r, err)
+//	    return
+//	}
+func DecodeAndValidate(r *http.Request, v interface{}) error {
+	if err := DecodeJSONBody(r, v); err != nil {
+		return err
+	}
+	return validator.Validate(v)
 }
 
 // HandleUpdateRequest is a generic helper for update endpoints that:

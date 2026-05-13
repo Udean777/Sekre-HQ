@@ -117,8 +117,13 @@ func TestAuthHandler_Register_UsecaseError(t *testing.T) {
 	tokenManager := token.NewManager("test-secret-key-for-testing-purposes-only", 3600000000000, 86400000000000)
 	h := handler.NewAuthHandler(mockUsecase, tokenManager)
 
+	// Valid request body that passes validation but usecase rejects (subdomain taken)
 	reqBody := auth.RegisterRequest{
-		Email: "john@example.com",
+		OrganizationName: "Test Org",
+		Subdomain:        "taken-subdomain",
+		FullName:         "John Doe",
+		Email:            "john@example.com",
+		Password:         "SecurePass123!",
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
 
