@@ -116,7 +116,7 @@ func (u *taskUsecase) Update(ctx context.Context, orgID, id uuid.UUID, req *Upda
 func (u *taskUsecase) UpdateStatus(ctx context.Context, orgID, id uuid.UUID, status string) error {
 	parsed := types.TaskStatus(status)
 	if err := parsed.Validate(); err != nil {
-		return fmt.Errorf("invalid status: %w", err)
+		return domainerrors.InvalidInput("status", err.Error())
 	}
 	return u.repo.UpdateStatus(ctx, orgID, id, string(parsed))
 }

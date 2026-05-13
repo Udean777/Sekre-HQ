@@ -220,21 +220,25 @@ func TestTaskUsecase_List_Success(t *testing.T) {
 		Status: &status,
 	}
 
-	expectedTasks := []entity.Task{
+	expectedTasks := []entity.TaskWithAssignee{
 		{
-			ID:     uuid.New(),
-			Title:  "Task 1",
-			Status: types.TaskStatusTodo,
+			Task: entity.Task{
+				ID:     uuid.New(),
+				Title:  "Task 1",
+				Status: types.TaskStatusTodo,
+			},
 		},
 		{
-			ID:     uuid.New(),
-			Title:  "Task 2",
-			Status: types.TaskStatusTodo,
+			Task: entity.Task{
+				ID:     uuid.New(),
+				Title:  "Task 2",
+				Status: types.TaskStatusTodo,
+			},
 		},
 	}
 
 	repo.EXPECT().
-		List(ctx, orgID, filters).
+		ListFiltered(ctx, orgID, filters).
 		Return(expectedTasks, nil).
 		Once()
 

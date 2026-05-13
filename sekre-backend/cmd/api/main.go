@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	authApp "github.com/username/sekre-backend/internal/application/auth"
 	eventApp "github.com/username/sekre-backend/internal/application/event"
 	financeApp "github.com/username/sekre-backend/internal/application/finance"
@@ -23,6 +24,7 @@ import (
 	sharedRepo "github.com/username/sekre-backend/internal/repository"
 	"github.com/username/sekre-backend/pkg/database"
 	"github.com/username/sekre-backend/pkg/logger"
+	"github.com/username/sekre-backend/pkg/observability"
 	"github.com/username/sekre-backend/pkg/token"
 )
 
@@ -112,10 +114,14 @@ func main() {
 	// Initialize router
 	router := mux.NewRouter()
 
+	// Initialize observability metrics (registers Prometheus collectors)
+	metrics := observability.Default()
+
 	// Apply global middleware. RequestID runs first so every downstream
 	// middleware and handler can read the correlation ID from context.
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Timeout(30 * time.Second)) // 30-second timeout for all requests
+	router.Use(middleware.Metrics(metrics))          // Capture metrics for all routes
 
 	// Security headers (production hardening)
 	securityHeadersCfg := middleware.DefaultSecurityHeadersConfig()
@@ -133,6 +139,12 @@ func main() {
 		MaxAge:           cfg.CORS.MaxAge,
 	}))
 	router.Use(middleware.Logging)
+
+	// Operational endpoints (no auth, no rate limit)
+	healthHandler := handler.NewHealthHandler(db, "1.0.0")
+	router.HandleFunc("/health/live", healthHandler.Live).Methods("GET")
+	router.HandleFunc("/health/ready", healthHandler.Ready).Methods("GET")
+	router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
 	// API v1 routes
 	apiV1 := router.PathPrefix("/api/v1").Subrouter()

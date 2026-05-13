@@ -8,8 +8,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
+	"github.com/username/sekre-backend/internal/domain/service"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/test/mocks"
 	"github.com/username/sekre-backend/pkg/token"
@@ -140,10 +141,18 @@ func TestAuthUsecase_Register_InvalidEmail(t *testing.T) {
 	uc := NewAuthUsecase(nil, nil, nil, nil, nil, nil, validator)
 
 	req := &RegisterRequest{
-		Email:    "invalid-email",
-		Password: "SecurePass123!",
-		Subdomain: "testorg",
+		OrganizationName: "Test Org",
+		FullName:         "John Doe",
+		Email:            "invalid-email",
+		Password:         "SecurePass123!",
+		Subdomain:        "testorg",
 	}
+
+	// Validation order: subdomain -> email -> password
+	validator.EXPECT().
+		ValidateSubdomain(req.Subdomain).
+		Return(nil).
+		Once()
 
 	validator.EXPECT().
 		ValidateEmail(req.Email).
@@ -167,10 +176,18 @@ func TestAuthUsecase_Register_InvalidPassword(t *testing.T) {
 	uc := NewAuthUsecase(nil, nil, nil, nil, nil, nil, validator)
 
 	req := &RegisterRequest{
-		Email:    "john@example.com",
-		Password: "weak",
-		Subdomain: "testorg",
+		OrganizationName: "Test Org",
+		FullName:         "John Doe",
+		Email:            "john@example.com",
+		Password:         "weak",
+		Subdomain:        "testorg",
 	}
+
+	// Validation order: subdomain -> email -> password
+	validator.EXPECT().
+		ValidateSubdomain(req.Subdomain).
+		Return(nil).
+		Once()
 
 	validator.EXPECT().
 		ValidateEmail(req.Email).
@@ -201,6 +218,7 @@ func TestAuthUsecase_Register_SubdomainTaken(t *testing.T) {
 
 	req := &RegisterRequest{
 		OrganizationName: "Test Org",
+		FullName:         "John Doe",
 		Subdomain:        "taken",
 		Email:            "john@example.com",
 		Password:         "SecurePass123!",
@@ -208,9 +226,9 @@ func TestAuthUsecase_Register_SubdomainTaken(t *testing.T) {
 
 	ctx := context.Background()
 
+	validator.EXPECT().ValidateSubdomain(req.Subdomain).Return(nil).Once()
 	validator.EXPECT().ValidateEmail(req.Email).Return(nil).Once()
 	validator.EXPECT().ValidatePassword(req.Password).Return(nil).Once()
-	validator.EXPECT().ValidateSubdomain(req.Subdomain).Return(nil).Once()
 
 	orgRepo.EXPECT().
 		CheckSubdomainExists(ctx, "taken").
@@ -237,6 +255,7 @@ func TestAuthUsecase_Register_HashPasswordError(t *testing.T) {
 
 	req := &RegisterRequest{
 		OrganizationName: "Test Org",
+		FullName:         "John Doe",
 		Subdomain:        "testorg",
 		Email:            "john@example.com",
 		Password:         "SecurePass123!",
@@ -244,9 +263,9 @@ func TestAuthUsecase_Register_HashPasswordError(t *testing.T) {
 
 	ctx := context.Background()
 
+	validator.EXPECT().ValidateSubdomain(req.Subdomain).Return(nil).Once()
 	validator.EXPECT().ValidateEmail(req.Email).Return(nil).Once()
 	validator.EXPECT().ValidatePassword(req.Password).Return(nil).Once()
-	validator.EXPECT().ValidateSubdomain(req.Subdomain).Return(nil).Once()
 
 	orgRepo.EXPECT().
 		CheckSubdomainExists(ctx, "testorg").
@@ -365,7 +384,8 @@ func TestAuthUsecase_Login_UserNotFound(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.ErrorIs(t, err, domainerrors.ErrInvalidCredentials)
+	// Login propagates ErrUserNotFound as-is
+	assert.ErrorIs(t, err, domainerrors.ErrUserNotFound)
 }
 
 func TestAuthUsecase_Login_InvalidPassword(t *testing.T) {
@@ -397,7 +417,7 @@ func TestAuthUsecase_Login_InvalidPassword(t *testing.T) {
 
 	hasher.EXPECT().
 		Compare(user.PasswordHash, req.Password).
-		Return(errors.New("password mismatch")).
+		Return(service.ErrPasswordMismatch).
 		Once()
 
 	// Execute

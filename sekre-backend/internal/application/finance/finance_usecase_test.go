@@ -237,7 +237,7 @@ func TestFinanceUsecase_List_Success(t *testing.T) {
 	}
 
 	repo.EXPECT().
-		List(ctx, orgID, filters).
+		ListFiltered(ctx, orgID, filters).
 		Return(expectedTxs, nil).
 		Once()
 
