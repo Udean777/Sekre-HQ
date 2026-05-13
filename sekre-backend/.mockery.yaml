@@ -28,19 +28,44 @@ packages:
       PasswordResetRepository:
       AuditLogRepository:
       InvitationRepository:
-  
-  # Shared repositories
-  github.com/username/sekre-backend/internal/repository:
-    interfaces:
-      TxRunner:
-  
+
   # Domain services
   github.com/username/sekre-backend/internal/domain/service:
     interfaces:
       PasswordHasher:
       TokenGenerator:
       RegistrationValidator:
-  
+
+  # Application usecases (for handler tests)
+  github.com/username/sekre-backend/internal/application/auth:
+    interfaces:
+      AuthUsecase:
+
+  github.com/username/sekre-backend/internal/application/task:
+    interfaces:
+      TaskUsecase:
+
+  github.com/username/sekre-backend/internal/application/finance:
+    interfaces:
+      FinanceUsecase:
+
+  github.com/username/sekre-backend/internal/application/event:
+    interfaces:
+      EventUsecase:
+
+  github.com/username/sekre-backend/internal/application/organization:
+    interfaces:
+      OrganizationUsecase:
+      DivisionUsecase:
+      MemberUsecase:
+      UserUsecase:
+      MemberCreationUsecase:
+
+  # Shared repositories
+  github.com/username/sekre-backend/internal/repository:
+    interfaces:
+      TxRunner:
+
   # Clock abstraction
   github.com/username/sekre-backend/pkg/clock:
     interfaces:
