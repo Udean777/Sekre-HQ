@@ -11,11 +11,109 @@ on:
     paths:
       - 'sekre-backend/**'
 
+env:
+  GO_VERSION: '1.22'
+  COVERAGE_THRESHOLD: '60'
+
 jobs:
-  lint-and-test:
-    name: Lint and Test
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: sekre-backend/go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          working-directory: sekre-backend
+
+      - name: Run go vet
+        working-directory: sekre-backend
+        run: go vet ./...
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: sekre-backend/go.sum
+
+      - name: Install dependencies
+        working-directory: sekre-backend
+        run: go mod download
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run unit tests with coverage
+        working-directory: sekre-backend
+        run: |
+          gotestsum --format=standard-quiet --junitfile=unit.xml -- \
+            -race -short -coverprofile=unit.cov -covermode=atomic ./...
+
+      - name: Check coverage threshold
+        working-directory: sekre-backend
+        run: |
+          COVERAGE=$(go tool cover -func=unit.cov | grep '^total:' | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < ${{ env.COVERAGE_THRESHOLD }}" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below threshold ${{ env.COVERAGE_THRESHOLD }}%"
+            exit 1
+          fi
+          echo "::notice::Coverage ${COVERAGE}% meets threshold ${{ env.COVERAGE_THRESHOLD }}%"
+
+      - name: Generate coverage report
+        working-directory: sekre-backend
+        run: |
+          go tool cover -html=unit.cov -o coverage.html
+          go tool cover -func=unit.cov > coverage.txt
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./sekre-backend/unit.cov
+          flags: unit
+          fail_ci_if_error: false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: |
+            sekre-backend/unit.xml
+            sekre-backend/coverage.html
+            sekre-backend/coverage.txt
+          retention-days: 30
+
+      - name: Display coverage summary
+        if: always()
+        working-directory: sekre-backend
+        run: |
+          echo "## Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -50 coverage.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -30,16 +128,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -48,26 +136,25 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: sekre-backend/go.sum
 
       - name: Install dependencies
         working-directory: sekre-backend
         run: go mod download
 
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
-          working-directory: sekre-backend
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
 
       - name: Initialize test database
         env:
           PGPASSWORD: sekre_password
         run: |
-          psql -h localhost -U sekre_user -d sekre_db_test -f scripts/init-db.sql
+          if [ -f scripts/init-db.sql ]; then
+            psql -h localhost -U sekre_user -d sekre_db_test -f scripts/init-db.sql
+          fi
 
-      - name: Run tests
+      - name: Run integration tests
         working-directory: sekre-backend
         env:
           DB_HOST: localhost
@@ -76,21 +163,24 @@ jobs:
           DB_PASSWORD: sekre_password
           DB_NAME: sekre_db_test
           DB_SSLMODE: disable
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          JWT_SECRET: test-secret-key
-        run: go test -v -race -coverprofile=coverage.out ./...
+          JWT_SECRET: test-secret-key-for-ci-environment-32chars
+          LOG_LEVEL: warn
+        run: |
+          gotestsum --format=standard-quiet --junitfile=integration.xml -- \
+            -tags=integration -race -timeout=10m ./...
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          files: ./sekre-backend/coverage.out
-          flags: backend
+          name: integration-test-results
+          path: sekre-backend/integration.xml
+          retention-days: 30
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: lint-and-test
+    needs: [lint, unit-tests]
 
     steps:
       - name: Checkout code
@@ -99,16 +189,26 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: sekre-backend/go.sum
 
-      - name: Build binary
+      - name: Build API binary
         working-directory: sekre-backend
         run: |
-          CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/api cmd/api/main.go
+          CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
+            -ldflags="-w -s" -o bin/api cmd/api/main.go
 
-      - name: Upload artifact
+      - name: Build migrate binary
+        working-directory: sekre-backend
+        run: |
+          CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
+            -ldflags="-w -s" -o bin/migrate cmd/migrate/main.go
+
+      - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
-          name: backend-binary
-          path: sekre-backend/bin/api
+          name: backend-binaries
+          path: |
+            sekre-backend/bin/api
+            sekre-backend/bin/migrate
           retention-days: 7
