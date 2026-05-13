@@ -1,4 +1,4 @@
-.PHONY: help test test-unit test-integration test-e2e test-cover test-cover-check test-short bench mocks clean build run migrate lint lint-ci vet fmt setup-hooks pre-commit ci install-tools
+.PHONY: help test test-unit test-integration test-e2e test-cover test-cover-check test-short bench bench-save fuzz fuzz-money fuzz-auth mocks clean build run migrate lint lint-ci vet fmt setup-hooks pre-commit ci install-tools
 
 # Coverage threshold for CI (matches .github/workflows/backend-ci.yml)
 COVERAGE_THRESHOLD ?= 60
@@ -16,6 +16,9 @@ help:
 	@echo "    make test-cover-check  - Run tests and check coverage threshold ($(COVERAGE_THRESHOLD)%)"
 	@echo "    make test-short        - Run tests in short mode (skip slow tests)"
 	@echo "    make bench             - Run benchmarks"
+	@echo "    make bench-save        - Run benchmarks and save baseline to docs/benchmarks/"
+	@echo "    make fuzz-money        - Run Money fuzz tests (30s)"
+	@echo "    make fuzz-auth         - Run auth validator fuzz tests"
 	@echo ""
 	@echo "  Code Quality:"
 	@echo "    make lint              - Run linter"
@@ -84,6 +87,28 @@ test-short:
 bench:
 	@echo "Running benchmarks..."
 	go test -bench=. -benchmem -run=^$$ ./...
+
+bench-save:
+	@echo "Running benchmarks and saving baseline..."
+	@mkdir -p docs/benchmarks
+	go test -bench=. -benchmem -run=^$$ ./... | tee docs/benchmarks/$$(date +%Y-%m).md
+	@echo "Baseline saved to docs/benchmarks/$$(date +%Y-%m).md"
+
+# Fuzz tests
+fuzz:
+	@echo "Running fuzz tests (30s each)..."
+	@echo "Note: Run specific fuzz with 'make fuzz-money' or 'make fuzz-auth'"
+	@echo "Example: go test -fuzz=FuzzValidateEmail -fuzztime=30s ./internal/infrastructure/auth"
+
+fuzz-money:
+	@echo "Fuzzing Money value object (30s)..."
+	go test -fuzz=FuzzNewMoney -fuzztime=30s -run=^$$ ./internal/domain/valueobject
+
+fuzz-auth:
+	@echo "Fuzzing auth validators (30s each)..."
+	go test -fuzz=FuzzValidateEmail -fuzztime=30s -run=^$$ ./internal/infrastructure/auth
+	go test -fuzz=FuzzValidatePassword -fuzztime=30s -run=^$$ ./internal/infrastructure/auth
+	go test -fuzz=FuzzValidateSubdomain -fuzztime=30s -run=^$$ ./internal/infrastructure/auth
 
 # Mock generation
 mocks:
