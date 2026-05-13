@@ -20,7 +20,7 @@ import (
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/middleware"
-	"github.com/username/sekre-backend/internal/test/mocks"
+	"github.com/username/sekre-backend/internal/test/usecasemocks"
 	"github.com/username/sekre-backend/pkg/token"
 )
 
@@ -37,7 +37,7 @@ func TestAuthHandler_Register_Success(t *testing.T) {
 	t.Parallel()
 
 	// Setup
-	mockUsecase := mocks.NewAuthUsecase(t)
+	mockUsecase := usecasemocks.NewAuthUsecase(t)
 	tokenManager := token.NewManager("test-secret-key-for-testing-purposes-only", 3600000000000, 86400000000000)
 	h := handler.NewAuthHandler(mockUsecase, tokenManager)
 
@@ -93,7 +93,7 @@ func TestAuthHandler_Register_InvalidBody(t *testing.T) {
 	t.Parallel()
 
 	// Setup
-	mockUsecase := mocks.NewAuthUsecase(t)
+	mockUsecase := usecasemocks.NewAuthUsecase(t)
 	tokenManager := token.NewManager("test-secret-key-for-testing-purposes-only", 3600000000000, 86400000000000)
 	h := handler.NewAuthHandler(mockUsecase, tokenManager)
 
@@ -113,7 +113,7 @@ func TestAuthHandler_Register_UsecaseError(t *testing.T) {
 	t.Parallel()
 
 	// Setup
-	mockUsecase := mocks.NewAuthUsecase(t)
+	mockUsecase := usecasemocks.NewAuthUsecase(t)
 	tokenManager := token.NewManager("test-secret-key-for-testing-purposes-only", 3600000000000, 86400000000000)
 	h := handler.NewAuthHandler(mockUsecase, tokenManager)
 
@@ -142,7 +142,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 	t.Parallel()
 
 	// Setup
-	mockUsecase := mocks.NewAuthUsecase(t)
+	mockUsecase := usecasemocks.NewAuthUsecase(t)
 	tokenManager := token.NewManager("test-secret-key-for-testing-purposes-only", 3600000000000, 86400000000000)
 	h := handler.NewAuthHandler(mockUsecase, tokenManager)
 
@@ -187,7 +187,7 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	t.Parallel()
 
 	// Setup
-	mockUsecase := mocks.NewAuthUsecase(t)
+	mockUsecase := usecasemocks.NewAuthUsecase(t)
 	tokenManager := token.NewManager("test-secret-key-for-testing-purposes-only", 3600000000000, 86400000000000)
 	h := handler.NewAuthHandler(mockUsecase, tokenManager)
 
@@ -217,7 +217,7 @@ func TestAuthHandler_GetMe_Success(t *testing.T) {
 	t.Parallel()
 
 	// Setup
-	mockUsecase := mocks.NewAuthUsecase(t)
+	mockUsecase := usecasemocks.NewAuthUsecase(t)
 	tokenManager := token.NewManager("test-secret-key-for-testing-purposes-only", 3600000000000, 86400000000000)
 	h := handler.NewAuthHandler(mockUsecase, tokenManager)
 
@@ -258,7 +258,7 @@ func TestAuthHandler_GetMe_NoUserContext(t *testing.T) {
 	t.Parallel()
 
 	// Setup
-	mockUsecase := mocks.NewAuthUsecase(t)
+	mockUsecase := usecasemocks.NewAuthUsecase(t)
 	tokenManager := token.NewManager("test-secret-key-for-testing-purposes-only", 3600000000000, 86400000000000)
 	h := handler.NewAuthHandler(mockUsecase, tokenManager)
 
@@ -277,7 +277,7 @@ func TestAuthHandler_GetMe_UsecaseError(t *testing.T) {
 	t.Parallel()
 
 	// Setup
-	mockUsecase := mocks.NewAuthUsecase(t)
+	mockUsecase := usecasemocks.NewAuthUsecase(t)
 	tokenManager := token.NewManager("test-secret-key-for-testing-purposes-only", 3600000000000, 86400000000000)
 	h := handler.NewAuthHandler(mockUsecase, tokenManager)
 

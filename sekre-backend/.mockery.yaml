@@ -36,24 +36,39 @@ packages:
       TokenGenerator:
       RegistrationValidator:
 
-  # Application usecases (for handler tests)
+  # Application usecases (for handler tests) - separate package to avoid import cycle
   github.com/username/sekre-backend/internal/application/auth:
+    config:
+      dir: "internal/test/usecasemocks"
+      outpkg: usecasemocks
     interfaces:
       AuthUsecase:
 
   github.com/username/sekre-backend/internal/application/task:
+    config:
+      dir: "internal/test/usecasemocks"
+      outpkg: usecasemocks
     interfaces:
       TaskUsecase:
 
   github.com/username/sekre-backend/internal/application/finance:
+    config:
+      dir: "internal/test/usecasemocks"
+      outpkg: usecasemocks
     interfaces:
       FinanceUsecase:
 
   github.com/username/sekre-backend/internal/application/event:
+    config:
+      dir: "internal/test/usecasemocks"
+      outpkg: usecasemocks
     interfaces:
       EventUsecase:
 
   github.com/username/sekre-backend/internal/application/organization:
+    config:
+      dir: "internal/test/usecasemocks"
+      outpkg: usecasemocks
     interfaces:
       OrganizationUsecase:
       DivisionUsecase:

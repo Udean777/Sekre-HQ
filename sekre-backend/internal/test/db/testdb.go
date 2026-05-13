@@ -1,6 +1,6 @@
 // Package testdb provides test database utilities using testcontainers.
 //
-//go:build integration
+//go:build integration || e2e
 
 package testdb
 
