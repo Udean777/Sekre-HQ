@@ -116,7 +116,14 @@ func main() {
 	// middleware and handler can read the correlation ID from context.
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Timeout(30 * time.Second)) // 30-second timeout for all requests
-	router.Use(middleware.CORS)
+	router.Use(middleware.CORS(middleware.CORSConfig{
+		AllowedOrigins:   cfg.CORS.AllowedOrigins,
+		AllowedMethods:   cfg.CORS.AllowedMethods,
+		AllowedHeaders:   cfg.CORS.AllowedHeaders,
+		ExposedHeaders:   cfg.CORS.ExposedHeaders,
+		AllowCredentials: cfg.CORS.AllowCredentials,
+		MaxAge:           cfg.CORS.MaxAge,
+	}))
 	router.Use(middleware.Logging)
 
 	// API v1 routes

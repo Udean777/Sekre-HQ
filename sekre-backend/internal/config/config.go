@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -14,10 +15,20 @@ type Config struct {
 	Database DatabaseConfig
 	JWT      JWTConfig
 	Log      LogConfig
+	CORS     CORSConfig
 }
 
 type LogConfig struct {
 	Level string
+}
+
+type CORSConfig struct {
+	AllowedOrigins []string
+	AllowedMethods []string
+	AllowedHeaders []string
+	ExposedHeaders []string
+	AllowCredentials bool
+	MaxAge         int
 }
 
 type ServerConfig struct {
@@ -77,6 +88,14 @@ func Load() (*Config, error) {
 		Log: LogConfig{
 			Level: getEnv("LOG_LEVEL", "info"),
 		},
+		CORS: CORSConfig{
+			AllowedOrigins:   getEnvAsSlice("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000", "http://localhost:5173"}),
+			AllowedMethods:   getEnvAsSlice("CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}),
+			AllowedHeaders:   getEnvAsSlice("CORS_ALLOWED_HEADERS", []string{"Content-Type", "Authorization", "Accept", "X-Request-ID"}),
+			ExposedHeaders:   getEnvAsSlice("CORS_EXPOSED_HEADERS", []string{"X-Request-ID"}),
+			AllowCredentials: getEnvAsBool("CORS_ALLOW_CREDENTIALS", true),
+			MaxAge:           getEnvAsInt("CORS_MAX_AGE", 3600),
+		},
 	}
 
 	// Validate required fields
@@ -114,6 +133,19 @@ func Load() (*Config, error) {
 		if config.Log.Level == "trace" || config.Log.Level == "debug" {
 			return nil, fmt.Errorf("LOG_LEVEL=%s not recommended in production", config.Log.Level)
 		}
+		// CORS: no wildcard with credentials in production
+		for _, origin := range config.CORS.AllowedOrigins {
+			if origin == "*" && config.CORS.AllowCredentials {
+				return nil, fmt.Errorf("CORS_ALLOWED_ORIGINS=* with CORS_ALLOW_CREDENTIALS=true is invalid per CORS spec")
+			}
+		}
+	}
+
+	// CORS validation: wildcard + credentials is invalid per spec
+	for _, origin := range config.CORS.AllowedOrigins {
+		if origin == "*" && config.CORS.AllowCredentials {
+			return nil, fmt.Errorf("CORS_ALLOWED_ORIGINS=* cannot be used with CORS_ALLOW_CREDENTIALS=true")
+		}
 	}
 
 	return config, nil
@@ -139,4 +171,36 @@ func getEnvAsInt(key string, defaultValue int) int {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvAsBool(key string, defaultValue bool) bool {
+	valueStr := getEnv(key, "")
+	if valueStr == "" {
+		return defaultValue
+	}
+	if value, err := strconv.ParseBool(valueStr); err == nil {
+		return value
+	}
+	return defaultValue
+}
+
+// getEnvAsSlice parses a comma-separated env value into a slice of trimmed strings.
+// Returns defaultValue if the env variable is not set or empty.
+func getEnvAsSlice(key string, defaultValue []string) []string {
+	valueStr := getEnv(key, "")
+	if valueStr == "" {
+		return defaultValue
+	}
+	parts := strings.Split(valueStr, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		trimmed := strings.TrimSpace(p)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	if len(result) == 0 {
+		return defaultValue
+	}
+	return result
 }

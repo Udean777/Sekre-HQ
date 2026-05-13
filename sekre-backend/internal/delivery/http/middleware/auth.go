@@ -58,31 +58,8 @@ func AuthMiddleware(tokenManager *token.Manager) func(http.Handler) http.Handler
 	}
 }
 
-// CORS middleware
-func CORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Set CORS headers
-		origin := r.Header.Get("Origin")
-		if origin == "" {
-			origin = "*"
-		}
-
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Request-ID")
-		w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Max-Age", "3600")
-
-		// Handle preflight requests
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
+// CORS middleware has been moved to cors.go with proper config-based setup.
+// Use CORS(cfg CORSConfig) instead of the old CORS(next http.Handler) form.
 
 // Logging middleware with beautiful colored output
 func Logging(next http.Handler) http.Handler {
