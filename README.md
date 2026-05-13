@@ -246,6 +246,17 @@ cd sekre-mobile
 - ✅ **Settings & Profile**: User profile, password change, organization settings
 - ✅ **Organization Deletion**: Safe deletion with confirmation
 
+### Production Readiness (Phase 8)
+
+- ✅ **CORS**: Origin whitelist (no wildcard with credentials)
+- ✅ **Security Headers**: OWASP recommendations (HSTS, CSP, X-Frame-Options)
+- ✅ **RBAC Middleware**: Role-based access control (OWNER/ADMIN/MEMBER)
+- ✅ **Request Validation**: Struct tag validation with `go-playground/validator`
+- ✅ **Rate Limiting**: Token-bucket per-IP (prevents brute force/DDoS)
+- ✅ **Metrics**: Prometheus at `/metrics` (requests, duration, in-flight)
+- ✅ **Health Checks**: `/health/live` and `/health/ready` (k8s-compatible)
+- ✅ **API Docs**: OpenAPI 3.0 spec + Swagger UI at `/docs`
+
 ### Upcoming Features
 
 #### Phase 2: Enhanced Features
