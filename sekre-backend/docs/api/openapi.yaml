@@ -1,0 +1,729 @@
+openapi: 3.0.3
+info:
+  title: Sekre Backend API
+  description: |
+    Multi-tenant SaaS platform for organization management.
+
+    **Features:**
+    - Organization registration and authentication
+    - Task management with assignees
+    - Event scheduling
+    - Finance tracking with multi-currency support
+    - Division-based team structure
+
+    **Authentication:**
+    Most endpoints require a Bearer token obtained via `/auth/login`.
+    Include the token in the `Authorization` header:
+    ```
+    Authorization: Bearer <access_token>
+    ```
+
+    **Rate Limiting:**
+    - General endpoints: 10 req/sec (burst 20)
+    - Auth endpoints: 1 req/sec (burst 5)
+    - Returns 429 with `Retry-After` header when exceeded
+
+    **Multi-tenancy:**
+    All data is scoped to the user's organization. Cross-tenant access
+    returns 404 (not found) to avoid leaking existence of resources.
+
+  version: 1.0.0
+  contact:
+    name: Sekre Team
+    url: https://github.com/username/sekre-project
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+  - url: https://api.sekre.co/api/v1
+    description: Production
+
+tags:
+  - name: Auth
+    description: Authentication and session management
+  - name: Organization
+    description: Organization settings
+  - name: Users
+    description: User management
+  - name: Divisions
+    description: Division (team) management
+  - name: Members
+    description: Member management
+  - name: Tasks
+    description: Task management
+  - name: Events
+    description: Event scheduling
+  - name: Finance
+    description: Financial transactions
+  - name: Health
+    description: Health checks and monitoring
+
+security:
+  - BearerAuth: []
+
+paths:
+  /health/live:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      description: Returns 200 if the process is alive. Used by k8s liveness probe.
+      security: []
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: Returns 200 if the service is ready to serve traffic (DB reachable).
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new organization
+      description: Creates a new organization with the first user as Owner.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Organization registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Subdomain already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      description: Authenticates with email and password, returns JWT tokens.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      description: Returns the authenticated user with their organization.
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserWithOrgResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List tasks
+      description: Returns all tasks in the user's organization with optional filters.
+      parameters:
+        - name: division_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by division
+        - name: assignee_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by assignee
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [TODO, IN_PROGRESS, DONE]
+          description: Filter by status
+      responses:
+        '200':
+          description: Task list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Tasks]
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Tasks]
+      summary: Get task by ID
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Tasks]
+      summary: Update task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Tasks]
+      summary: Delete task
+      responses:
+        '204':
+          description: Task deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /finance/transactions:
+    get:
+      tags: [Finance]
+      summary: List transactions
+      parameters:
+        - name: division_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [INCOME, EXPENSE]
+      responses:
+        '200':
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+
+    post:
+      tags: [Finance]
+      summary: Create a transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+
+  /finance/summary:
+    get:
+      tags: [Finance]
+      summary: Get finance summary
+      description: Returns aggregated income, expense, and balance.
+      parameters:
+        - name: division_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Optional - scope summary to a single division
+      responses:
+        '200':
+          description: Finance summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinanceSummary'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Invalid request payload
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Insufficient permissions for this action
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found (or cross-tenant access blocked)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimited:
+      description: Too many requests
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retrying
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ------ Common ------
+
+    SuccessResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+
+    ErrorResponse:
+      type: object
+      required: [success, error, code]
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "email: must be a valid email address"
+        code:
+          type: string
+          enum: [INVALID_INPUT, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, PRECONDITION_FAILED, TIMEOUT, INTERNAL, RATE_LIMITED]
+        details:
+          type: object
+          additionalProperties: true
+
+    HealthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [ok, unhealthy]
+            version:
+              type: string
+            checks:
+              type: object
+
+    # ------ Auth ------
+
+    RegisterRequest:
+      type: object
+      required: [organization_name, subdomain, full_name, email, password]
+      properties:
+        organization_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "Acme Corp"
+        subdomain:
+          type: string
+          pattern: ^[a-z0-9-]{3,32}$
+          example: "acme"
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: "john@acme.com"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          format: password
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    AuthSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                user:
+                  $ref: '#/components/schemas/User'
+                organization:
+                  $ref: '#/components/schemas/Organization'
+                role:
+                  $ref: '#/components/schemas/Role'
+                tokens:
+                  $ref: '#/components/schemas/TokenPair'
+
+    TokenPair:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: Short-lived JWT (15 min default)
+        refresh_token:
+          type: string
+          description: Long-lived refresh token (7 days default)
+
+    Role:
+      type: string
+      enum: [OWNER, ADMIN, MEMBER]
+
+    # ------ User / Organization ------
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        must_reset_password:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        subdomain:
+          type: string
+        subscription_plan:
+          type: string
+          enum: [FREE, LITE, PRO]
+        created_at:
+          type: string
+          format: date-time
+
+    UserWithOrgResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                user:
+                  $ref: '#/components/schemas/User'
+                organization:
+                  $ref: '#/components/schemas/Organization'
+                role:
+                  $ref: '#/components/schemas/Role'
+
+    # ------ Tasks ------
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        division_id:
+          type: string
+          format: uuid
+        assignee_id:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [TODO, IN_PROGRESS, DONE]
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateTaskRequest:
+      type: object
+      required: [division_id, title]
+      properties:
+        division_id:
+          type: string
+          format: uuid
+        assignee_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 3
+          maxLength: 500
+        description:
+          type: string
+          maxLength: 1000
+        due_date:
+          type: string
+          format: date-time
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        assignee_id:
+          type: string
+          format: uuid
+        due_date:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [TODO, IN_PROGRESS, DONE]
+
+    # ------ Finance ------
+
+    Money:
+      type: object
+      description: "Monetary value as integer cents with currency"
+      properties:
+        amount_cents:
+          type: integer
+          format: int64
+          example: 5000000
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+          example: "IDR"
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        division_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+          nullable: true
+        type:
+          type: string
+          enum: [INCOME, EXPENSE]
+        amount:
+          $ref: '#/components/schemas/Money'
+        description:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+        requested_by:
+          type: string
+          format: uuid
+        approved_by:
+          type: string
+          format: uuid
+          nullable: true
+        receipt_url:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateTransactionRequest:
+      type: object
+      required: [division_id, type, amount_cents, currency, description]
+      properties:
+        division_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [INCOME, EXPENSE]
+        amount_cents:
+          type: integer
+          format: int64
+          minimum: 1
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+          example: "IDR"
+        description:
+          type: string
+          maxLength: 500
+        receipt_url:
+          type: string
+          format: uri
+
+    FinanceSummary:
+      type: object
+      properties:
+        total_income:
+          $ref: '#/components/schemas/Money'
+        total_expense:
+          $ref: '#/components/schemas/Money'
+        balance:
+          $ref: '#/components/schemas/Money'

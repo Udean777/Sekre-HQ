@@ -146,6 +146,11 @@ func main() {
 	router.HandleFunc("/health/ready", healthHandler.Ready).Methods("GET")
 	router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
+	// API documentation endpoints (no auth)
+	docsHandler := handler.NewDocsHandler("docs/api/openapi.yaml")
+	router.HandleFunc("/openapi.yaml", docsHandler.OpenAPISpec).Methods("GET")
+	router.HandleFunc("/docs", docsHandler.SwaggerUI).Methods("GET")
+
 	// API v1 routes
 	apiV1 := router.PathPrefix("/api/v1").Subrouter()
 
