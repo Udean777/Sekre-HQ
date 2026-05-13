@@ -256,51 +256,115 @@ git commit --no-verify
 - Don't commit failing tests
 - Don't skip tests without issue reference
 
-## Test Helpers
+## Test Data Management
 
-### Clock Abstraction
+### Rules
 
-For time-dependent code:
+- **Each test is independent**: Create data within each test, never rely on state from other tests
+- **Unique IDs**: Always use `uuid.New()`, never hardcode IDs
+- **No shared state**: Each test should create its own fixtures
+- **Cleanup**: Use `t.Cleanup()` for deferred cleanup
 
-```go
-import (
-    "github.com/username/sekre-backend/pkg/clock"
-    testclock "github.com/username/sekre-backend/internal/test/clock"
-)
+### Transactional Tests
 
-// Production
-uc := NewUsecase(clock.NewRealClock())
-
-// Test
-fakeClock := testclock.New(time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC))
-uc := NewUsecase(fakeClock)
-
-// Advance time
-fakeClock.Advance(1 * time.Hour)
-```
-
-### Fixtures (Builder Pattern)
+For integration tests, wrap in a transaction that rolls back:
 
 ```go
-import "github.com/username/sekre-backend/internal/test/fixtures"
+func withTx(t *testing.T, db *gorm.DB, fn func(tx *gorm.DB)) {
+    tx := db.Begin()
+    t.Cleanup(func() { tx.Rollback() })
+    fn(tx)
+}
 
-user := fixtures.NewUser().
-    WithEmail("test@example.com").
-    WithRole(types.RoleOwner).
-    Build()
-```
-
-### HTTP Test Helpers
-
-```go
-import testhttp "github.com/username/sekre-backend/internal/test/http"
-
-req := testhttp.AuthedRequest(t, "GET", "/tasks", nil, testhttp.AuthOpts{
-    UserID: uuid.New(),
-    OrgID:  uuid.New(),
-    Role:   types.RoleOwner,
+// Or use testdb helper
+testdb.RunInTx(t, func(tx *gorm.DB) {
+    // Test code runs in transaction
+    // Auto-rollback on completion
 })
 ```
+
+### Builder Pattern
+
+Prefer builders over raw struct literals:
+
+```go
+// Good - clear intent, defaults provided
+user := entityfixtures.NewUser().
+    WithEmail("test@example.com").
+    Build()
+
+// Avoid - verbose, error-prone
+user := entity.User{
+    ID:           uuid.New(),
+    Email:        "test@example.com",
+    PasswordHash: "...",
+    FullName:     "...",
+    CreatedAt:    time.Now(),
+    UpdatedAt:    time.Now(),
+}
+```
+
+### Scenario Over Individual Fixtures
+
+For complex test setups, use scenarios:
+
+```go
+// Good - reusable, expressive
+s := scenario.NewSingleTenant()
+// s.Owner, s.Admin, s.Member, s.Organization
+
+// Avoid - lots of boilerplate
+owner := entityfixtures.NewUser().Build()
+admin := entityfixtures.NewUser().Build()
+member := entityfixtures.NewUser().Build()
+org := entityfixtures.NewOrganization().Build()
+// ... manually wire up relationships
+```
+
+## Flaky Test Policy
+
+Flaky tests erode confidence in the test suite. Zero tolerance policy:
+
+### Detection
+
+A test is flaky if:
+- It fails intermittently without code changes
+- It depends on timing, external services, or random state
+- It depends on test execution order
+- It fails in CI but passes locally (or vice versa)
+
+### Process
+
+**1. First Occurrence:**
+- Label test with `// FLAKY: <issue-link>`
+- Skip the test to unblock CI:
+
+```go
+func TestSomethingFlaky(t *testing.T) {
+    t.Skip("FLAKY: https://github.com/org/repo/issues/123 - race condition")
+    // ... test body
+}
+```
+
+**2. Fix Deadline:**
+- Mandatory fix within 2 weeks (1 sprint)
+- Owner: engineer who introduced the test
+
+**3. Zero Tolerance:**
+- Flaky tests on `main` are blockers for all PRs
+- Must fix or remove, never ignore
+
+### Common Causes & Fixes
+
+| Cause | Fix |
+|-------|-----|
+| `time.Sleep` | Use `clock.FakeClock` |
+| Random IDs compared | Sort before asserting |
+| Map iteration order | Use slices or sorted keys |
+| Goroutine timing | Use `sync.WaitGroup` or channels |
+| Network calls | Mock with `httptest.Server` |
+| Database state | Use transactions with rollback |
+| File system | Use `t.TempDir()` |
 
 ## Debugging Tests
 
