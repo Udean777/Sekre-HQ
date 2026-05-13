@@ -1,0 +1,87 @@
+with-expecter: true
+dir: "internal/test/mocks"
+outpkg: mocks
+filename: "{{.InterfaceName | snakecase}}.go"
+mockname: "{{.InterfaceName}}"
+inpackage: false
+testonly: false
+exported: true
+keeptree: false
+resolve-type-alias: false
+disable-version-string: true
+issue-845-fix: true
+
+packages:
+  # Domain repositories
+  github.com/username/sekre-backend/internal/domain/repository:
+    interfaces:
+      UserRepository:
+      OrganizationRepository:
+      UserOrganizationRepository:
+      UserProfileRepository:
+      MemberRepository:
+      DivisionRepository:
+      DivisionMemberRepository:
+      TaskRepository:
+      EventRepository:
+      TransactionRepository:
+      PasswordResetRepository:
+      AuditLogRepository:
+      InvitationRepository:
+
+  # Domain services
+  github.com/username/sekre-backend/internal/domain/service:
+    interfaces:
+      PasswordHasher:
+      TokenGenerator:
+      RegistrationValidator:
+
+  # Application usecases (for handler tests) - separate package to avoid import cycle
+  github.com/username/sekre-backend/internal/application/auth:
+    config:
+      dir: "internal/test/usecasemocks"
+      outpkg: usecasemocks
+    interfaces:
+      AuthUsecase:
+
+  github.com/username/sekre-backend/internal/application/task:
+    config:
+      dir: "internal/test/usecasemocks"
+      outpkg: usecasemocks
+    interfaces:
+      TaskUsecase:
+
+  github.com/username/sekre-backend/internal/application/finance:
+    config:
+      dir: "internal/test/usecasemocks"
+      outpkg: usecasemocks
+    interfaces:
+      FinanceUsecase:
+
+  github.com/username/sekre-backend/internal/application/event:
+    config:
+      dir: "internal/test/usecasemocks"
+      outpkg: usecasemocks
+    interfaces:
+      EventUsecase:
+
+  github.com/username/sekre-backend/internal/application/organization:
+    config:
+      dir: "internal/test/usecasemocks"
+      outpkg: usecasemocks
+    interfaces:
+      OrganizationUsecase:
+      DivisionUsecase:
+      MemberUsecase:
+      UserUsecase:
+      MemberCreationUsecase:
+
+  # Shared repositories
+  github.com/username/sekre-backend/internal/repository:
+    interfaces:
+      TxRunner:
+
+  # Clock abstraction
+  github.com/username/sekre-backend/pkg/clock:
+    interfaces:
+      Clock:

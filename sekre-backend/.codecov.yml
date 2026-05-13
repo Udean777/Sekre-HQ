@@ -1,0 +1,58 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 60%
+        threshold: 2%
+        base: auto
+    patch:
+      default:
+        target: 70%
+        threshold: 5%
+
+ignore:
+  # Entry points (thin wrappers)
+  - "cmd/**"
+  
+  # Test infrastructure
+  - "internal/test/**"
+  
+  # Generated mocks
+  - "**/mocks/**"
+  - "**/*_mock.go"
+  - "**/*_gen.go"
+  
+  # Entity structs (no behavior)
+  - "internal/domain/entity/**"
+  
+  # Repository interfaces (no implementation)
+  - "internal/domain/repository/**"
+  - "internal/domain/service/**"
+  
+  # Infrastructure - tested via integration tests
+  - "internal/infrastructure/persistence/gorm/repository/**"
+  
+  # Models (GORM tags only)
+  - "internal/models/**"
+  
+  # Migration files
+  - "migrations/**"
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+
+flags:
+  unit:
+    paths:
+      - internal/domain/
+      - internal/application/
+    carryforward: true
+  
+  integration:
+    paths:
+      - internal/infrastructure/
+    carryforward: true

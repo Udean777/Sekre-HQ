@@ -1,0 +1,24 @@
+package repository
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/username/sekre-backend/internal/domain/entity"
+)
+
+// TaskRepository handles task persistence
+type TaskRepository interface {
+	Create(ctx context.Context, orgID uuid.UUID, task *entity.Task) error
+	GetByID(ctx context.Context, orgID, taskID uuid.UUID) (*entity.Task, error)
+	List(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.Task, error)
+	ListWithAssignee(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.TaskWithAssignee, error)
+	// ListFiltered returns tasks with their assignees filtered by the given
+	// optional criteria. Use this instead of ListWithAssignee when callers
+	// need richer filtering than division scope.
+	ListFiltered(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters) ([]entity.TaskWithAssignee, error)
+	Update(ctx context.Context, orgID uuid.UUID, task *entity.Task) error
+	UpdateStatus(ctx context.Context, orgID, taskID uuid.UUID, status string) error
+	Delete(ctx context.Context, orgID, taskID uuid.UUID) error
+	CountActiveByDivision(ctx context.Context, orgID, divisionID uuid.UUID) (int64, error)
+}

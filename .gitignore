@@ -5,3 +5,13 @@ build/
 .idea/
 *.iml
 local.properties
+
+# Temporary planning / implementation notes
+docs/Phase-1-MVP-Breakdown.md
+docs/Sub-Phase-*.md
+docs/Frontend-Runes-Migration.md
+docs/Svelte-5-Runes-Guide.md
+docs/Svelte-5-Quick-Reference.md
+docs/PHASE-*-SUMMARY.md
+docs/Frontend-UI-Improvement-Plan.md
+docs/refactoring

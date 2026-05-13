@@ -1,0 +1,72 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database - DISABLED (using local PostgreSQL)
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: sekre-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: sekre_user
+  #     POSTGRES_PASSWORD: sekre_password
+  #     POSTGRES_DB: sekre_db
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U sekre_user -d sekre_db"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # Redis for Message Queue & Caching
+  redis:
+    image: redis:7-alpine
+    container_name: sekre-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Adminer (Database Management UI) - DISABLED (use PgAdmin instead)
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: sekre-adminer
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8081:8080"
+  #   environment:
+  #     ADMINER_DEFAULT_SERVER: postgres
+  #   depends_on:
+  #     - postgres
+
+  # Redis Commander (Redis Management UI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: sekre-redis-commander
+    restart: unless-stopped
+    ports:
+      - "8082:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      - redis
+
+volumes:
+  # postgres_data:
+  #   driver: local
+  redis_data:
+    driver: local
+
+networks:
+  default:
+    name: sekre-network
