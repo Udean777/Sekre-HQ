@@ -331,18 +331,51 @@ PUBLIC_APP_URL=http://localhost:5173
 
 ### Backend Tests
 
+The backend has a comprehensive testing infrastructure. See [sekre-backend/docs/testing.md](./sekre-backend/docs/testing.md) for full details.
+
 ```bash
 cd sekre-backend
 
-# Run all tests
-go test ./...
+# Quick start
+make test-unit              # Unit tests only (fast)
+make test-cover             # With HTML coverage report
+make test-cover-check       # Enforce 60% threshold
 
-# Run tests with coverage
-go test -cover ./...
+# Test categories
+make test-integration       # Integration tests (testcontainers + PostgreSQL)
+make test-e2e               # End-to-end tests (full HTTP stack)
+make test-fuzz              # Fuzz tests (30s each)
 
-# Run specific package tests
-go test ./internal/auth/...
+# Performance
+make bench                  # Run benchmarks
+make bench-save             # Save baseline to docs/benchmarks/
+
+# Code quality
+make lint                   # golangci-lint
+make vet                    # go vet
+make ci                     # Full CI checks locally
+
+# Setup (run once)
+make install-tools          # Install mockery, gotestsum, etc
+make setup-hooks            # Configure git pre-commit hooks
 ```
+
+#### Test Tags
+
+| Tag | Use Case | When |
+|-----|----------|------|
+| (none) | Unit tests, < 1s | Every push, pre-commit |
+| `integration` | DB tests with testcontainers | PR, nightly |
+| `e2e` | Full stack HTTP tests | PR, nightly |
+
+#### Test Statistics
+
+- **Unit tests:** 100+ tests (domain + application layers, 75% coverage)
+- **Integration tests:** 20+ tests (repository layer)
+- **Handler tests:** 8+ tests (HTTP handlers)
+- **E2E tests:** 5+ tests (full stack flows)
+- **Benchmarks:** 12 benchmarks (Money, Bcrypt)
+- **Fuzz tests:** 8 fuzz functions (validators, parsers)
 
 ### Frontend Tests
 

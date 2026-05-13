@@ -1,4 +1,4 @@
-.PHONY: help test test-unit test-integration test-e2e test-cover test-cover-check test-short bench bench-save fuzz fuzz-money fuzz-auth mocks clean build run migrate lint lint-ci vet fmt setup-hooks pre-commit ci install-tools
+.PHONY: help test test-unit test-integration test-e2e test-cover test-cover-check test-short test-fuzz bench bench-save fuzz fuzz-money fuzz-auth mocks clean build run migrate lint lint-ci vet fmt setup-hooks pre-commit ci install-tools
 
 # Coverage threshold for CI (matches .github/workflows/backend-ci.yml)
 COVERAGE_THRESHOLD ?= 60
@@ -15,6 +15,7 @@ help:
 	@echo "    make test-cover        - Run tests with HTML coverage report"
 	@echo "    make test-cover-check  - Run tests and check coverage threshold ($(COVERAGE_THRESHOLD)%)"
 	@echo "    make test-short        - Run tests in short mode (skip slow tests)"
+	@echo "    make test-fuzz         - Run all fuzz tests (30s each)"
 	@echo "    make bench             - Run benchmarks"
 	@echo "    make bench-save        - Run benchmarks and save baseline to docs/benchmarks/"
 	@echo "    make fuzz-money        - Run Money fuzz tests (30s)"
@@ -82,6 +83,17 @@ test-cover-check: test-cover
 test-short:
 	@echo "Running tests in short mode..."
 	go test -short -race ./...
+
+test-fuzz:
+	@echo "Running all fuzz tests (30s each)..."
+	@echo "Fuzzing Money..."
+	-go test -fuzz=FuzzNewMoney -fuzztime=30s -run=^$$ ./internal/domain/valueobject
+	@echo "Fuzzing auth validators..."
+	-go test -fuzz=FuzzValidateEmail -fuzztime=30s -run=^$$ ./internal/infrastructure/auth
+	-go test -fuzz=FuzzValidatePassword -fuzztime=30s -run=^$$ ./internal/infrastructure/auth
+	-go test -fuzz=FuzzValidateSubdomain -fuzztime=30s -run=^$$ ./internal/infrastructure/auth
+	@echo "Fuzzing handlers..."
+	-go test -fuzz=FuzzParseUUIDFromPath -fuzztime=30s -run=^$$ ./internal/delivery/http/handler
 
 # Benchmark
 bench:
