@@ -116,6 +116,14 @@ func main() {
 	// middleware and handler can read the correlation ID from context.
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Timeout(30 * time.Second)) // 30-second timeout for all requests
+
+	// Security headers (production hardening)
+	securityHeadersCfg := middleware.DefaultSecurityHeadersConfig()
+	if cfg.Server.Env == "production" {
+		securityHeadersCfg = middleware.ProductionSecurityHeadersConfig()
+	}
+	router.Use(middleware.SecurityHeaders(securityHeadersCfg))
+
 	router.Use(middleware.CORS(middleware.CORSConfig{
 		AllowedOrigins:   cfg.CORS.AllowedOrigins,
 		AllowedMethods:   cfg.CORS.AllowedMethods,
