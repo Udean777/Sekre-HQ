@@ -342,7 +342,7 @@ PUBLIC_APP_URL=http://localhost:5173
 
 ### Backend Tests
 
-The backend has a comprehensive testing infrastructure. See [sekre-backend/docs/testing.md](./sekre-backend/docs/testing.md) for full details.
+The backend has a comprehensive testing infrastructure. See [sekre-backend/README.md](./sekre-backend/README.md) for full details.
 
 ```bash
 cd sekre-backend
