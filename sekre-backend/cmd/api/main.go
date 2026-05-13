@@ -149,6 +149,9 @@ func main() {
 	// API v1 routes
 	apiV1 := router.PathPrefix("/api/v1").Subrouter()
 
+	// Apply global rate limiting to all API routes (DDoS protection)
+	apiV1.Use(middleware.RateLimit(middleware.DefaultRateLimitConfig()))
+
 	// Apply auth middleware to protected routes
 	protected := apiV1.PathPrefix("").Subrouter()
 	protected.Use(middleware.AuthMiddleware(tokenManager))
