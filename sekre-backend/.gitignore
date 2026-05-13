@@ -13,11 +13,21 @@ main
 *.so
 *.dylib
 
+# Build artifacts
+bin/
+dist/
+build/
+
 # Test binary
 *.test
 
 # Output of the go coverage tool
 *.out
+coverage.html
+coverage.txt
+unit.xml
+integration.xml
+e2e.xml
 
 # IDE
 .idea/
