@@ -8,6 +8,10 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	entity "github.com/username/sekre-backend/internal/domain/entity"
 
+	time "time"
+
+	types "github.com/username/sekre-backend/internal/domain/types"
+
 	uuid "github.com/google/uuid"
 )
 
@@ -298,6 +302,68 @@ func (_c *TransactionRepository_GetSummary_Call) RunAndReturn(run func(context.C
 	return _c
 }
 
+// GetSummaryWithDateRange provides a mock function with given fields: ctx, orgID, divisionID, startDate, endDate
+func (_m *TransactionRepository) GetSummaryWithDateRange(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, startDate *time.Time, endDate *time.Time) (*entity.FinanceSummary, error) {
+	ret := _m.Called(ctx, orgID, divisionID, startDate, endDate)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSummaryWithDateRange")
+	}
+
+	var r0 *entity.FinanceSummary
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *uuid.UUID, *time.Time, *time.Time) (*entity.FinanceSummary, error)); ok {
+		return rf(ctx, orgID, divisionID, startDate, endDate)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *uuid.UUID, *time.Time, *time.Time) *entity.FinanceSummary); ok {
+		r0 = rf(ctx, orgID, divisionID, startDate, endDate)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.FinanceSummary)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, *uuid.UUID, *time.Time, *time.Time) error); ok {
+		r1 = rf(ctx, orgID, divisionID, startDate, endDate)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// TransactionRepository_GetSummaryWithDateRange_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSummaryWithDateRange'
+type TransactionRepository_GetSummaryWithDateRange_Call struct {
+	*mock.Call
+}
+
+// GetSummaryWithDateRange is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - divisionID *uuid.UUID
+//   - startDate *time.Time
+//   - endDate *time.Time
+func (_e *TransactionRepository_Expecter) GetSummaryWithDateRange(ctx interface{}, orgID interface{}, divisionID interface{}, startDate interface{}, endDate interface{}) *TransactionRepository_GetSummaryWithDateRange_Call {
+	return &TransactionRepository_GetSummaryWithDateRange_Call{Call: _e.mock.On("GetSummaryWithDateRange", ctx, orgID, divisionID, startDate, endDate)}
+}
+
+func (_c *TransactionRepository_GetSummaryWithDateRange_Call) Run(run func(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, startDate *time.Time, endDate *time.Time)) *TransactionRepository_GetSummaryWithDateRange_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(*uuid.UUID), args[3].(*time.Time), args[4].(*time.Time))
+	})
+	return _c
+}
+
+func (_c *TransactionRepository_GetSummaryWithDateRange_Call) Return(_a0 *entity.FinanceSummary, _a1 error) *TransactionRepository_GetSummaryWithDateRange_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *TransactionRepository_GetSummaryWithDateRange_Call) RunAndReturn(run func(context.Context, uuid.UUID, *uuid.UUID, *time.Time, *time.Time) (*entity.FinanceSummary, error)) *TransactionRepository_GetSummaryWithDateRange_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // List provides a mock function with given fields: ctx, orgID, divisionID
 func (_m *TransactionRepository) List(ctx context.Context, orgID uuid.UUID, divisionID uuid.UUID) ([]entity.Transaction, error) {
 	ret := _m.Called(ctx, orgID, divisionID)
@@ -414,6 +480,74 @@ func (_c *TransactionRepository_ListFiltered_Call) Return(_a0 []entity.Transacti
 }
 
 func (_c *TransactionRepository_ListFiltered_Call) RunAndReturn(run func(context.Context, uuid.UUID, entity.TransactionFilters) ([]entity.Transaction, error)) *TransactionRepository_ListFiltered_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListFilteredPaginated provides a mock function with given fields: ctx, orgID, filters, pagination
+func (_m *TransactionRepository) ListFilteredPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TransactionFilters, pagination types.PaginationParams) ([]entity.Transaction, int, error) {
+	ret := _m.Called(ctx, orgID, filters, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListFilteredPaginated")
+	}
+
+	var r0 []entity.Transaction
+	var r1 int
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, entity.TransactionFilters, types.PaginationParams) ([]entity.Transaction, int, error)); ok {
+		return rf(ctx, orgID, filters, pagination)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, entity.TransactionFilters, types.PaginationParams) []entity.Transaction); ok {
+		r0 = rf(ctx, orgID, filters, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.Transaction)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, entity.TransactionFilters, types.PaginationParams) int); ok {
+		r1 = rf(ctx, orgID, filters, pagination)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID, entity.TransactionFilters, types.PaginationParams) error); ok {
+		r2 = rf(ctx, orgID, filters, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// TransactionRepository_ListFilteredPaginated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListFilteredPaginated'
+type TransactionRepository_ListFilteredPaginated_Call struct {
+	*mock.Call
+}
+
+// ListFilteredPaginated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - filters entity.TransactionFilters
+//   - pagination types.PaginationParams
+func (_e *TransactionRepository_Expecter) ListFilteredPaginated(ctx interface{}, orgID interface{}, filters interface{}, pagination interface{}) *TransactionRepository_ListFilteredPaginated_Call {
+	return &TransactionRepository_ListFilteredPaginated_Call{Call: _e.mock.On("ListFilteredPaginated", ctx, orgID, filters, pagination)}
+}
+
+func (_c *TransactionRepository_ListFilteredPaginated_Call) Run(run func(ctx context.Context, orgID uuid.UUID, filters entity.TransactionFilters, pagination types.PaginationParams)) *TransactionRepository_ListFilteredPaginated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(entity.TransactionFilters), args[3].(types.PaginationParams))
+	})
+	return _c
+}
+
+func (_c *TransactionRepository_ListFilteredPaginated_Call) Return(_a0 []entity.Transaction, _a1 int, _a2 error) *TransactionRepository_ListFilteredPaginated_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *TransactionRepository_ListFilteredPaginated_Call) RunAndReturn(run func(context.Context, uuid.UUID, entity.TransactionFilters, types.PaginationParams) ([]entity.Transaction, int, error)) *TransactionRepository_ListFilteredPaginated_Call {
 	_c.Call.Return(run)
 	return _c
 }

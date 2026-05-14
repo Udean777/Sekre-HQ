@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/mapper"
@@ -88,6 +88,50 @@ func (r *userProfileRepository) GetUsersByOrganization(ctx context.Context, orgI
 		}
 	}
 	return users, nil
+}
+
+func (r *userProfileRepository) GetUsersByOrganizationPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+	// Get total count
+	var totalCount int64
+	err := dbFor(ctx, r.db).
+		Table("users u").
+		Joins("INNER JOIN user_organizations uo ON u.id = uo.user_id").
+		Where("uo.organization_id = ?", orgID).
+		Count(&totalCount).Error
+	if err != nil {
+		return nil, 0, domainerrors.Internal("count users", err)
+	}
+
+	// Get paginated results
+	var results []struct {
+		ID       uuid.UUID
+		Email    string
+		FullName string
+		Role     types.Role
+	}
+	err = dbFor(ctx, r.db).
+		Table("users u").
+		Select("u.id, u.email, u.full_name, uo.role").
+		Joins("INNER JOIN user_organizations uo ON u.id = uo.user_id").
+		Where("uo.organization_id = ?", orgID).
+		Order("u.full_name").
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
+		Find(&results).Error
+	if err != nil {
+		return nil, 0, domainerrors.Internal("get users", err)
+	}
+
+	users := make([]entity.UserWithOrgRole, len(results))
+	for i, row := range results {
+		users[i] = entity.UserWithOrgRole{
+			ID:       row.ID,
+			Email:    row.Email,
+			FullName: row.FullName,
+			Role:     row.Role,
+		}
+	}
+	return users, int(totalCount), nil
 }
 
 func (r *userProfileRepository) GetUserByID(ctx context.Context, userID uuid.UUID) (*entity.UserBasic, error) {

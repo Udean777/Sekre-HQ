@@ -8,6 +8,7 @@ import (
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
+	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/mapper"
 	"github.com/username/sekre-backend/internal/models"
 	"gorm.io/gorm"
@@ -61,6 +62,47 @@ func (r *eventRepository) List(ctx context.Context, orgID, divisionID uuid.UUID)
 		events[i] = *mapper.EventToEntity(&m)
 	}
 	return events, nil
+}
+
+func (r *eventRepository) ListPaginated(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, pagination types.PaginationParams) ([]entity.Event, int, error) {
+	// Build base query
+	baseQuery := dbFor(ctx, r.db).
+		Model(&models.Event{}).
+		Where("organization_id = ?", orgID)
+
+	if divisionID != nil {
+		baseQuery = baseQuery.Where("division_id = ?", *divisionID)
+	}
+
+	// Get total count
+	var totalCount int64
+	if err := baseQuery.Count(&totalCount).Error; err != nil {
+		return nil, 0, domainerrors.Internal("count events", err)
+	}
+
+	// Get paginated results
+	query := dbFor(ctx, r.db).
+		Where("organization_id = ?", orgID)
+
+	if divisionID != nil {
+		query = query.Where("division_id = ?", *divisionID)
+	}
+
+	var models []models.Event
+	err := query.
+		Order("start_time DESC").
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
+		Find(&models).Error
+	if err != nil {
+		return nil, 0, domainerrors.Internal("list events", err)
+	}
+
+	events := make([]entity.Event, len(models))
+	for i, m := range models {
+		events[i] = *mapper.EventToEntity(&m)
+	}
+	return events, int(totalCount), nil
 }
 
 func (r *eventRepository) Update(ctx context.Context, orgID uuid.UUID, event *entity.Event) error {

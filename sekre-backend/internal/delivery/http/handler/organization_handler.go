@@ -7,22 +7,34 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/organization"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
-	"github.com/username/sekre-backend/internal/middleware"
+	"github.com/username/sekre-backend/pkg/audit"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
 type OrganizationHandler struct {
-	usecase organization.OrganizationUsecase
+	usecase      organization.OrganizationUsecase
+	auditService *audit.Service
 }
 
-func NewOrganizationHandler(usecase organization.OrganizationUsecase) *OrganizationHandler {
-	return &OrganizationHandler{usecase: usecase}
+func NewOrganizationHandler(usecase organization.OrganizationUsecase, auditService *audit.Service) *OrganizationHandler {
+	return &OrganizationHandler{
+		usecase:      usecase,
+		auditService: auditService,
+	}
 }
 
 func (h *OrganizationHandler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/organizations/me", h.UpdateOrganization).Methods("PATCH")
-	router.HandleFunc("/organizations/me", h.DeleteOrganization).Methods("DELETE")
+	// Update organization - requires OWNER or ADMIN role
+	router.Handle("/organizations/me",
+		middleware.RequireAdmin()(http.HandlerFunc(h.UpdateOrganization)),
+	).Methods("PATCH")
+
+	// Delete organization - requires OWNER role only
+	router.Handle("/organizations/me",
+		middleware.RequireOwner()(http.HandlerFunc(h.DeleteOrganization)),
+	).Methods("DELETE")
 }
 
 // UpdateOrganization updates the current organization
@@ -54,6 +66,16 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 		return
 	}
 
+	// Audit log the update
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionOrgUpdate,
+		Details: map[string]interface{}{
+			"name": req.Name,
+		},
+	})
+
 	response.Success(w, http.StatusOK, "organization updated successfully", org)
 }
 
@@ -75,6 +97,14 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the deletion
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionOrgDelete,
+		Details:        map[string]interface{}{},
+	})
 
 	response.Success(w, http.StatusOK, "organization deleted successfully", nil)
 }

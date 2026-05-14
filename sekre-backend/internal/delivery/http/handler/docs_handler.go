@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
+	"github.com/username/sekre-backend/pkg/response"
 )
 
 // DocsHandler serves the OpenAPI specification and Swagger UI.
@@ -22,13 +25,13 @@ func NewDocsHandler(specPath string) *DocsHandler {
 func (h *DocsHandler) OpenAPISpec(w http.ResponseWriter, r *http.Request) {
 	abs, err := filepath.Abs(h.specPath)
 	if err != nil {
-		http.Error(w, "failed to resolve spec path", http.StatusInternalServerError)
+		response.HandleError(w, r, domainerrors.Internal("failed to resolve spec path", err))
 		return
 	}
 
 	data, err := os.ReadFile(abs)
 	if err != nil {
-		http.Error(w, "OpenAPI spec not found", http.StatusNotFound)
+		response.HandleError(w, r, domainerrors.NotFound("OpenAPI spec", nil))
 		return
 	}
 

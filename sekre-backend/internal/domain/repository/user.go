@@ -24,6 +24,7 @@ type UserRepository interface {
 type UserProfileRepository interface {
 	SearchUsers(ctx context.Context, orgID uuid.UUID, query string, limit int) ([]entity.UserBasic, error)
 	GetUsersByOrganization(ctx context.Context, orgID uuid.UUID) ([]entity.UserWithOrgRole, error)
+	GetUsersByOrganizationPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (*entity.UserBasic, error)
 	UpdateProfile(ctx context.Context, userID uuid.UUID, fullName, email string) (*entity.User, error)
 	GetUserWithPasswordByID(ctx context.Context, userID uuid.UUID) (*entity.User, error)
@@ -56,6 +57,7 @@ type UserOrganizationRepository interface {
 // transactional primitives used by bulk/single member creation.
 type MemberRepository interface {
 	GetOrganizationMembers(ctx context.Context, orgID uuid.UUID) ([]entity.UserWithOrgRole, error)
+	GetOrganizationMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
 	UpdateMemberRole(ctx context.Context, orgID, userID uuid.UUID, role types.Role) error
 	RemoveMember(ctx context.Context, orgID, userID uuid.UUID) error
 	IsMember(ctx context.Context, orgID, userID uuid.UUID) (bool, error)
@@ -65,6 +67,7 @@ type MemberRepository interface {
 	AddUserToOrganization(ctx context.Context, orgID, userID uuid.UUID, role types.Role) error
 	AddMemberToDivision(ctx context.Context, divisionID, userID uuid.UUID, divisionRole types.DivisionRole) error
 	GetDivisionByName(ctx context.Context, orgID uuid.UUID, name string) (*entity.Division, error)
+	EmailExistsInOrganization(ctx context.Context, orgID uuid.UUID, email string) (bool, error)
 
 	// Audit log
 	CreateAuditLog(ctx context.Context, log *entity.AuditLog) error

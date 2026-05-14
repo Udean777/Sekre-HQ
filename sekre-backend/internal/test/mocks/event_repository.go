@@ -8,6 +8,8 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	entity "github.com/username/sekre-backend/internal/domain/entity"
 
+	types "github.com/username/sekre-backend/internal/domain/types"
+
 	uuid "github.com/google/uuid"
 )
 
@@ -294,6 +296,74 @@ func (_c *EventRepository_List_Call) Return(_a0 []entity.Event, _a1 error) *Even
 }
 
 func (_c *EventRepository_List_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID) ([]entity.Event, error)) *EventRepository_List_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListPaginated provides a mock function with given fields: ctx, orgID, divisionID, pagination
+func (_m *EventRepository) ListPaginated(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, pagination types.PaginationParams) ([]entity.Event, int, error) {
+	ret := _m.Called(ctx, orgID, divisionID, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPaginated")
+	}
+
+	var r0 []entity.Event
+	var r1 int
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *uuid.UUID, types.PaginationParams) ([]entity.Event, int, error)); ok {
+		return rf(ctx, orgID, divisionID, pagination)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *uuid.UUID, types.PaginationParams) []entity.Event); ok {
+		r0 = rf(ctx, orgID, divisionID, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.Event)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, *uuid.UUID, types.PaginationParams) int); ok {
+		r1 = rf(ctx, orgID, divisionID, pagination)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID, *uuid.UUID, types.PaginationParams) error); ok {
+		r2 = rf(ctx, orgID, divisionID, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// EventRepository_ListPaginated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPaginated'
+type EventRepository_ListPaginated_Call struct {
+	*mock.Call
+}
+
+// ListPaginated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - divisionID *uuid.UUID
+//   - pagination types.PaginationParams
+func (_e *EventRepository_Expecter) ListPaginated(ctx interface{}, orgID interface{}, divisionID interface{}, pagination interface{}) *EventRepository_ListPaginated_Call {
+	return &EventRepository_ListPaginated_Call{Call: _e.mock.On("ListPaginated", ctx, orgID, divisionID, pagination)}
+}
+
+func (_c *EventRepository_ListPaginated_Call) Run(run func(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, pagination types.PaginationParams)) *EventRepository_ListPaginated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(*uuid.UUID), args[3].(types.PaginationParams))
+	})
+	return _c
+}
+
+func (_c *EventRepository_ListPaginated_Call) Return(_a0 []entity.Event, _a1 int, _a2 error) *EventRepository_ListPaginated_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *EventRepository_ListPaginated_Call) RunAndReturn(run func(context.Context, uuid.UUID, *uuid.UUID, types.PaginationParams) ([]entity.Event, int, error)) *EventRepository_ListPaginated_Call {
 	_c.Call.Return(run)
 	return _c
 }

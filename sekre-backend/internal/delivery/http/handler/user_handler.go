@@ -7,8 +7,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/organization"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
+	"github.com/username/sekre-backend/internal/domain/types"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
-	"github.com/username/sekre-backend/internal/middleware"
+	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
@@ -50,7 +52,7 @@ func (h *UserHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, http.StatusOK, "users found", users)
 }
 
-// ListUsers lists all users in the organization
+// ListUsers lists all users in the organization with pagination
 func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
 	if !ok {
@@ -58,13 +60,19 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := h.usecase.GetOrganizationUsers(r.Context(), orgID)
+	// Parse pagination params
+	paginationParams := pagination.ParseParams(r)
+	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
+
+	users, total, err := h.usecase.GetOrganizationUsersPaginated(r.Context(), orgID, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return
 	}
 
-	response.Success(w, http.StatusOK, "users retrieved", users)
+	// Create paginated response
+	paginatedResponse := pagination.NewResponse(users, paginationParams, total)
+	response.Success(w, http.StatusOK, "users retrieved", paginatedResponse)
 }
 
 // UpdateProfile updates the current user's profile

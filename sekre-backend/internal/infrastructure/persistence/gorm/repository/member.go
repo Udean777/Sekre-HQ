@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/mapper"
@@ -55,6 +55,52 @@ func (r *memberRepository) GetOrganizationMembers(ctx context.Context, orgID uui
 		})
 	}
 	return members, nil
+}
+
+func (r *memberRepository) GetOrganizationMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+	// Get total count
+	var totalCount int64
+	err := dbFor(ctx, r.db).
+		Table("users AS u").
+		Joins("INNER JOIN user_organizations AS uo ON u.id = uo.user_id").
+		Where("uo.organization_id = ? AND u.deleted_at IS NULL", orgID).
+		Count(&totalCount).Error
+	if err != nil {
+		return nil, 0, domainerrors.Internal("count members", err)
+	}
+
+	// Get paginated results
+	type row struct {
+		ID       uuid.UUID
+		Email    string
+		FullName string
+		Role     types.Role
+	}
+
+	var rows []row
+	err = dbFor(ctx, r.db).
+		Table("users AS u").
+		Select("u.id, u.email, u.full_name, uo.role").
+		Joins("INNER JOIN user_organizations AS uo ON u.id = uo.user_id").
+		Where("uo.organization_id = ? AND u.deleted_at IS NULL", orgID).
+		Order("u.full_name").
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, 0, domainerrors.Internal("get members", err)
+	}
+
+	members := make([]entity.UserWithOrgRole, 0, len(rows))
+	for _, m := range rows {
+		members = append(members, entity.UserWithOrgRole{
+			ID:       m.ID,
+			Email:    m.Email,
+			FullName: m.FullName,
+			Role:     m.Role,
+		})
+	}
+	return members, int(totalCount), nil
 }
 
 func (r *memberRepository) UpdateMemberRole(ctx context.Context, orgID, userID uuid.UUID, role types.Role) error {
@@ -147,6 +193,19 @@ func (r *memberRepository) GetDivisionByName(ctx context.Context, orgID uuid.UUI
 		return nil, domainerrors.Internal("get division", err)
 	}
 	return mapper.DivisionToEntity(&model), nil
+}
+
+func (r *memberRepository) EmailExistsInOrganization(ctx context.Context, orgID uuid.UUID, email string) (bool, error) {
+	var count int64
+	err := dbFor(ctx, r.db).
+		Table("users u").
+		Joins("INNER JOIN user_organizations uo ON u.id = uo.user_id").
+		Where("uo.organization_id = ? AND LOWER(u.email) = LOWER(?)", orgID, email).
+		Count(&count).Error
+	if err != nil {
+		return false, domainerrors.Internal("check email in organization", err)
+	}
+	return count > 0, nil
 }
 
 // CreateAuditLog creates an audit log entry.

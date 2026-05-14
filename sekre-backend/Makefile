@@ -1,4 +1,4 @@
-.PHONY: help test test-unit test-integration test-e2e test-cover test-cover-check test-short test-fuzz bench bench-save fuzz fuzz-money fuzz-auth mocks clean build run migrate lint lint-ci vet fmt setup-hooks pre-commit ci install-tools
+.PHONY: help test test-unit test-integration test-e2e test-cover test-cover-check test-short test-fuzz bench bench-save fuzz fuzz-money fuzz-auth mocks clean build run migrate lint lint-ci vet fmt setup-hooks pre-commit ci install-tools db-seed db-reset build-dbctl
 
 # Coverage threshold for CI (matches .github/workflows/backend-ci.yml)
 COVERAGE_THRESHOLD ?= 60
@@ -32,9 +32,14 @@ help:
 	@echo ""
 	@echo "  Build:"
 	@echo "    make build             - Build binaries"
+	@echo "    make build-dbctl       - Build dbctl CLI tool"
 	@echo "    make run               - Run API server"
 	@echo "    make migrate           - Run database migrations"
 	@echo "    make clean             - Clean build artifacts"
+	@echo ""
+	@echo "  Database:"
+	@echo "    make db-seed           - Seed demo data to database"
+	@echo "    make db-reset          - Reset database (drop, recreate, migrate, seed)"
 	@echo ""
 	@echo "  Setup:"
 	@echo "    make install-tools     - Install required development tools"
@@ -182,6 +187,20 @@ clean:
 	rm -f coverage.out coverage.html coverage.txt
 	rm -f unit.xml unit.cov integration.xml
 	@echo "Clean complete"
+
+# Database commands
+db-seed:
+	@echo "🌱 Seeding demo data..."
+	@go run cmd/dbctl/main.go seed
+
+db-reset:
+	@echo "🔄 Resetting database..."
+	@go run cmd/dbctl/main.go reset --seed
+
+build-dbctl:
+	@echo "🔨 Building dbctl..."
+	@go build -o bin/dbctl cmd/dbctl/main.go
+	@echo "✅ dbctl built successfully: bin/dbctl"
 
 # Install required development tools
 install-tools:

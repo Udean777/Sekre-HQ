@@ -1,482 +1,392 @@
-# 🏢 Sekre - Organization ERP Lite & Finance Hub
+<div align="center">
 
-> A modern SaaS platform for organizations, communities, and student associations to manage daily operations, tasks, events, and finances with AI-powered automation.
+# 🎓 Sekre
 
-[![Backend](https://img.shields.io/badge/Backend-Go-00ADD8?logo=go)](./sekre-backend)
-[![Frontend](https://img.shields.io/badge/Frontend-SvelteKit-FF3E00?logo=svelte)](./sekre-frontend)
-[![Mobile](https://img.shields.io/badge/Mobile-Compose_Multiplatform-4285F4?logo=jetpackcompose)](./sekre-mobile)
-[![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql)](https://www.postgresql.org/)
+**Platform Manajemen Organisasi Kampus**
 
-## 📋 Table of Contents
+[![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![SvelteKit](https://img.shields.io/badge/SvelteKit-2.0-FF3E00?style=flat&logo=svelte)](https://kit.svelte.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-Internal-blue?style=flat)](LICENSE)
 
-- [Overview](#overview)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Development](#development)
-- [Features](#features)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
+Aplikasi lengkap untuk mengelola organisasi kampus (BEM, UKM, Himpunan) dengan fitur task management, event scheduling, finance tracking, dan kolaborasi tim.
 
-## 🎯 Overview
+[Fitur](#-fitur-utama) • [Quick Start](#-quick-start) • [Dokumentasi](#-dokumentasi) • [Arsitektur](#-arsitektur)
 
-Sekre is a comprehensive multi-tenant SaaS platform designed to streamline organizational operations. It integrates task management, event scheduling, and intelligent financial reporting with AI automation support.
+</div>
 
-### Key Highlights
+---
 
-- **Multi-tenant Architecture**: Secure data isolation with PostgreSQL Row-Level Security
-- **Real-time Collaboration**: WebSocket support for live updates
-- **Offline-First Mobile**: Compose Multiplatform with local-first sync
-- **AI-Powered Reports**: Automated LPJ (Accountability Report) generation
-- **Flexible Subscription**: Free, Lite, and Pro plans with feature gating
+## ✨ Fitur Utama
+
+<table>
+<tr>
+<td width="50%">
+
+### 📋 Task Management
+Kelola tugas dan deadline dengan assignment ke anggota, tracking progress, dan notifikasi otomatis.
+
+### 📅 Event Scheduling
+Jadwalkan acara organisasi, kelola peserta, dan kirim reminder ke anggota.
+
+</td>
+<td width="50%">
+
+### 💰 Finance Tracking
+Catat pemasukan & pengeluaran, generate laporan keuangan, dan export ke Excel.
+
+### 👥 Multi-tenant
+Isolasi data per organisasi dengan role-based access control (OWNER, ADMIN, MEMBER).
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🚀 Quick Start
+
+### 📦 Prerequisites
+
+```bash
+# Backend
+✓ Go 1.26+
+✓ PostgreSQL 16+
+✓ Docker (optional)
+
+# Frontend
+✓ Node.js 18+
+✓ npm/bun
+
+# Mobile
+✓ Android Studio
+✓ Xcode (for iOS)
+```
+
+### ⚡ Development Setup
+
+<details>
+<summary><b>🔧 Backend Setup</b></summary>
+
+```bash
+cd sekre-backend
+
+# 1. Configure environment
+cp .env.example .env
+# Edit .env: set JWT_SECRET (min 32 chars) and DB credentials
+
+# 2. Start PostgreSQL
+docker run --name sekre-pg -p 5432:5432 \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=yourpass \
+  -e POSTGRES_DB=sekre_db \
+  -d postgres:16-alpine
+
+# 3. Run migrations
+make migrate
+
+# 4. Seed demo data (optional)
+make db-seed
+
+# 5. Start server
+make run
+```
+
+✅ Backend running on **http://localhost:8080**
+
+</details>
+
+<details>
+<summary><b>🎨 Frontend Setup</b></summary>
+
+```bash
+cd sekre-frontend
+
+# 1. Install dependencies
+npm install
+# or
+bun install
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env: set PUBLIC_API_URL
+
+# 3. Start dev server
+npm run dev
+```
+
+✅ Frontend running on **http://localhost:5173**
+
+</details>
+
+<details>
+<summary><b>📱 Mobile Setup</b></summary>
+
+```bash
+cd sekre-mobile
+
+# Android
+./gradlew :composeApp:installDebug
+
+# iOS (macOS only)
+open iosApp/iosApp.xcworkspace
+```
+
+</details>
+
+---
+
+## 🏗️ Arsitektur
+
+### 🔄 System Architecture
+
+```mermaid
+graph LR
+    A[📱 Mobile App<br/>Kotlin Multiplatform] --> B[🔌 Backend API<br/>Go + PostgreSQL]
+    C[💻 Web App<br/>SvelteKit] --> B
+    B --> D[(🗄️ PostgreSQL<br/>Database)]
+    
+    style A fill:#4CAF50,stroke:#2E7D32,color:#fff
+    style B fill:#2196F3,stroke:#1565C0,color:#fff
+    style C fill:#FF9800,stroke:#E65100,color:#fff
+    style D fill:#9C27B0,stroke:#6A1B9A,color:#fff
+```
+
+### 🎯 Backend Architecture (Clean Architecture)
+
+```
+┌─────────────────────────────────────┐
+│   🌐 HTTP Handlers (delivery)       │  ← Request/Response
+├─────────────────────────────────────┤
+│   ⚙️  Use Cases (application)       │  ← Business Orchestration
+├─────────────────────────────────────┤
+│   💼 Business Logic (domain)        │  ← Entities, Rules, Interfaces
+├─────────────────────────────────────┤
+│   🔧 Infrastructure (GORM, JWT)     │  ← Database, Auth, External
+└─────────────────────────────────────┘
+```
+
+---
 
 ## 🛠️ Tech Stack
 
-### Backend
-- **Language**: Go 1.21+
-- **Framework**: Gorilla Mux (REST API)
-- **Database**: PostgreSQL 15+ with Row-Level Security
-- **Cache/Queue**: Redis + Asynq
-- **Architecture**: Clean Architecture (Modular Monolith)
+<table>
+<tr>
+<td width="33%" align="center">
 
-### Frontend
-- **Framework**: SvelteKit 2.0+ (SSR)
-- **Language**: TypeScript 5+
-- **Styling**: TailwindCSS 3+
-- **State Management**: Svelte Stores
-- **Build Tool**: Vite
+### 🔙 Backend
 
-### Mobile
-- **Framework**: Compose Multiplatform
-- **Language**: Kotlin
-- **Architecture**: MVI/MVVM with Clean Architecture
-- **Local Database**: SQLDelight
-- **Networking**: Ktor Client
+![Go](https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+
+**Framework:** gorilla/mux  
+**ORM:** GORM v2  
+**Auth:** JWT + bcrypt  
+**Architecture:** Clean Architecture
+
+[📖 Backend Docs](./sekre-backend/README.md)
+
+</td>
+<td width="33%" align="center">
+
+### 🎨 Frontend
+
+![SvelteKit](https://img.shields.io/badge/SvelteKit-2.0-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+
+**Framework:** SvelteKit 2  
+**Styling:** Tailwind CSS 4  
+**Build:** Vite 8  
+**Language:** TypeScript 6
+
+</td>
+<td width="33%" align="center">
+
+### 📱 Mobile
+
+![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
+![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)
+
+**Framework:** KMP  
+**UI:** Compose Multiplatform  
+**Platforms:** Android, iOS
+
+</td>
+</tr>
+</table>
+
+---
+
+## 📚 Dokumentasi
+
+### 🔗 API Documentation
+
+| Endpoint | Description |
+|----------|-------------|
+| 📊 [Swagger UI](http://localhost:8080/docs) | Interactive API documentation |
+| 📄 [OpenAPI Spec](http://localhost:8080/openapi.yaml) | OpenAPI 3.0 specification |
+| ❤️ [Health Check](http://localhost:8080/health/live) | Liveness probe |
+| 📈 [Metrics](http://localhost:8080/metrics) | Prometheus metrics |
+
+### 🎯 Root-Level Commands
+
+```bash
+# 🗄️ Database
+make db-seed        # Seed demo data
+make db-reset       # Reset database + seed
+
+# 🚀 Development
+make dev-backend    # Start backend server
+make dev-frontend   # Start frontend dev server
+
+# 🧪 Testing
+make test-backend   # Run backend tests
+make test-frontend  # Run frontend tests
+
+# ✅ Type checking
+make check-frontend # Check frontend types
+```
+
+---
+
+## 🔐 Security Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 🛡️ Authentication & Authorization
+- ✅ JWT with 15-minute access tokens
+- ✅ Refresh token rotation
+- ✅ Role-based access (OWNER, ADMIN, MEMBER)
+- ✅ bcrypt password hashing
+
+</td>
+<td width="50%">
+
+### 🔒 Security Layers
+- ✅ Multi-tenant data isolation
+- ✅ Rate limiting (10 req/s per IP)
+- ✅ Input validation & XSS protection
+- ✅ Row-level security (RLS) policies
+- ✅ HTTPS with HSTS in production
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🧪 Testing
+
+### Backend Testing
+
+```bash
+cd sekre-backend
+
+make test              # 🧪 All tests
+make test-unit         # ⚡ Unit tests (fast)
+make test-integration  # 🐳 Integration tests (Docker)
+make test-cover        # 📊 Coverage report (60%+ enforced)
+```
+
+**Coverage:** 60%+ enforced with unit, integration, and e2e tests.
+
+### Frontend Testing
+
+```bash
+cd sekre-frontend
+
+npm run test    # 🧪 Run tests
+npm run check   # ✅ Type check
+```
+
+---
+
+## 🌍 Environment Variables
+
+<details>
+<summary><b>🔧 Backend Configuration</b></summary>
+
+**Required:**
+- `JWT_SECRET` - At least 32 characters
+- `DB_PASSWORD` - Database password
+
+**Important:**
+- `SERVER_PORT` - Default: 8080
+- `DB_HOST` - Default: localhost
+- `DB_PORT` - Default: 5432
+- `DB_NAME` - Default: sekre_db
+- `LOG_LEVEL` - Default: info
+
+See [.env.example](./sekre-backend/.env.example) for full list.
+
+</details>
+
+<details>
+<summary><b>🎨 Frontend Configuration</b></summary>
+
+- `PUBLIC_API_URL` - Backend API URL (default: http://localhost:8080)
+
+</details>
+
+---
+
+## 🚢 Production Deployment
+
+### ✅ Backend Checklist
+
+- [ ] Set `SERVER_ENV=production`
+- [ ] Use strong `JWT_SECRET` (>= 32 chars)
+- [ ] Enable SSL: `DB_SSLMODE=require`
+- [ ] Set `LOG_LEVEL=info` or `warn`
+- [ ] Configure `CORS_ALLOWED_ORIGINS`
+- [ ] Set up reverse proxy (nginx/Caddy) with HTTPS
+- [ ] Monitor `/metrics` with Prometheus
+- [ ] Health checks on `/health/live` and `/health/ready`
+
+### 🎨 Frontend Deployment
+
+```bash
+npm run build
+# Deploy ./build directory to static hosting (Vercel, Netlify, etc.)
+```
+
+### 📱 Mobile Deployment
+
+```bash
+# Android
+./gradlew :composeApp:assembleRelease
+
+# iOS
+xcodebuild -workspace iosApp/iosApp.xcworkspace \
+  -scheme iosApp -configuration Release archive
+```
+
+---
 
 ## 📁 Project Structure
 
 ```
 sekre-project/
-├── sekre-backend/          # Go backend API
-│   ├── cmd/api/            # Application entry point
-│   ├── internal/           # Internal packages
-│   │   ├── auth/           # Authentication module
-│   │   ├── organization/   # Organization & division management
-│   │   ├── task/           # Task management
-│   │   ├── event/          # Event scheduling
-│   │   ├── finance/        # Finance tracking
-│   │   ├── middleware/     # HTTP middlewares
-│   │   └── domain/         # Domain entities
-│   ├── pkg/                # Shared utilities
-│   └── migrations/         # Database migrations
-│
-├── sekre-frontend/         # SvelteKit web app
-│   ├── src/
-│   │   ├── routes/         # File-based routing
-│   │   │   ├── (public)/   # Public pages
-│   │   │   └── app/        # Protected dashboard
-│   │   ├── lib/            # Shared libraries
-│   │   │   ├── components/ # Reusable UI components
-│   │   │   ├── api/        # API client
-│   │   │   └── server/     # Server-side utilities
-│   │   └── app.html        # HTML template
-│   └── static/             # Static assets
-│
-├── sekre-mobile/           # Compose Multiplatform app
-│   └── composeApp/
-│       └── src/
-│           ├── commonMain/ # Shared code (95%)
-│           │   ├── core/   # Infrastructure
-│           │   └── features/ # Feature modules
-│           ├── androidMain/ # Android-specific
-│           └── iosMain/    # iOS-specific
-│
-├── docs/                   # Documentation
-└── docker-compose.yml      # Local development setup
+├── 🔙 sekre-backend/      # Go API server (Clean Architecture)
+├── 🎨 sekre-frontend/     # SvelteKit web application
+├── 📱 sekre-mobile/       # Kotlin Multiplatform mobile app
+└── 📝 Makefile            # Root-level development commands
 ```
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- **Go**: 1.21 or higher
-- **Node.js**: 18 or higher
-- **PostgreSQL**: 15 or higher
-- **Redis**: 7 or higher
-- **Docker & Docker Compose** (recommended for local development)
-
-### Quick Start with Docker
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/sekre-project.git
-   cd sekre-project
-   ```
-
-2. **Start all services**
-   ```bash
-   docker-compose up -d
-   ```
-
-3. **Access the applications**
-   - Backend API: http://localhost:8080
-   - Frontend Web: http://localhost:5173
-   - PostgreSQL: localhost:5432
-   - Redis: localhost:6379
-
-### Manual Setup
-
-#### Backend Setup
-
-```bash
-cd sekre-backend
-
-# Install dependencies
-go mod download
-
-# Copy environment file
-cp .env.example .env
-
-# Run database migrations
-go run cmd/migrate/main.go up
-
-# Start the server
-go run cmd/api/main.go
-```
-
-Backend will run on `http://localhost:8080`
-
-#### Frontend Setup
-
-```bash
-cd sekre-frontend
-
-# Install dependencies
-npm install
-
-# Copy environment file
-cp .env.example .env
-
-# Start development server
-npm run dev
-```
-
-Frontend will run on `http://localhost:5173`
-
-#### Mobile Setup
-
-```bash
-cd sekre-mobile
-
-# For Android
-./gradlew :composeApp:assembleDebug
-
-# For iOS (macOS only)
-./gradlew :composeApp:iosSimulatorArm64Test
-```
-
-## 💻 Development
-
-### Backend Development
-
-```bash
-cd sekre-backend
-
-# Run tests
-go test ./...
-
-# Run with hot reload
-air
-
-# Build for production
-go build -o bin/api cmd/api/main.go
-
-# Run linter
-golangci-lint run
-```
-
-### Frontend Development
-
-```bash
-cd sekre-frontend
-
-# Run development server
-npm run dev
-
-# Type checking
-npm run check
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Run linter
-npm run lint
-```
-
-### Mobile Development
-
-```bash
-cd sekre-mobile
-
-# Run Android app
-./gradlew :composeApp:installDebug
-
-# Run iOS app (macOS only)
-./gradlew :composeApp:iosDeployIPhone15Debug
-
-# Run tests
-./gradlew test
-```
-
-## ✨ Features
-
-### Current Features (MVP)
-
-- ✅ **Multi-tenant Authentication**: Secure JWT-based auth with organization isolation
-- ✅ **Organization Management**: Create and manage organizations with divisions
-- ✅ **Member Management**: Add members, assign roles, bulk import from CSV/Excel
-- ✅ **Task Management**: Kanban board with drag-and-drop (To-Do, In Progress, Done)
-- ✅ **Event Scheduling**: Calendar view for organizational events
-- ✅ **Finance Tracking**: Income/expense recording with categorization
-- ✅ **Dashboard**: Real-time statistics and activity overview
-- ✅ **Settings & Profile**: User profile, password change, organization settings
-- ✅ **Organization Deletion**: Safe deletion with confirmation
-
-### Production Readiness (Phase 8)
-
-- ✅ **CORS**: Origin whitelist (no wildcard with credentials)
-- ✅ **Security Headers**: OWASP recommendations (HSTS, CSP, X-Frame-Options)
-- ✅ **RBAC Middleware**: Role-based access control (OWNER/ADMIN/MEMBER)
-- ✅ **Request Validation**: Struct tag validation with `go-playground/validator`
-- ✅ **Rate Limiting**: Token-bucket per-IP (prevents brute force/DDoS)
-- ✅ **Metrics**: Prometheus at `/metrics` (requests, duration, in-flight)
-- ✅ **Health Checks**: `/health/live` and `/health/ready` (k8s-compatible)
-- ✅ **API Docs**: OpenAPI 3.0 spec + Swagger UI at `/docs`
-
-### Upcoming Features
-
-#### Phase 2: Enhanced Features
-- 🔄 **Smart Finance Hub**: Multi-level approval workflow
-- 🔄 **AI-Generated LPJ**: Automated accountability reports
-- 🔄 **Data Export**: CSV/Excel export for reports
-- 🔄 **Email Notifications**: Task reminders and approval notifications
-
-#### Phase 3: Premium Features
-- 📅 **Custom Domain**: Branded public pages (Pro Plan)
-- 📅 **Cloud Storage**: Document and photo archival
-- 📅 **Advanced Analytics**: Cross-division performance comparison
-- 📅 **Mobile App**: Offline-first iOS and Android apps
-
-## 📚 Documentation
-
-- [Project Summary](./Project-Summary.md) - Complete project overview and architecture
-- [Backend Documentation](./sekre-backend/README.md) - Backend API documentation
-- [Frontend Documentation](./sekre-frontend/README.md) - Frontend development guide
-- [Mobile Documentation](./sekre-mobile/README.md) - Mobile app development guide
-- [API Documentation](http://localhost:8080/swagger) - Interactive API docs (when running)
-
-## 🗄️ Database Schema
-
-The application uses PostgreSQL with Row-Level Security (RLS) for multi-tenant data isolation.
-
-### Core Tables
-
-- `organizations` - Tenant/organization data
-- `users` - User accounts
-- `organization_members` - User-organization relationships with roles
-- `divisions` - Organizational divisions/departments
-- `division_members` - Division membership
-- `tasks` - Task management
-- `events` - Event scheduling
-- `finance_records` - Financial transactions
-- `audit_logs` - Activity audit trail
-
-For detailed schema, see [Project-Summary.md](./Project-Summary.md#database-schema)
-
-## 🔐 Environment Variables
-
-### Backend (.env)
-
-```env
-# Server
-PORT=8080
-ENV=development
-
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=sekre_db
-
-# JWT
-JWT_SECRET=your-secret-key-here
-JWT_ACCESS_TOKEN_TTL=24h
-JWT_REFRESH_TOKEN_TTL=168h
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-
-# CORS
-CORS_ALLOWED_ORIGINS=http://localhost:5173
-```
-
-### Frontend (.env)
-
-```env
-# API
-PUBLIC_API_URL=http://localhost:8080/api/v1
-
-# App
-PUBLIC_APP_NAME=Sekre
-PUBLIC_APP_URL=http://localhost:5173
-```
-
-## 🧪 Testing
-
-### Backend Tests
-
-The backend has a comprehensive testing infrastructure. See [sekre-backend/README.md](./sekre-backend/README.md) for full details.
-
-```bash
-cd sekre-backend
-
-# Quick start
-make test-unit              # Unit tests only (fast)
-make test-cover             # With HTML coverage report
-make test-cover-check       # Enforce 60% threshold
-
-# Test categories
-make test-integration       # Integration tests (testcontainers + PostgreSQL)
-make test-e2e               # End-to-end tests (full HTTP stack)
-make test-fuzz              # Fuzz tests (30s each)
-
-# Performance
-make bench                  # Run benchmarks
-make bench-save             # Save baseline to docs/benchmarks/
-
-# Code quality
-make lint                   # golangci-lint
-make vet                    # go vet
-make ci                     # Full CI checks locally
-
-# Setup (run once)
-make install-tools          # Install mockery, gotestsum, etc
-make setup-hooks            # Configure git pre-commit hooks
-```
-
-#### Test Tags
-
-| Tag | Use Case | When |
-|-----|----------|------|
-| (none) | Unit tests, < 1s | Every push, pre-commit |
-| `integration` | DB tests with testcontainers | PR, nightly |
-| `e2e` | Full stack HTTP tests | PR, nightly |
-
-#### Test Statistics
-
-- **Unit tests:** 100+ tests (domain + application layers, 75% coverage)
-- **Integration tests:** 20+ tests (repository layer)
-- **Handler tests:** 8+ tests (HTTP handlers)
-- **E2E tests:** 5+ tests (full stack flows)
-- **Benchmarks:** 12 benchmarks (Money, Bcrypt)
-- **Fuzz tests:** 8 fuzz functions (validators, parsers)
-
-### Frontend Tests
-
-```bash
-cd sekre-frontend
-
-# Run unit tests
-npm run test
-
-# Run e2e tests
-npm run test:e2e
-
-# Run tests with coverage
-npm run test:coverage
-```
-
-## 🚢 Deployment
-
-### Backend Deployment
-
-```bash
-# Build Docker image
-docker build -t sekre-backend:latest ./sekre-backend
-
-# Run container
-docker run -p 8080:8080 --env-file .env sekre-backend:latest
-```
-
-### Frontend Deployment
-
-```bash
-# Build for production
-cd sekre-frontend
-npm run build
-
-# Deploy to Vercel
-vercel deploy --prod
-
-# Or deploy to Netlify
-netlify deploy --prod
-```
-
-### Database Migration
-
-```bash
-# Run migrations
-cd sekre-backend
-go run cmd/migrate/main.go up
-
-# Rollback migration
-go run cmd/migrate/main.go down
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Code Style
-
-- **Go**: Follow [Effective Go](https://golang.org/doc/effective_go) guidelines
-- **TypeScript**: Use ESLint and Prettier configurations
-- **Kotlin**: Follow [Kotlin Coding Conventions](https://kotlinlang.org/docs/coding-conventions.html)
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👥 Team
-
-- **Backend**: Go + PostgreSQL + Redis
-- **Frontend**: SvelteKit + TypeScript + TailwindCSS
-- **Mobile**: Compose Multiplatform + Kotlin
-
-## 🙏 Acknowledgments
-
-- [SvelteKit](https://kit.svelte.dev/) - The fastest way to build Svelte apps
-- [Gorilla Mux](https://github.com/gorilla/mux) - Powerful HTTP router for Go
-- [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/) - Declarative UI framework
-- [PostgreSQL](https://www.postgresql.org/) - The world's most advanced open source database
-
-## 📞 Support
-
-For support, email support@sekre.app or join our Discord community.
 
 ---
 
-**Built with ❤️ for organizations, communities, and student associations**
+## 📄 License
+
+Internal project.
+
+---
+
+<div align="center">
+
+**Built with ❤️ for Campus Organizations**
+
+🎓 BEM • 🎯 UKM • 📚 Himpunan
+
+</div>

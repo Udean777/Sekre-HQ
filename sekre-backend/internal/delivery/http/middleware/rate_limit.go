@@ -54,6 +54,18 @@ func AuthRateLimitConfig() RateLimitConfig {
 	}
 }
 
+// BulkImportRateLimitConfig returns a very strict rate limit for bulk import
+// endpoints to prevent abuse and resource exhaustion.
+func BulkImportRateLimitConfig() RateLimitConfig {
+	return RateLimitConfig{
+		RequestsPerSecond: 0.0167, // 1 request per minute (1/60)
+		Burst:             1,       // No burst allowed
+		CleanupInterval:   5 * time.Minute,
+		MaxIdleTime:       10 * time.Minute,
+		KeyFunc:           ClientIPKey,
+	}
+}
+
 // limiterEntry tracks a per-key rate limiter and its last access time.
 type limiterEntry struct {
 	limiter  *rate.Limiter

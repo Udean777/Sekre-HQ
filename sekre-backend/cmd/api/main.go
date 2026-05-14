@@ -22,6 +22,7 @@ import (
 	"github.com/username/sekre-backend/internal/infrastructure/auth"
 	gormRepo "github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/repository"
 	sharedRepo "github.com/username/sekre-backend/internal/repository"
+	"github.com/username/sekre-backend/pkg/audit"
 	"github.com/username/sekre-backend/pkg/database"
 	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/observability"
@@ -91,6 +92,11 @@ func main() {
 	taskRepo := gormRepo.NewTaskRepository(db)
 	eventRepo := gormRepo.NewEventRepository(db)
 	financeRepo := gormRepo.NewTransactionRepository(db)
+	auditLogRepo := gormRepo.NewAuditLogRepository(db)
+
+	// Initialize audit service
+	auditService := audit.NewService(auditLogRepo, audit.DefaultConfig())
+	logger.Logger.Info().Msg("✓ Audit logging service initialized")
 
 	// Initialize usecases
 	authUsecaseInst := authApp.NewAuthUsecase(
@@ -107,7 +113,7 @@ func main() {
 	memberUsecaseInst := orgApp.NewMemberUsecase(memberRepo)
 	memberCreationUsecaseInst := orgApp.NewMemberCreationUsecase(memberRepo, divisionRepo, txRunner, passwordHasher)
 	organizationUsecaseInst := orgApp.NewOrganizationUsecase(orgRepo)
-	taskUsecaseInst := taskApp.NewTaskUsecase(taskRepo)
+	taskUsecaseInst := taskApp.NewTaskUsecase(taskRepo, divisionRepo)
 	eventUsecaseInst := eventApp.NewEventUsecase(eventRepo)
 	financeUsecaseInst := financeApp.NewFinanceUsecase(financeRepo)
 
@@ -157,6 +163,9 @@ func main() {
 	// Apply global rate limiting to all API routes (DDoS protection)
 	apiV1.Use(middleware.RateLimit(middleware.DefaultRateLimitConfig()))
 
+	// Apply input sanitization to all API routes (XSS protection)
+	apiV1.Use(middleware.SanitizeInput())
+
 	// Apply auth middleware to protected routes
 	protected := apiV1.PathPrefix("").Subrouter()
 	protected.Use(middleware.AuthMiddleware(tokenManager))
@@ -169,29 +178,37 @@ func main() {
 	memberCreationHandler := handler.NewMemberCreationHandler(memberCreationUsecaseInst)
 	apiV1.HandleFunc("/members/template", memberCreationHandler.DownloadTemplate).Methods("GET")
 
-	divisionHandler := handler.NewDivisionHandler(divisionUsecaseInst)
+	divisionHandler := handler.NewDivisionHandler(divisionUsecaseInst, auditService)
 	divisionHandler.RegisterRoutes(protected)
 
 	userHandler := handler.NewUserHandler(userUsecaseInst)
 	userHandler.RegisterRoutes(protected)
 
-	memberHandler := handler.NewMemberHandler(memberUsecaseInst)
+	memberHandler := handler.NewMemberHandler(memberUsecaseInst, auditService)
 	memberHandler.RegisterRoutes(protected)
 
-	organizationHandler := handler.NewOrganizationHandler(organizationUsecaseInst)
+	organizationHandler := handler.NewOrganizationHandler(organizationUsecaseInst, auditService)
 	organizationHandler.RegisterRoutes(protected)
 
-	// Protected member creation routes
-	protected.HandleFunc("/members/create", memberCreationHandler.CreateMember).Methods("POST")
-	protected.HandleFunc("/members/bulk-import", memberCreationHandler.BulkImport).Methods("POST")
+	// Protected member creation routes - requires OWNER or ADMIN
+	protected.Handle("/members/create",
+		middleware.RequireAdmin()(http.HandlerFunc(memberCreationHandler.CreateMember)),
+	).Methods("POST")
+	
+	// Bulk import with stricter rate limiting (1 request/minute)
+	protected.Handle("/members/bulk-import",
+		middleware.RateLimit(middleware.BulkImportRateLimitConfig())(
+			middleware.RequireAdmin()(http.HandlerFunc(memberCreationHandler.BulkImport)),
+		),
+	).Methods("POST")
 
-	taskHandler := handler.NewTaskHandler(taskUsecaseInst)
+	taskHandler := handler.NewTaskHandler(taskUsecaseInst, auditService)
 	taskHandler.RegisterRoutes(protected)
 
-	eventHandler := handler.NewEventHandler(eventUsecaseInst)
+	eventHandler := handler.NewEventHandler(eventUsecaseInst, auditService)
 	eventHandler.RegisterRoutes(protected)
 
-	financeHandler := handler.NewFinanceHandler(financeUsecaseInst)
+	financeHandler := handler.NewFinanceHandler(financeUsecaseInst, auditService)
 	financeHandler.RegisterRoutes(protected)
 
 	// Health check endpoint
@@ -251,11 +268,21 @@ func main() {
 			Err(err).
 			Msg("❌ Server forced to shutdown")
 		shutdownCancel()
+		
+		// Shutdown audit service
+		auditService.Shutdown(5 * time.Second)
+		
 		database.Close(db)
 		os.Exit(1)
 	}
 
 	shutdownCancel()
+	
+	// Shutdown audit service gracefully
+	if err := auditService.Shutdown(10 * time.Second); err != nil {
+		logger.Logger.Warn().Err(err).Msg("Audit service shutdown had issues")
+	}
+	
 	database.Close(db)
 	logger.Logger.Info().Msg("✓ Server gracefully stopped")
 }

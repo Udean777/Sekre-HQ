@@ -522,6 +522,133 @@ func (_c *DivisionRepository_GetMembers_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
+// GetMembersPaginated provides a mock function with given fields: ctx, orgID, divisionID, pagination
+func (_m *DivisionRepository) GetMembersPaginated(ctx context.Context, orgID uuid.UUID, divisionID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithRole, int, error) {
+	ret := _m.Called(ctx, orgID, divisionID, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetMembersPaginated")
+	}
+
+	var r0 []entity.UserWithRole
+	var r1 int
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, types.PaginationParams) ([]entity.UserWithRole, int, error)); ok {
+		return rf(ctx, orgID, divisionID, pagination)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, types.PaginationParams) []entity.UserWithRole); ok {
+		r0 = rf(ctx, orgID, divisionID, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.UserWithRole)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, types.PaginationParams) int); ok {
+		r1 = rf(ctx, orgID, divisionID, pagination)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID, uuid.UUID, types.PaginationParams) error); ok {
+		r2 = rf(ctx, orgID, divisionID, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// DivisionRepository_GetMembersPaginated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetMembersPaginated'
+type DivisionRepository_GetMembersPaginated_Call struct {
+	*mock.Call
+}
+
+// GetMembersPaginated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - divisionID uuid.UUID
+//   - pagination types.PaginationParams
+func (_e *DivisionRepository_Expecter) GetMembersPaginated(ctx interface{}, orgID interface{}, divisionID interface{}, pagination interface{}) *DivisionRepository_GetMembersPaginated_Call {
+	return &DivisionRepository_GetMembersPaginated_Call{Call: _e.mock.On("GetMembersPaginated", ctx, orgID, divisionID, pagination)}
+}
+
+func (_c *DivisionRepository_GetMembersPaginated_Call) Run(run func(ctx context.Context, orgID uuid.UUID, divisionID uuid.UUID, pagination types.PaginationParams)) *DivisionRepository_GetMembersPaginated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(types.PaginationParams))
+	})
+	return _c
+}
+
+func (_c *DivisionRepository_GetMembersPaginated_Call) Return(_a0 []entity.UserWithRole, _a1 int, _a2 error) *DivisionRepository_GetMembersPaginated_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *DivisionRepository_GetMembersPaginated_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, types.PaginationParams) ([]entity.UserWithRole, int, error)) *DivisionRepository_GetMembersPaginated_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IsUserMemberOfDivision provides a mock function with given fields: ctx, orgID, divisionID, userID
+func (_m *DivisionRepository) IsUserMemberOfDivision(ctx context.Context, orgID uuid.UUID, divisionID uuid.UUID, userID uuid.UUID) (bool, error) {
+	ret := _m.Called(ctx, orgID, divisionID, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsUserMemberOfDivision")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (bool, error)); ok {
+		return rf(ctx, orgID, divisionID, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) bool); ok {
+		r0 = rf(ctx, orgID, divisionID, userID)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, orgID, divisionID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DivisionRepository_IsUserMemberOfDivision_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsUserMemberOfDivision'
+type DivisionRepository_IsUserMemberOfDivision_Call struct {
+	*mock.Call
+}
+
+// IsUserMemberOfDivision is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - divisionID uuid.UUID
+//   - userID uuid.UUID
+func (_e *DivisionRepository_Expecter) IsUserMemberOfDivision(ctx interface{}, orgID interface{}, divisionID interface{}, userID interface{}) *DivisionRepository_IsUserMemberOfDivision_Call {
+	return &DivisionRepository_IsUserMemberOfDivision_Call{Call: _e.mock.On("IsUserMemberOfDivision", ctx, orgID, divisionID, userID)}
+}
+
+func (_c *DivisionRepository_IsUserMemberOfDivision_Call) Run(run func(ctx context.Context, orgID uuid.UUID, divisionID uuid.UUID, userID uuid.UUID)) *DivisionRepository_IsUserMemberOfDivision_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *DivisionRepository_IsUserMemberOfDivision_Call) Return(_a0 bool, _a1 error) *DivisionRepository_IsUserMemberOfDivision_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *DivisionRepository_IsUserMemberOfDivision_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (bool, error)) *DivisionRepository_IsUserMemberOfDivision_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // List provides a mock function with given fields: ctx, orgID
 func (_m *DivisionRepository) List(ctx context.Context, orgID uuid.UUID) ([]entity.Division, error) {
 	ret := _m.Called(ctx, orgID)
@@ -577,6 +704,73 @@ func (_c *DivisionRepository_List_Call) Return(_a0 []entity.Division, _a1 error)
 }
 
 func (_c *DivisionRepository_List_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]entity.Division, error)) *DivisionRepository_List_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListPaginated provides a mock function with given fields: ctx, orgID, pagination
+func (_m *DivisionRepository) ListPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.Division, int, error) {
+	ret := _m.Called(ctx, orgID, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPaginated")
+	}
+
+	var r0 []entity.Division
+	var r1 int
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, types.PaginationParams) ([]entity.Division, int, error)); ok {
+		return rf(ctx, orgID, pagination)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, types.PaginationParams) []entity.Division); ok {
+		r0 = rf(ctx, orgID, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.Division)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, types.PaginationParams) int); ok {
+		r1 = rf(ctx, orgID, pagination)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID, types.PaginationParams) error); ok {
+		r2 = rf(ctx, orgID, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// DivisionRepository_ListPaginated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPaginated'
+type DivisionRepository_ListPaginated_Call struct {
+	*mock.Call
+}
+
+// ListPaginated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - pagination types.PaginationParams
+func (_e *DivisionRepository_Expecter) ListPaginated(ctx interface{}, orgID interface{}, pagination interface{}) *DivisionRepository_ListPaginated_Call {
+	return &DivisionRepository_ListPaginated_Call{Call: _e.mock.On("ListPaginated", ctx, orgID, pagination)}
+}
+
+func (_c *DivisionRepository_ListPaginated_Call) Run(run func(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams)) *DivisionRepository_ListPaginated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(types.PaginationParams))
+	})
+	return _c
+}
+
+func (_c *DivisionRepository_ListPaginated_Call) Return(_a0 []entity.Division, _a1 int, _a2 error) *DivisionRepository_ListPaginated_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *DivisionRepository_ListPaginated_Call) RunAndReturn(run func(context.Context, uuid.UUID, types.PaginationParams) ([]entity.Division, int, error)) *DivisionRepository_ListPaginated_Call {
 	_c.Call.Return(run)
 	return _c
 }

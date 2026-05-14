@@ -1,16 +1,15 @@
 # Sekre Project - Development Commands
 # Usage: make <command>
 
-.PHONY: help reset-db seed reset-and-seed dev-backend dev-frontend dev test
+.PHONY: help db-seed db-reset dev-backend dev-frontend dev test-backend test-frontend check-frontend
 
 # Default target - show help
 help:
 	@echo "🚀 Sekre Project - Available Commands"
 	@echo ""
 	@echo "Database:"
-	@echo "  make reset-db        - Reset database (drop & recreate)"
-	@echo "  make seed            - Seed demo data only"
-	@echo "  make reset-and-seed  - Reset database + seed demo data (RECOMMENDED)"
+	@echo "  make db-seed         - Seed demo data to database"
+	@echo "  make db-reset        - Reset database + seed demo data (RECOMMENDED)"
 	@echo ""
 	@echo "Development:"
 	@echo "  make dev-backend     - Start backend server"
@@ -22,15 +21,12 @@ help:
 	@echo "  make test-frontend   - Run frontend tests"
 	@echo ""
 
-# Database commands
-reset-db:
-	@./scripts/reset-db.sh
+# Database commands (using new dbctl tool)
+db-seed:
+	@cd sekre-backend && go run cmd/dbctl/main.go seed
 
-seed:
-	@./scripts/seed.sh
-
-reset-and-seed:
-	@./scripts/reset-and-seed.sh
+db-reset:
+	@cd sekre-backend && go run cmd/dbctl/main.go reset --seed
 
 # Development commands
 dev-backend:

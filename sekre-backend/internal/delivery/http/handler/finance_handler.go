@@ -3,24 +3,32 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/finance"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/domain/valueobject"
-	"github.com/username/sekre-backend/internal/middleware"
+	"github.com/username/sekre-backend/pkg/audit"
+	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
 type FinanceHandler struct {
-	usecase finance.FinanceUsecase
+	usecase      finance.FinanceUsecase
+	auditService *audit.Service
 }
 
-func NewFinanceHandler(uc finance.FinanceUsecase) *FinanceHandler {
-	return &FinanceHandler{usecase: uc}
+func NewFinanceHandler(uc finance.FinanceUsecase, auditService *audit.Service) *FinanceHandler {
+	return &FinanceHandler{
+		usecase:      uc,
+		auditService: auditService,
+	}
 }
 
 func (h *FinanceHandler) RegisterRoutes(r *mux.Router) {
@@ -124,6 +132,19 @@ func (h *FinanceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log the creation
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionTransactionCreate,
+		Details: map[string]interface{}{
+			"transaction_id":   transaction.ID,
+			"transaction_type": string(txType),
+			"amount_cents":     money.AmountCents,
+			"currency":         money.Currency,
+		},
+	})
+
 	response.Success(w, http.StatusCreated, "transaction created", transaction)
 }
 
@@ -157,14 +178,35 @@ func (h *FinanceHandler) List(w http.ResponseWriter, r *http.Request) {
 	if endDate := r.URL.Query().Get("end_date"); endDate != "" {
 		filters.EndDate = &endDate
 	}
+	if search := r.URL.Query().Get("search"); search != "" {
+		filters.Search = &search
+	}
+	if minAmount := r.URL.Query().Get("min_amount"); minAmount != "" {
+		amount, err := strconv.ParseInt(minAmount, 10, 64)
+		if err == nil {
+			filters.MinAmount = &amount
+		}
+	}
+	if maxAmount := r.URL.Query().Get("max_amount"); maxAmount != "" {
+		amount, err := strconv.ParseInt(maxAmount, 10, 64)
+		if err == nil {
+			filters.MaxAmount = &amount
+		}
+	}
 
-	transactions, err := h.usecase.List(r.Context(), orgID, filters)
+	// Parse pagination params
+	paginationParams := pagination.ParseParams(r)
+	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
+
+	transactions, total, err := h.usecase.ListPaginated(r.Context(), orgID, filters, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return
 	}
 
-	response.Success(w, http.StatusOK, "transactions retrieved", transactions)
+	// Create paginated response
+	paginatedResponse := pagination.NewResponse(transactions, paginationParams, total)
+	response.Success(w, http.StatusOK, "transactions retrieved", paginatedResponse)
 }
 
 func (h *FinanceHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -247,6 +289,17 @@ func (h *FinanceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log the update
+	userID, _ := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionTransactionUpdate,
+		Details: map[string]interface{}{
+			"transaction_id": id,
+		},
+	})
+
 	response.Success(w, http.StatusOK, "transaction updated", existing)
 }
 
@@ -269,6 +322,17 @@ func (h *FinanceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log the deletion
+	userID, _ := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionTransactionDelete,
+		Details: map[string]interface{}{
+			"transaction_id": id,
+		},
+	})
+
 	response.Success(w, http.StatusOK, "transaction deleted", nil)
 }
 
@@ -289,7 +353,34 @@ func (h *FinanceHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 		divisionID = &parsed
 	}
 
-	summary, err := h.usecase.GetSummary(r.Context(), orgID, divisionID)
+	// Parse optional date range
+	var startDate, endDate *time.Time
+	if startDateStr := r.URL.Query().Get("start_date"); startDateStr != "" {
+		parsed, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			response.HandleError(w, r, domainerrors.InvalidInput("start_date", "invalid date format, use YYYY-MM-DD"))
+			return
+		}
+		startDate = &parsed
+	}
+	if endDateStr := r.URL.Query().Get("end_date"); endDateStr != "" {
+		parsed, err := time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			response.HandleError(w, r, domainerrors.InvalidInput("end_date", "invalid date format, use YYYY-MM-DD"))
+			return
+		}
+		endDate = &parsed
+	}
+
+	// Use date range method if dates provided, otherwise use regular method
+	var summary *entity.FinanceSummary
+	var err error
+	if startDate != nil || endDate != nil {
+		summary, err = h.usecase.GetSummaryWithDateRange(r.Context(), orgID, divisionID, startDate, endDate)
+	} else {
+		summary, err = h.usecase.GetSummary(r.Context(), orgID, divisionID)
+	}
+
 	if err != nil {
 		response.HandleError(w, r, err)
 		return

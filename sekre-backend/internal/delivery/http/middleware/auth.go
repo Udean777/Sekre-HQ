@@ -8,6 +8,7 @@ import (
 
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/pkg/logger"
+	"github.com/username/sekre-backend/pkg/requestid"
 	"github.com/username/sekre-backend/pkg/response"
 	"github.com/username/sekre-backend/pkg/token"
 )
@@ -81,8 +82,18 @@ func Logging(next http.Handler) http.Handler {
 			ip = forwarded
 		}
 
-		// Log the request
-		logger.HTTPRequest(r.Method, r.URL.Path, wrapped.statusCode, duration, ip)
+		// Get request ID from context
+		reqID := requestid.FromContext(r.Context())
+
+		// Log the request with request ID
+		logger.Logger.Info().
+			Str("request_id", reqID).
+			Str("method", r.Method).
+			Str("path", r.URL.Path).
+			Int("status", wrapped.statusCode).
+			Dur("duration", duration).
+			Str("ip", ip).
+			Msg("HTTP Request")
 	})
 }
 

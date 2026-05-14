@@ -8,6 +8,8 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	entity "github.com/username/sekre-backend/internal/domain/entity"
 
+	types "github.com/username/sekre-backend/internal/domain/types"
+
 	uuid "github.com/google/uuid"
 )
 
@@ -255,6 +257,73 @@ func (_c *UserProfileRepository_GetUsersByOrganization_Call) Return(_a0 []entity
 }
 
 func (_c *UserProfileRepository_GetUsersByOrganization_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]entity.UserWithOrgRole, error)) *UserProfileRepository_GetUsersByOrganization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetUsersByOrganizationPaginated provides a mock function with given fields: ctx, orgID, pagination
+func (_m *UserProfileRepository) GetUsersByOrganizationPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+	ret := _m.Called(ctx, orgID, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUsersByOrganizationPaginated")
+	}
+
+	var r0 []entity.UserWithOrgRole
+	var r1 int
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, types.PaginationParams) ([]entity.UserWithOrgRole, int, error)); ok {
+		return rf(ctx, orgID, pagination)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, types.PaginationParams) []entity.UserWithOrgRole); ok {
+		r0 = rf(ctx, orgID, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.UserWithOrgRole)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, types.PaginationParams) int); ok {
+		r1 = rf(ctx, orgID, pagination)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID, types.PaginationParams) error); ok {
+		r2 = rf(ctx, orgID, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// UserProfileRepository_GetUsersByOrganizationPaginated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUsersByOrganizationPaginated'
+type UserProfileRepository_GetUsersByOrganizationPaginated_Call struct {
+	*mock.Call
+}
+
+// GetUsersByOrganizationPaginated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - pagination types.PaginationParams
+func (_e *UserProfileRepository_Expecter) GetUsersByOrganizationPaginated(ctx interface{}, orgID interface{}, pagination interface{}) *UserProfileRepository_GetUsersByOrganizationPaginated_Call {
+	return &UserProfileRepository_GetUsersByOrganizationPaginated_Call{Call: _e.mock.On("GetUsersByOrganizationPaginated", ctx, orgID, pagination)}
+}
+
+func (_c *UserProfileRepository_GetUsersByOrganizationPaginated_Call) Run(run func(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams)) *UserProfileRepository_GetUsersByOrganizationPaginated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(types.PaginationParams))
+	})
+	return _c
+}
+
+func (_c *UserProfileRepository_GetUsersByOrganizationPaginated_Call) Return(_a0 []entity.UserWithOrgRole, _a1 int, _a2 error) *UserProfileRepository_GetUsersByOrganizationPaginated_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *UserProfileRepository_GetUsersByOrganizationPaginated_Call) RunAndReturn(run func(context.Context, uuid.UUID, types.PaginationParams) ([]entity.UserWithOrgRole, int, error)) *UserProfileRepository_GetUsersByOrganizationPaginated_Call {
 	_c.Call.Return(run)
 	return _c
 }

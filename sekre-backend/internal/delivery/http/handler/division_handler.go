@@ -7,30 +7,59 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/organization"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
+	"github.com/username/sekre-backend/internal/domain/types"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
-	"github.com/username/sekre-backend/internal/middleware"
+	"github.com/username/sekre-backend/pkg/audit"
+	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
 type DivisionHandler struct {
-	usecase organization.DivisionUsecase
+	usecase      organization.DivisionUsecase
+	auditService *audit.Service
 }
 
-func NewDivisionHandler(usecase organization.DivisionUsecase) *DivisionHandler {
-	return &DivisionHandler{usecase: usecase}
+func NewDivisionHandler(usecase organization.DivisionUsecase, auditService *audit.Service) *DivisionHandler {
+	return &DivisionHandler{
+		usecase:      usecase,
+		auditService: auditService,
+	}
 }
 
 func (h *DivisionHandler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/divisions", h.Create).Methods("POST")
+	// Create division - requires OWNER or ADMIN
+	router.Handle("/divisions",
+		middleware.RequireAdmin()(http.HandlerFunc(h.Create)),
+	).Methods("POST")
+
+	// List and view divisions - any authenticated user
 	router.HandleFunc("/divisions", h.List).Methods("GET")
 	router.HandleFunc("/divisions/{id}", h.GetByID).Methods("GET")
-	router.HandleFunc("/divisions/{id}", h.Update).Methods("PUT")
-	router.HandleFunc("/divisions/{id}", h.Delete).Methods("DELETE")
-
-	router.HandleFunc("/divisions/{id}/members", h.AddMember).Methods("POST")
-	router.HandleFunc("/divisions/{id}/members/{userId}", h.RemoveMember).Methods("DELETE")
-	router.HandleFunc("/divisions/{id}/members/{userId}", h.UpdateMemberRole).Methods("PATCH")
 	router.HandleFunc("/divisions/{id}/members", h.GetMembers).Methods("GET")
+
+	// Update division - requires OWNER or ADMIN
+	router.Handle("/divisions/{id}",
+		middleware.RequireAdmin()(http.HandlerFunc(h.Update)),
+	).Methods("PUT")
+
+	// Delete division - requires OWNER or ADMIN
+	router.Handle("/divisions/{id}",
+		middleware.RequireAdmin()(http.HandlerFunc(h.Delete)),
+	).Methods("DELETE")
+
+	// Manage division members - requires OWNER or ADMIN
+	router.Handle("/divisions/{id}/members",
+		middleware.RequireAdmin()(http.HandlerFunc(h.AddMember)),
+	).Methods("POST")
+
+	router.Handle("/divisions/{id}/members/{userId}",
+		middleware.RequireAdmin()(http.HandlerFunc(h.RemoveMember)),
+	).Methods("DELETE")
+
+	router.Handle("/divisions/{id}/members/{userId}",
+		middleware.RequireAdmin()(http.HandlerFunc(h.UpdateMemberRole)),
+	).Methods("PATCH")
 }
 
 // orgFromContext extracts the authenticated organization ID from the request
@@ -50,6 +79,12 @@ func (h *DivisionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
+		return
+	}
+
 	var req organization.CreateDivisionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
@@ -62,6 +97,17 @@ func (h *DivisionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log the creation
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionDivisionCreate,
+		Details: map[string]interface{}{
+			"division_id":   division.ID,
+			"division_name": req.Name,
+		},
+	})
+
 	response.Success(w, http.StatusCreated, "division created", division)
 }
 
@@ -71,13 +117,19 @@ func (h *DivisionHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	divisions, err := h.usecase.List(r.Context(), orgID)
+	// Parse pagination params
+	paginationParams := pagination.ParseParams(r)
+	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
+
+	divisions, total, err := h.usecase.ListPaginated(r.Context(), orgID, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return
 	}
 
-	response.Success(w, http.StatusOK, "divisions retrieved", divisions)
+	// Create paginated response
+	paginatedResponse := pagination.NewResponse(divisions, paginationParams, total)
+	response.Success(w, http.StatusOK, "divisions retrieved", paginatedResponse)
 }
 
 func (h *DivisionHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -108,6 +160,12 @@ func (h *DivisionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
+		return
+	}
+
 	vars := mux.Vars(r)
 	id, err := uuid.Parse(vars["id"])
 	if err != nil {
@@ -127,12 +185,29 @@ func (h *DivisionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log the update
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionDivisionUpdate,
+		Details: map[string]interface{}{
+			"division_id": id,
+			"name":        req.Name,
+		},
+	})
+
 	response.Success(w, http.StatusOK, "division updated", division)
 }
 
 func (h *DivisionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := orgFromContext(r, w)
 	if !ok {
+		return
+	}
+
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
 		return
 	}
 
@@ -147,6 +222,16 @@ func (h *DivisionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the deletion
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionDivisionDelete,
+		Details: map[string]interface{}{
+			"division_id": id,
+		},
+	})
 
 	response.Success(w, http.StatusOK, "division deleted", nil)
 }
@@ -253,11 +338,17 @@ func (h *DivisionHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := h.usecase.GetMembers(r.Context(), orgID, divisionID)
+	// Parse pagination params
+	paginationParams := pagination.ParseParams(r)
+	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
+
+	members, total, err := h.usecase.GetMembersPaginated(r.Context(), orgID, divisionID, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return
 	}
 
-	response.Success(w, http.StatusOK, "members retrieved", members)
+	// Create paginated response
+	paginatedResponse := pagination.NewResponse(members, paginationParams, total)
+	response.Success(w, http.StatusOK, "division members retrieved", paginatedResponse)
 }

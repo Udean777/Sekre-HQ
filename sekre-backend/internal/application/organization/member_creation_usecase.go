@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/username/sekre-backend/internal/domain/constants"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
@@ -15,11 +16,6 @@ import (
 	sharedrepo "github.com/username/sekre-backend/internal/repository"
 	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/password"
-)
-
-const (
-	MaxMembersPerDivision    = 10
-	DefaultTemporaryPassword = "password123"
 )
 
 type MemberCreationUsecase interface {
@@ -79,6 +75,14 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 		MustResetPassword: true,
 	}
 
+	exists, err := u.memberRepo.EmailExistsInOrganization(ctx, orgID, user.Email)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, domainerrors.Conflict("email", "already_exists_in_organization")
+	}
+
 	var (
 		divisionUUID uuid.UUID
 		divRole      = types.DivisionRoleStaff
@@ -103,8 +107,8 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 		if err != nil {
 			return nil, domainerrors.Internal("check division members", err)
 		}
-		if memberCount >= MaxMembersPerDivision {
-			return nil, fmt.Errorf("division has reached maximum member limit (%d)", MaxMembersPerDivision)
+		if memberCount >= constants.MaxMembersPerDivision {
+			return nil, fmt.Errorf("division has reached maximum member limit (%d)", constants.MaxMembersPerDivision)
 		}
 
 		if divRole == types.DivisionRoleHead {
@@ -226,6 +230,14 @@ func (u *memberCreationUsecase) BulkImportMembers(ctx context.Context, members [
 			PasswordHash:      hashedPassword,
 			FullName:          strings.TrimSpace(member.FullName),
 			MustResetPassword: true,
+		}
+
+		exists, err := u.memberRepo.EmailExistsInOrganization(ctx, orgID, user.Email)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return nil, domainerrors.Conflict("email", "already_exists_in_organization")
 		}
 
 		usersToCreate = append(usersToCreate, user)

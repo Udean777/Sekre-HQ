@@ -15,7 +15,7 @@ type Transaction struct {
 	DivisionID     uuid.UUID               `json:"division_id"`
 	EventID        *uuid.UUID              `json:"event_id"`
 	Type           types.TransactionType   `json:"type"`
-	Amount         valueobject.Money       `json:"amount"` // Money value object with amount_cents and currency
+	Amount         valueobject.Money       `json:"amount" gorm:"embedded"` // Money value object with amount_cents and currency
 	Description    string                  `json:"description"`
 	Status         types.TransactionStatus `json:"status"`
 	RequestedBy    uuid.UUID               `json:"requested_by"`
@@ -38,4 +38,7 @@ type TransactionFilters struct {
 	Type       *types.TransactionType
 	StartDate  *string
 	EndDate    *string
+	Search     *string // Search in description
+	MinAmount  *int64  // Minimum amount in cents
+	MaxAmount  *int64  // Maximum amount in cents
 }

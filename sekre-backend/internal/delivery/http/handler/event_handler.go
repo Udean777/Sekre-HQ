@@ -8,18 +8,25 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/event"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	"github.com/username/sekre-backend/internal/domain/types"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
-	"github.com/username/sekre-backend/internal/middleware"
+	"github.com/username/sekre-backend/pkg/audit"
+	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
 type EventHandler struct {
-	usecase event.EventUsecase
+	usecase      event.EventUsecase
+	auditService *audit.Service
 }
 
-func NewEventHandler(uc event.EventUsecase) *EventHandler {
-	return &EventHandler{usecase: uc}
+func NewEventHandler(uc event.EventUsecase, auditService *audit.Service) *EventHandler {
+	return &EventHandler{
+		usecase:      uc,
+		auditService: auditService,
+	}
 }
 
 func (h *EventHandler) RegisterRoutes(r *mux.Router) {
@@ -85,6 +92,18 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log the creation
+	userID, _ := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionEventCreate,
+		Details: map[string]interface{}{
+			"event_id":    ev.ID,
+			"event_title": req.Title,
+		},
+	})
+
 	response.Success(w, http.StatusCreated, "event created", ev)
 }
 
@@ -95,25 +114,31 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse optional division_id
+	var divisionID *uuid.UUID
 	divID := r.URL.Query().Get("division_id")
-	if divID == "" {
-		response.HandleError(w, r, domainerrors.InvalidInput("division_id", "is required"))
-		return
+	if divID != "" {
+		parsed, err := uuid.Parse(divID)
+		if err != nil {
+			response.HandleError(w, r, domainerrors.InvalidInput("division_id", "invalid UUID"))
+			return
+		}
+		divisionID = &parsed
 	}
 
-	divisionID, err := uuid.Parse(divID)
-	if err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("division_id", "invalid UUID"))
-		return
-	}
+	// Parse pagination params
+	paginationParams := pagination.ParseParams(r)
+	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
 
-	events, err := h.usecase.List(r.Context(), orgID, divisionID)
+	events, total, err := h.usecase.ListPaginated(r.Context(), orgID, divisionID, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return
 	}
 
-	response.Success(w, http.StatusOK, "events retrieved", events)
+	// Create paginated response
+	paginatedResponse := pagination.NewResponse(events, paginationParams, total)
+	response.Success(w, http.StatusOK, "events retrieved", paginatedResponse)
 }
 
 func (h *EventHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -177,9 +202,20 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse division_id from request (allow updating division)
+	divisionID := existing.DivisionID
+	if req.DivisionID != "" {
+		parsed, err := uuid.Parse(req.DivisionID)
+		if err != nil {
+			response.HandleError(w, r, domainerrors.InvalidInput("division_id", "invalid UUID"))
+			return
+		}
+		divisionID = parsed
+	}
+
 	ev := &entity.Event{
 		OrganizationID: orgID,
-		DivisionID:     existing.DivisionID,
+		DivisionID:     divisionID,
 		Title:          req.Title,
 		Description:    req.Description,
 		StartTime:      startTime,
@@ -191,6 +227,17 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the update
+	userID, _ := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionEventUpdate,
+		Details: map[string]interface{}{
+			"event_id": id,
+		},
+	})
 
 	response.Success(w, http.StatusOK, "event updated", ev)
 }
@@ -213,6 +260,17 @@ func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the deletion
+	userID, _ := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionEventDelete,
+		Details: map[string]interface{}{
+			"event_id": id,
+		},
+	})
 
 	response.Success(w, http.StatusOK, "event deleted", nil)
 }
