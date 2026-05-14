@@ -10,16 +10,21 @@ import (
 	"github.com/username/sekre-backend/internal/delivery/http/middleware"
 	"github.com/username/sekre-backend/internal/domain/types"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
+	"github.com/username/sekre-backend/pkg/audit"
 	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
 type DivisionHandler struct {
-	usecase organization.DivisionUsecase
+	usecase      organization.DivisionUsecase
+	auditService *audit.Service
 }
 
-func NewDivisionHandler(usecase organization.DivisionUsecase) *DivisionHandler {
-	return &DivisionHandler{usecase: usecase}
+func NewDivisionHandler(usecase organization.DivisionUsecase, auditService *audit.Service) *DivisionHandler {
+	return &DivisionHandler{
+		usecase:      usecase,
+		auditService: auditService,
+	}
 }
 
 func (h *DivisionHandler) RegisterRoutes(router *mux.Router) {
@@ -74,6 +79,12 @@ func (h *DivisionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
+		return
+	}
+
 	var req organization.CreateDivisionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.HandleError(w, r, domainerrors.InvalidInput("body", "invalid request body"))
@@ -85,6 +96,17 @@ func (h *DivisionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the creation
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionDivisionCreate,
+		Details: map[string]interface{}{
+			"division_id":   division.ID,
+			"division_name": req.Name,
+		},
+	})
 
 	response.Success(w, http.StatusCreated, "division created", division)
 }
@@ -138,6 +160,12 @@ func (h *DivisionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
+		return
+	}
+
 	vars := mux.Vars(r)
 	id, err := uuid.Parse(vars["id"])
 	if err != nil {
@@ -157,12 +185,29 @@ func (h *DivisionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log the update
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionDivisionUpdate,
+		Details: map[string]interface{}{
+			"division_id": id,
+			"name":        req.Name,
+		},
+	})
+
 	response.Success(w, http.StatusOK, "division updated", division)
 }
 
 func (h *DivisionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := orgFromContext(r, w)
 	if !ok {
+		return
+	}
+
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
 		return
 	}
 
@@ -177,6 +222,16 @@ func (h *DivisionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the deletion
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionDivisionDelete,
+		Details: map[string]interface{}{
+			"division_id": id,
+		},
+	})
 
 	response.Success(w, http.StatusOK, "division deleted", nil)
 }

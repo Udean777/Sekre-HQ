@@ -12,16 +12,21 @@ import (
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/types"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
+	"github.com/username/sekre-backend/pkg/audit"
 	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
 type EventHandler struct {
-	usecase event.EventUsecase
+	usecase      event.EventUsecase
+	auditService *audit.Service
 }
 
-func NewEventHandler(uc event.EventUsecase) *EventHandler {
-	return &EventHandler{usecase: uc}
+func NewEventHandler(uc event.EventUsecase, auditService *audit.Service) *EventHandler {
+	return &EventHandler{
+		usecase:      uc,
+		auditService: auditService,
+	}
 }
 
 func (h *EventHandler) RegisterRoutes(r *mux.Router) {
@@ -86,6 +91,18 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the creation
+	userID, _ := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionEventCreate,
+		Details: map[string]interface{}{
+			"event_id":    ev.ID,
+			"event_title": req.Title,
+		},
+	})
 
 	response.Success(w, http.StatusCreated, "event created", ev)
 }
@@ -211,6 +228,17 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log the update
+	userID, _ := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionEventUpdate,
+		Details: map[string]interface{}{
+			"event_id": id,
+		},
+	})
+
 	response.Success(w, http.StatusOK, "event updated", ev)
 }
 
@@ -232,6 +260,17 @@ func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the deletion
+	userID, _ := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionEventDelete,
+		Details: map[string]interface{}{
+			"event_id": id,
+		},
+	})
 
 	response.Success(w, http.StatusOK, "event deleted", nil)
 }

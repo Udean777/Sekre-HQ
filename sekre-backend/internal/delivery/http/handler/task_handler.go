@@ -9,16 +9,21 @@ import (
 	"github.com/username/sekre-backend/internal/domain/entity"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/types"
+	"github.com/username/sekre-backend/pkg/audit"
 	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
 type TaskHandler struct {
-	usecase task.TaskUsecase
+	usecase      task.TaskUsecase
+	auditService *audit.Service
 }
 
-func NewTaskHandler(usecase task.TaskUsecase) *TaskHandler {
-	return &TaskHandler{usecase: usecase}
+func NewTaskHandler(usecase task.TaskUsecase, auditService *audit.Service) *TaskHandler {
+	return &TaskHandler{
+		usecase:      usecase,
+		auditService: auditService,
+	}
 }
 
 func (h *TaskHandler) RegisterRoutes(router *mux.Router) {
@@ -37,6 +42,12 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, err := GetUserIDFromContext(r)
+	if err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
 	var req task.CreateTaskRequest
 	if err := DecodeJSONBody(r, &req); err != nil {
 		response.HandleError(w, r, err)
@@ -48,6 +59,17 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the creation
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionTaskCreate,
+		Details: map[string]interface{}{
+			"task_id":    result.Task.ID,
+			"task_title": req.Title,
+		},
+	})
 
 	response.Success(w, http.StatusCreated, "task created", result)
 }
@@ -129,6 +151,12 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, err := GetUserIDFromContext(r)
+	if err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
 	id, err := ParseUUIDFromPath(r, "id")
 	if err != nil {
 		response.HandleError(w, r, err)
@@ -146,6 +174,16 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the update
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionTaskUpdate,
+		Details: map[string]interface{}{
+			"task_id": id,
+		},
+	})
 
 	response.Success(w, http.StatusOK, "task updated", result)
 }
@@ -167,6 +205,12 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, err := GetUserIDFromContext(r)
+	if err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
 	id, err := ParseUUIDFromPath(r, "id")
 	if err != nil {
 		response.HandleError(w, r, err)
@@ -177,6 +221,16 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the deletion
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionTaskDelete,
+		Details: map[string]interface{}{
+			"task_id": id,
+		},
+	})
 
 	response.Success(w, http.StatusOK, "task deleted", nil)
 }

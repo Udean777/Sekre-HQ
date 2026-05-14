@@ -22,6 +22,15 @@ func GetOrgIDFromContext(r *http.Request) (uuid.UUID, error) {
 	return orgID, nil
 }
 
+// GetUserIDFromContext extracts user ID from request context.
+func GetUserIDFromContext(r *http.Request) (uuid.UUID, error) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		return uuid.Nil, domainerrors.Unauthorized("invalid user context")
+	}
+	return userID, nil
+}
+
 // ParseUUIDFromPath extracts and parses UUID from path variable.
 func ParseUUIDFromPath(r *http.Request, paramName string) (uuid.UUID, error) {
 	vars := mux.Vars(r)

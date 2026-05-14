@@ -14,16 +14,21 @@ import (
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/domain/valueobject"
+	"github.com/username/sekre-backend/pkg/audit"
 	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
 type FinanceHandler struct {
-	usecase finance.FinanceUsecase
+	usecase      finance.FinanceUsecase
+	auditService *audit.Service
 }
 
-func NewFinanceHandler(uc finance.FinanceUsecase) *FinanceHandler {
-	return &FinanceHandler{usecase: uc}
+func NewFinanceHandler(uc finance.FinanceUsecase, auditService *audit.Service) *FinanceHandler {
+	return &FinanceHandler{
+		usecase:      uc,
+		auditService: auditService,
+	}
 }
 
 func (h *FinanceHandler) RegisterRoutes(r *mux.Router) {
@@ -126,6 +131,19 @@ func (h *FinanceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the creation
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionTransactionCreate,
+		Details: map[string]interface{}{
+			"transaction_id":   transaction.ID,
+			"transaction_type": string(txType),
+			"amount_cents":     money.AmountCents,
+			"currency":         money.Currency,
+		},
+	})
 
 	response.Success(w, http.StatusCreated, "transaction created", transaction)
 }
@@ -271,6 +289,17 @@ func (h *FinanceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log the update
+	userID, _ := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionTransactionUpdate,
+		Details: map[string]interface{}{
+			"transaction_id": id,
+		},
+	})
+
 	response.Success(w, http.StatusOK, "transaction updated", existing)
 }
 
@@ -292,6 +321,17 @@ func (h *FinanceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, err)
 		return
 	}
+
+	// Audit log the deletion
+	userID, _ := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	h.auditService.Log(audit.Entry{
+		OrganizationID: orgID,
+		UserID:         userID,
+		Action:         audit.ActionTransactionDelete,
+		Details: map[string]interface{}{
+			"transaction_id": id,
+		},
+	})
 
 	response.Success(w, http.StatusOK, "transaction deleted", nil)
 }
