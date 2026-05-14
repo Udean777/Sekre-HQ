@@ -1,22 +1,6 @@
--- Migration: 002_divisions_and_invitations
--- Description: Add description to divisions, update roles, create invitations table
--- Created: 2026-05-10
-
--- ============================================================================
--- ADD DESCRIPTION TO DIVISIONS
--- ============================================================================
-ALTER TABLE divisions ADD COLUMN IF NOT EXISTS description TEXT;
-
--- ============================================================================
--- UPDATE USER_ORGANIZATIONS ROLE TO INCLUDE ADMIN
--- ============================================================================
--- Drop old constraint
-ALTER TABLE user_organizations DROP CONSTRAINT IF EXISTS user_organizations_role_check;
-
--- Add new constraint with ADMIN
-ALTER TABLE user_organizations 
-  ADD CONSTRAINT user_organizations_role_check 
-  CHECK (role IN ('OWNER', 'ADMIN', 'MEMBER'));
+-- Migration: 005_invitations
+-- Description: Create invitations table
+-- Created: 2026-05-14
 
 -- ============================================================================
 -- CREATE INVITATIONS TABLE
