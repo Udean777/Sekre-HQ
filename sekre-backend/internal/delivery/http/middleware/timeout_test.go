@@ -46,12 +46,25 @@ func TestTimeout_HandlerCompletesBeforeTimeout(t *testing.T) {
 }
 
 func TestTimeout_HandlerExceedsTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping timeout test in short mode (causes race with httptest.ResponseRecorder)")
+	}
+
 	// Handler that takes too long
+	handlerDone := make(chan struct{})
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer close(handlerDone)
 		// Simulate slow operation
 		time.Sleep(200 * time.Millisecond)
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("should not reach here"))
+		// Check if context is cancelled before writing
+		select {
+		case <-r.Context().Done():
+			// Context cancelled, don't write to response
+			return
+		default:
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("should not reach here"))
+		}
 	})
 
 	// Wrap with very short timeout (50ms)
@@ -64,6 +77,9 @@ func TestTimeout_HandlerExceedsTimeout(t *testing.T) {
 
 	// Execute
 	wrappedHandler.ServeHTTP(rec, req)
+
+	// Wait for handler goroutine to finish to avoid race
+	<-handlerDone
 
 	// Verify timeout response (408)
 	if rec.Code != http.StatusRequestTimeout {

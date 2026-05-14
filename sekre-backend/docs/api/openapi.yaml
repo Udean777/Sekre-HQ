@@ -2,35 +2,257 @@ openapi: 3.0.3
 info:
   title: Sekre Backend API
   description: |
-    Multi-tenant SaaS platform for organization management.
+    Multi-tenant SaaS platform for organization management with task tracking, 
+    event scheduling, and financial management.
 
-    **Features:**
-    - Organization registration and authentication
-    - Task management with assignees
-    - Event scheduling
-    - Finance tracking with multi-currency support
-    - Division-based team structure
+    ## Features
+    - **Organization Management**: Multi-tenant architecture with subscription plans
+    - **User Management**: Role-based access control (OWNER, ADMIN, MEMBER)
+    - **Division Structure**: Hierarchical team organization
+    - **Task Management**: Assign and track tasks with priorities and statuses
+    - **Event Scheduling**: Plan and manage organizational events
+    - **Finance Tracking**: Multi-currency transaction management with approval workflow
+    - **Audit Logging**: Track all critical operations
 
-    **Authentication:**
-    Most endpoints require a Bearer token obtained via `/auth/login`.
-    Include the token in the `Authorization` header:
+    ## Authentication Flow
+
+    ### Registration
+    1. POST `/auth/register` with organization and user details
+    2. System creates organization with FREE plan
+    3. First user is assigned OWNER role
+    4. Returns access token (1 hour) and refresh token (7 days)
+
+    ### Login
+    1. POST `/auth/login` with email and password
+    2. Returns access token (1 hour) and refresh token (7 days)
+    3. Use access token in `Authorization: Bearer <token>` header
+
+    ### Token Refresh
+    1. POST `/auth/refresh` with refresh token
+    2. Returns new access token
+    3. Refresh token remains valid until expiry
+
+    ### JWT Token Structure
+    ```json
+    {
+      "header": {
+        "alg": "HS256",
+        "typ": "JWT"
+      },
+      "payload": {
+        "user_id": "550e8400-e29b-41d4-a716-446655440000",
+        "org_id": "660e8400-e29b-41d4-a716-446655440000",
+        "role": "OWNER",
+        "exp": 1715784000,
+        "iat": 1715780400
+      }
+    }
     ```
-    Authorization: Bearer <access_token>
+
+    ## Multi-tenancy & Security
+
+    ### Data Isolation
+    - All data is scoped to the user's organization
+    - Cross-tenant access returns 404 (not 403) to avoid leaking resource existence
+    - Organization ID is extracted from JWT token, not request body
+
+    ### Role-Based Access Control
+    - **OWNER**: Full access to organization, can manage subscription
+    - **ADMIN**: Can manage members, divisions, and approve transactions
+    - **MEMBER**: Read-only access, can create tasks and transactions
+    - **HEAD**: Division head, can manage division members
+
+    ### Subscription Plans & Limits
+    
+    | Feature | FREE | LITE | PRO |
+    |---------|------|------|-----|
+    | Divisions | 7 max | 15 max | Unlimited |
+    | Members per Division | 15 max | 30 max | Unlimited |
+    | API Rate Limit | 10 req/sec | 20 req/sec | 50 req/sec |
+    | Storage | 1 GB | 10 GB | Unlimited |
+
+    ## Rate Limiting
+
+    ### Rate Limit Headers
+    All responses include rate limit headers:
+    - `X-RateLimit-Limit`: Maximum requests per time window
+    - `X-RateLimit-Remaining`: Remaining requests in current window
+    - `X-RateLimit-Reset`: Unix timestamp when rate limit resets
+
+    ### Rate Limits by Endpoint Type
+    - **General endpoints**: 10 req/sec (burst 20)
+    - **Auth endpoints**: 5 req/min (burst 10)
+    - **Bulk import**: 1 req/min
+    - **File uploads**: 5 req/min
+
+    ### Rate Limit Exceeded
+    When rate limit is exceeded, API returns:
+    - HTTP 429 (Too Many Requests)
+    - `Retry-After` header with seconds to wait
+    - Error response with `RATE_LIMITED` code
+
+    ## Pagination
+
+    ### Query Parameters
+    - `limit`: Number of items per page (default: 50, max: 100)
+    - `offset`: Number of items to skip (default: 0)
+
+    ### Response Headers
+    - `X-Total-Count`: Total number of items matching the filter
+
+    ### Response Format
+    ```json
+    {
+      "data": [...],
+      "pagination": {
+        "limit": 50,
+        "offset": 0,
+        "total": 150
+      }
+    }
     ```
 
-    **Rate Limiting:**
-    - General endpoints: 10 req/sec (burst 20)
-    - Auth endpoints: 1 req/sec (burst 5)
-    - Returns 429 with `Retry-After` header when exceeded
+    ## Filtering & Sorting
 
-    **Multi-tenancy:**
-    All data is scoped to the user's organization. Cross-tenant access
-    returns 404 (not found) to avoid leaking existence of resources.
+    ### Common Filter Parameters
+    - `division_id`: Filter by division
+    - `status`: Filter by status (task, transaction)
+    - `type`: Filter by type (transaction)
+    - `assignee_id`: Filter by assignee (task)
+
+    ### Sorting
+    - `sort`: Field to sort by (e.g., `created_at`, `updated_at`)
+    - `order`: Sort order (`asc` or `desc`)
+
+    ## Error Handling
+
+    ### Standard Error Format
+    All errors follow this structure:
+    ```json
+    {
+      "error": {
+        "code": "ERROR_CODE",
+        "message": "Human-readable error message",
+        "details": [
+          {
+            "field": "field_name",
+            "message": "Specific validation error"
+          }
+        ]
+      }
+    }
+    ```
+
+    ### Error Codes
+    - `INVALID_INPUT`: Validation failed or malformed request
+    - `UNAUTHORIZED`: Missing or invalid authentication
+    - `FORBIDDEN`: Insufficient permissions
+    - `NOT_FOUND`: Resource not found or cross-tenant access
+    - `DUPLICATE_ENTRY`: Unique constraint violation
+    - `LIMIT_EXCEEDED`: Subscription or rate limit exceeded
+    - `INVALID_OPERATION`: Operation not allowed in current state
+    - `CONFLICT`: Resource conflict (e.g., concurrent modification)
+    - `INTERNAL_ERROR`: Unexpected server error
+    - `RATE_LIMITED`: Too many requests
+
+    ### Common Error Scenarios
+
+    #### Validation Errors (400)
+    ```json
+    {
+      "error": {
+        "code": "INVALID_INPUT",
+        "message": "Validation failed",
+        "details": [
+          {"field": "email", "message": "Must be a valid email address"},
+          {"field": "password", "message": "Must be at least 8 characters"}
+        ]
+      }
+    }
+    ```
+
+    #### Authentication Errors (401)
+    ```json
+    {
+      "error": {
+        "code": "UNAUTHORIZED",
+        "message": "Invalid or expired token"
+      }
+    }
+    ```
+
+    #### Permission Errors (403)
+    ```json
+    {
+      "error": {
+        "code": "FORBIDDEN",
+        "message": "This action requires OWNER or ADMIN role"
+      }
+    }
+    ```
+
+    #### Not Found (404)
+    ```json
+    {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Resource not found"
+      }
+    }
+    ```
+
+    #### Subscription Limits (400)
+    ```json
+    {
+      "error": {
+        "code": "LIMIT_EXCEEDED",
+        "message": "Division limit reached for your subscription plan",
+        "details": [
+          {
+            "field": "subscription",
+            "message": "FREE plan allows maximum 7 divisions. Upgrade to create more."
+          }
+        ]
+      }
+    }
+    ```
+
+    ## Request Tracing
+
+    ### Request ID Header
+    All responses include `X-Request-ID` header with a unique UUID for tracing:
+    ```
+    X-Request-ID: 550e8400-e29b-41d4-a716-446655440000
+    ```
+
+    Use this ID when reporting issues or debugging.
+
+    ## Audit Logging
+
+    ### Logged Operations
+    The following operations are automatically logged:
+    - User registration and login
+    - Password changes
+    - Role changes
+    - Division creation/deletion
+    - Member addition/removal
+    - Transaction approval/rejection
+    - Task status changes
+
+    ### Audit Log Format
+    Each audit log entry includes:
+    - Timestamp
+    - User ID and organization ID
+    - Operation type
+    - Resource type and ID
+    - Old and new values (for updates)
+    - IP address and user agent
 
   version: 1.0.0
   contact:
     name: Sekre Team
     url: https://github.com/username/sekre-project
+    email: support@sekre.co
 
 servers:
   - url: http://localhost:8080/api/v1
@@ -100,7 +322,21 @@ paths:
     post:
       tags: [Auth]
       summary: Register a new organization
-      description: Creates a new organization with the first user as Owner.
+      description: |
+        Creates a new organization with the first user as Owner.
+        
+        **Registration Flow:**
+        1. Submit organization and user details
+        2. System creates organization with FREE plan
+        3. First user is assigned OWNER role
+        4. Returns access and refresh tokens
+        
+        **Password Requirements:**
+        - Minimum 8 characters
+        - At least one uppercase letter
+        - At least one lowercase letter
+        - At least one number
+        - At least one special character
       security: []
       requestBody:
         required: true
@@ -108,13 +344,85 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              basic:
+                summary: Basic registration
+                value:
+                  organization_name: "Acme Corporation"
+                  email: "admin@acme.com"
+                  password: "SecurePass123!"
+                  full_name: "John Doe"
       responses:
         '201':
           description: Organization registered successfully
+          headers:
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+              description: Unique request identifier for tracing
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthSuccessResponse'
+              examples:
+                success:
+                  summary: Successful registration
+                  value:
+                    access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    token_type: "Bearer"
+                    expires_in: 3600
+                    user:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      email: "admin@acme.com"
+                      full_name: "John Doe"
+                      role: "OWNER"
+                      organization_id: "660e8400-e29b-41d4-a716-446655440000"
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_email:
+                  summary: Invalid email format
+                  value:
+                    error:
+                      code: "INVALID_INPUT"
+                      message: "Invalid email format"
+                      details:
+                        - field: "email"
+                          message: "Must be a valid email address"
+                weak_password:
+                  summary: Weak password
+                  value:
+                    error:
+                      code: "INVALID_INPUT"
+                      message: "Password does not meet requirements"
+                      details:
+                        - field: "password"
+                          message: "Password must be at least 8 characters with uppercase, lowercase, number, and special character"
+                duplicate_email:
+                  summary: Email already exists
+                  value:
+                    error:
+                      code: "DUPLICATE_ENTRY"
+                      message: "Email already registered"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                server_error:
+                  summary: Server error
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An unexpected error occurred"
         '400':
           $ref: '#/components/responses/BadRequest'
         '409':
@@ -130,7 +438,22 @@ paths:
     post:
       tags: [Auth]
       summary: Login
-      description: Authenticates with email and password, returns JWT tokens.
+      description: |
+        Authenticates with email and password, returns JWT tokens.
+        
+        **Login Flow:**
+        1. Submit email and password
+        2. System validates credentials
+        3. Returns access token (1 hour expiry) and refresh token (7 days expiry)
+        4. Use access token in Authorization header for subsequent requests
+        
+        **Token Structure:**
+        - Access Token: Short-lived (1 hour), used for API requests
+        - Refresh Token: Long-lived (7 days), used to obtain new access tokens
+        
+        **Rate Limiting:**
+        - 5 requests per minute per IP
+        - Returns 429 with Retry-After header when exceeded
       security: []
       requestBody:
         required: true
@@ -138,13 +461,39 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
+            examples:
+              basic:
+                summary: Basic login
+                value:
+                  email: "admin@acme.com"
+                  password: "SecurePass123!"
       responses:
         '200':
           description: Login successful
+          headers:
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+              description: Unique request identifier for tracing
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthSuccessResponse'
+              examples:
+                success:
+                  summary: Successful login
+                  value:
+                    access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    token_type: "Bearer"
+                    expires_in: 3600
+                    user:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      email: "admin@acme.com"
+                      full_name: "John Doe"
+                      role: "OWNER"
+                      organization_id: "660e8400-e29b-41d4-a716-446655440000"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -153,6 +502,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_credentials:
+                  summary: Invalid email or password
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Invalid email or password"
         '429':
           $ref: '#/components/responses/RateLimited'
 
@@ -171,11 +527,889 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /users:
+    get:
+      tags: [Users]
+      summary: List all users
+      description: |
+        Returns all users in the organization with pagination support.
+        
+        **Permissions:**
+        - OWNER/ADMIN: Can view all users
+        - MEMBER: Can only view users in their divisions
+        
+        **Pagination:**
+        - Default limit: 50
+        - Max limit: 100
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Number of users to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of users to skip
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [OWNER, ADMIN, MEMBER]
+          description: Filter by role
+        - name: division_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by division membership
+      responses:
+        '200':
+          description: User list with pagination metadata
+          headers:
+            X-Total-Count:
+              schema:
+                type: integer
+              description: Total number of users matching the filter
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMetadata'
+              examples:
+                success:
+                  summary: List of users
+                  value:
+                    data:
+                      - id: "550e8400-e29b-41d4-a716-446655440000"
+                        email: "admin@acme.com"
+                        full_name: "John Doe"
+                        role: "OWNER"
+                        organization_id: "660e8400-e29b-41d4-a716-446655440000"
+                        created_at: "2026-05-01T10:00:00Z"
+                      - id: "770e8400-e29b-41d4-a716-446655440000"
+                        email: "jane@acme.com"
+                        full_name: "Jane Smith"
+                        role: "ADMIN"
+                        organization_id: "660e8400-e29b-41d4-a716-446655440000"
+                        created_at: "2026-05-02T10:00:00Z"
+                    pagination:
+                      limit: 50
+                      offset: 0
+                      total: 2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /users/search:
+    get:
+      tags: [Users]
+      summary: Search users
+      description: |
+        Search users by name or email within the organization.
+        
+        **Search Behavior:**
+        - Case-insensitive partial matching
+        - Searches both full_name and email fields
+        - Returns up to 20 results
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+          description: Search query (minimum 2 characters)
+          example: "john"
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+              examples:
+                success:
+                  summary: Search results
+                  value:
+                    - id: "550e8400-e29b-41d4-a716-446655440000"
+                      email: "john.doe@acme.com"
+                      full_name: "John Doe"
+                      role: "OWNER"
+                      organization_id: "660e8400-e29b-41d4-a716-446655440000"
+                      created_at: "2026-05-01T10:00:00Z"
+                    - id: "880e8400-e29b-41d4-a716-446655440000"
+                      email: "johnny@acme.com"
+                      full_name: "Johnny Walker"
+                      role: "MEMBER"
+                      organization_id: "660e8400-e29b-41d4-a716-446655440000"
+                      created_at: "2026-05-03T10:00:00Z"
+        '400':
+          description: Invalid search query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                query_too_short:
+                  summary: Query too short
+                  value:
+                    error:
+                      code: "INVALID_INPUT"
+                      message: "Search query must be at least 2 characters"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/profile:
+    patch:
+      tags: [Users]
+      summary: Update user profile
+      description: |
+        Updates the current user's profile information.
+        
+        **Updatable Fields:**
+        - full_name
+        - email (requires email verification)
+        
+        **Audit Logging:**
+        Profile changes are logged with timestamp and old/new values.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                email:
+                  type: string
+                  format: email
+            examples:
+              update_name:
+                summary: Update full name
+                value:
+                  full_name: "John Michael Doe"
+              update_email:
+                summary: Update email
+                value:
+                  email: "john.new@acme.com"
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              examples:
+                success:
+                  summary: Profile updated
+                  value:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    email: "john.new@acme.com"
+                    full_name: "John Michael Doe"
+                    role: "OWNER"
+                    organization_id: "660e8400-e29b-41d4-a716-446655440000"
+                    created_at: "2026-05-01T10:00:00Z"
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_email:
+                  summary: Invalid email format
+                  value:
+                    error:
+                      code: "INVALID_INPUT"
+                      message: "Invalid email format"
+                      details:
+                        - field: "email"
+                          message: "Must be a valid email address"
+                email_taken:
+                  summary: Email already in use
+                  value:
+                    error:
+                      code: "DUPLICATE_ENTRY"
+                      message: "Email already in use"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/change-password:
+    post:
+      tags: [Users]
+      summary: Change password
+      description: |
+        Changes the current user's password.
+        
+        **Password Requirements:**
+        - Minimum 8 characters
+        - At least one uppercase letter
+        - At least one lowercase letter
+        - At least one number
+        - At least one special character
+        
+        **Security:**
+        - Requires current password for verification
+        - Invalidates all existing refresh tokens
+        - Audit logged
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password:
+                  type: string
+                  description: Current password for verification
+                new_password:
+                  type: string
+                  minLength: 8
+                  description: New password meeting requirements
+            examples:
+              basic:
+                summary: Change password
+                value:
+                  current_password: "OldPass123!"
+                  new_password: "NewSecurePass456!"
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                success:
+                  summary: Password changed
+                  value:
+                    message: "Password changed successfully. Please login again."
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                weak_password:
+                  summary: Weak password
+                  value:
+                    error:
+                      code: "INVALID_INPUT"
+                      message: "Password does not meet requirements"
+                      details:
+                        - field: "new_password"
+                          message: "Password must be at least 8 characters with uppercase, lowercase, number, and special character"
+        '401':
+          description: Invalid current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                wrong_password:
+                  summary: Wrong current password
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Current password is incorrect"
+
+  /divisions:
+    get:
+      tags: [Divisions]
+      summary: List divisions
+      description: |
+        Returns all divisions in the organization.
+        
+        **Subscription Limits:**
+        - FREE: Maximum 7 divisions
+        - LITE: Maximum 15 divisions
+        - PRO: Unlimited divisions
+      responses:
+        '200':
+          description: Division list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Division'
+              examples:
+                success:
+                  summary: List of divisions
+                  value:
+                    - id: "660e8400-e29b-41d4-a716-446655440000"
+                      name: "Engineering"
+                      description: "Software development team"
+                      head_id: "550e8400-e29b-41d4-a716-446655440000"
+                      organization_id: "770e8400-e29b-41d4-a716-446655440000"
+                      member_count: 12
+                      created_at: "2026-05-01T10:00:00Z"
+                    - id: "880e8400-e29b-41d4-a716-446655440000"
+                      name: "Marketing"
+                      description: "Marketing and communications"
+                      head_id: "990e8400-e29b-41d4-a716-446655440000"
+                      organization_id: "770e8400-e29b-41d4-a716-446655440000"
+                      member_count: 8
+                      created_at: "2026-05-02T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Divisions]
+      summary: Create division
+      description: |
+        Creates a new division.
+        
+        **Permissions:**
+        - Requires OWNER or ADMIN role
+        
+        **Subscription Limits:**
+        - FREE: Maximum 7 divisions
+        - LITE: Maximum 15 divisions
+        - PRO: Unlimited divisions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDivisionRequest'
+            examples:
+              basic:
+                summary: Create engineering division
+                value:
+                  name: "Engineering"
+                  description: "Software development team"
+                  head_id: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '201':
+          description: Division created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Division'
+              examples:
+                success:
+                  summary: Division created
+                  value:
+                    id: "660e8400-e29b-41d4-a716-446655440000"
+                    name: "Engineering"
+                    description: "Software development team"
+                    head_id: "550e8400-e29b-41d4-a716-446655440000"
+                    organization_id: "770e8400-e29b-41d4-a716-446655440000"
+                    member_count: 0
+                    created_at: "2026-05-15T10:00:00Z"
+        '400':
+          description: Invalid input or limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                limit_exceeded:
+                  summary: Division limit exceeded
+                  value:
+                    error:
+                      code: "LIMIT_EXCEEDED"
+                      message: "Division limit reached for your subscription plan"
+                      details:
+                        - field: "subscription"
+                          message: "FREE plan allows maximum 7 divisions. Upgrade to create more."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /divisions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Divisions]
+      summary: Get division by ID
+      responses:
+        '200':
+          description: Division details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Division'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Divisions]
+      summary: Update division
+      description: |
+        Updates division details.
+        
+        **Permissions:**
+        - OWNER/ADMIN: Can update any division
+        - HEAD: Can only update their own division
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDivisionRequest'
+      responses:
+        '200':
+          description: Division updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Division'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Divisions]
+      summary: Delete division
+      description: |
+        Deletes a division.
+        
+        **Permissions:**
+        - Requires OWNER or ADMIN role
+        
+        **Behavior:**
+        - Cannot delete division with active members
+        - All associated tasks are unassigned
+      responses:
+        '204':
+          description: Division deleted
+        '400':
+          description: Cannot delete division with members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                has_members:
+                  summary: Division has members
+                  value:
+                    error:
+                      code: "INVALID_OPERATION"
+                      message: "Cannot delete division with active members"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /divisions/{id}/members:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Divisions]
+      summary: Get division members
+      description: |
+        Returns all members of a division.
+        
+        **Subscription Limits:**
+        - FREE: Maximum 15 members per division
+        - LITE: Maximum 30 members per division
+        - PRO: Unlimited members per division
+      responses:
+        '200':
+          description: Division members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+              examples:
+                success:
+                  summary: Division members
+                  value:
+                    - id: "550e8400-e29b-41d4-a716-446655440000"
+                      email: "john@acme.com"
+                      full_name: "John Doe"
+                      role: "ADMIN"
+                      organization_id: "770e8400-e29b-41d4-a716-446655440000"
+                      created_at: "2026-05-01T10:00:00Z"
+                    - id: "660e8400-e29b-41d4-a716-446655440000"
+                      email: "jane@acme.com"
+                      full_name: "Jane Smith"
+                      role: "MEMBER"
+                      organization_id: "770e8400-e29b-41d4-a716-446655440000"
+                      created_at: "2026-05-02T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Divisions]
+      summary: Add member to division
+      description: |
+        Adds a user to a division.
+        
+        **Permissions:**
+        - Requires HEAD role for the division, or OWNER/ADMIN role
+        
+        **Subscription Limits:**
+        - FREE: Maximum 15 members per division
+        - LITE: Maximum 30 members per division
+        - PRO: Unlimited members per division
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                  description: ID of user to add to division
+            examples:
+              basic:
+                summary: Add user to division
+                value:
+                  user_id: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '201':
+          description: Member added to division
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                success:
+                  summary: Member added
+                  value:
+                    message: "User added to division successfully"
+        '400':
+          description: Invalid input or limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                limit_exceeded:
+                  summary: Member limit exceeded
+                  value:
+                    error:
+                      code: "LIMIT_EXCEEDED"
+                      message: "Member limit reached for this division"
+                      details:
+                        - field: "subscription"
+                          message: "FREE plan allows maximum 15 members per division. Upgrade to add more."
+                already_member:
+                  summary: User already in division
+                  value:
+                    error:
+                      code: "DUPLICATE_ENTRY"
+                      message: "User is already a member of this division"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /divisions/{id}/members/{userId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Division ID
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: User ID
+    delete:
+      tags: [Divisions]
+      summary: Remove member from division
+      description: |
+        Removes a user from a division.
+        
+        **Permissions:**
+        - Requires HEAD role for the division, or OWNER/ADMIN role
+        
+        **Behavior:**
+        - Unassigns user from all tasks in the division
+        - Audit logged
+      responses:
+        '204':
+          description: Member removed from division
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /members/create:
+    post:
+      tags: [Members]
+      summary: Create single member
+      description: |
+        Creates a new member in the organization.
+        
+        **Permissions:**
+        - Requires OWNER or ADMIN role
+        
+        **Behavior:**
+        - Sends invitation email to the new member
+        - Member must verify email before accessing the system
+        - Default role is MEMBER
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMemberRequest'
+            examples:
+              basic:
+                summary: Create new member
+                value:
+                  email: "newuser@acme.com"
+                  full_name: "New User"
+                  role: "MEMBER"
+                  division_ids:
+                    - "660e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '201':
+          description: Member created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              examples:
+                success:
+                  summary: Member created
+                  value:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    email: "newuser@acme.com"
+                    full_name: "New User"
+                    role: "MEMBER"
+                    organization_id: "770e8400-e29b-41d4-a716-446655440000"
+                    created_at: "2026-05-15T10:00:00Z"
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                duplicate_email:
+                  summary: Email already exists
+                  value:
+                    error:
+                      code: "DUPLICATE_ENTRY"
+                      message: "Email already registered"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /members/bulk-import:
+    post:
+      tags: [Members]
+      summary: Bulk import members from CSV
+      description: |
+        Imports multiple members from a CSV file.
+        
+        **Permissions:**
+        - Requires OWNER or ADMIN role
+        
+        **Rate Limiting:**
+        - 1 request per minute
+        - Maximum 100 members per import
+        
+        **CSV Format:**
+        - Headers: email, full_name, role, division_names (comma-separated)
+        - Example: john@acme.com,John Doe,MEMBER,"Engineering,Marketing"
+        
+        **Behavior:**
+        - Validates all rows before importing
+        - Skips duplicate emails
+        - Sends invitation emails to all new members
+        - Returns summary of successful and failed imports
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file with member data
+      responses:
+        '200':
+          description: Import completed
+          headers:
+            X-RateLimit-Limit:
+              schema:
+                type: integer
+              description: Rate limit (requests per minute)
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+              description: Remaining requests in current window
+            X-RateLimit-Reset:
+              schema:
+                type: integer
+              description: Unix timestamp when rate limit resets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    description: Total rows in CSV
+                  successful:
+                    type: integer
+                    description: Successfully imported members
+                  failed:
+                    type: integer
+                    description: Failed imports
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        row:
+                          type: integer
+                        email:
+                          type: string
+                        error:
+                          type: string
+              examples:
+                success:
+                  summary: Import completed with some errors
+                  value:
+                    total: 10
+                    successful: 8
+                    failed: 2
+                    errors:
+                      - row: 3
+                        email: "invalid-email"
+                        error: "Invalid email format"
+                      - row: 7
+                        email: "existing@acme.com"
+                        error: "Email already registered"
+        '400':
+          description: Invalid CSV format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_csv:
+                  summary: Invalid CSV format
+                  value:
+                    error:
+                      code: "INVALID_INPUT"
+                      message: "Invalid CSV format"
+                      details:
+                        - field: "file"
+                          message: "CSV must have headers: email, full_name, role, division_names"
+                too_many_rows:
+                  summary: Too many rows
+                  value:
+                    error:
+                      code: "INVALID_INPUT"
+                      message: "CSV exceeds maximum of 100 rows"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /members/template:
+    get:
+      tags: [Members]
+      summary: Download CSV template
+      description: |
+        Downloads a CSV template for bulk member import.
+        
+        **No Authentication Required**
+        
+        **Template Format:**
+        - Headers: email, full_name, role, division_names
+        - Includes example rows
+      security: []
+      responses:
+        '200':
+          description: CSV template
+          content:
+            text/csv:
+              schema:
+                type: string
+              example: |
+                email,full_name,role,division_names
+                john@example.com,John Doe,MEMBER,"Engineering,Marketing"
+                jane@example.com,Jane Smith,ADMIN,Engineering
+
   /tasks:
     get:
       tags: [Tasks]
       summary: List tasks
-      description: Returns all tasks in the user's organization with optional filters.
+      description: |
+        Returns all tasks in the user's organization with optional filters.
+        
+        **Filtering:**
+        - Filter by division, assignee, or status
+        - Combine multiple filters for precise results
       parameters:
         - name: division_id
           in: query
@@ -183,18 +1417,28 @@ paths:
             type: string
             format: uuid
           description: Filter by division
+          example: "660e8400-e29b-41d4-a716-446655440000"
         - name: assignee_id
           in: query
           schema:
             type: string
             format: uuid
           description: Filter by assignee
+          example: "550e8400-e29b-41d4-a716-446655440000"
         - name: status
           in: query
           schema:
             type: string
             enum: [TODO, IN_PROGRESS, DONE]
           description: Filter by status
+          example: "IN_PROGRESS"
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH, URGENT]
+          description: Filter by priority
+          example: "HIGH"
       responses:
         '200':
           description: Task list
@@ -204,18 +1448,65 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Task'
+              examples:
+                success:
+                  summary: List of tasks
+                  value:
+                    - id: "550e8400-e29b-41d4-a716-446655440000"
+                      title: "Implement user authentication"
+                      description: "Add JWT-based authentication"
+                      status: "IN_PROGRESS"
+                      priority: "HIGH"
+                      division_id: "660e8400-e29b-41d4-a716-446655440000"
+                      assignee_id: "770e8400-e29b-41d4-a716-446655440000"
+                      due_date: "2026-05-20T00:00:00Z"
+                      organization_id: "880e8400-e29b-41d4-a716-446655440000"
+                      created_at: "2026-05-15T10:00:00Z"
+                      updated_at: "2026-05-15T14:30:00Z"
+                    - id: "990e8400-e29b-41d4-a716-446655440000"
+                      title: "Write API documentation"
+                      description: "Complete OpenAPI spec"
+                      status: "TODO"
+                      priority: "MEDIUM"
+                      division_id: "660e8400-e29b-41d4-a716-446655440000"
+                      assignee_id: null
+                      due_date: "2026-05-25T00:00:00Z"
+                      organization_id: "880e8400-e29b-41d4-a716-446655440000"
+                      created_at: "2026-05-15T11:00:00Z"
+                      updated_at: "2026-05-15T11:00:00Z"
         '401':
           $ref: '#/components/responses/Unauthorized'
 
     post:
       tags: [Tasks]
       summary: Create a task
+      description: |
+        Creates a new task in a division.
+        
+        **Permissions:**
+        - Any authenticated user can create tasks
+        - Task must belong to a division in user's organization
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateTaskRequest'
+            examples:
+              basic:
+                summary: Create task with assignee
+                value:
+                  division_id: "660e8400-e29b-41d4-a716-446655440000"
+                  assignee_id: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "Implement user authentication"
+                  description: "Add JWT-based authentication with refresh tokens"
+                  priority: "HIGH"
+                  due_date: "2026-05-20T00:00:00Z"
+              minimal:
+                summary: Create task without assignee
+                value:
+                  division_id: "660e8400-e29b-41d4-a716-446655440000"
+                  title: "Write API documentation"
       responses:
         '201':
           description: Task created
@@ -223,10 +1514,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
+              examples:
+                success:
+                  summary: Task created successfully
+                  value:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    title: "Implement user authentication"
+                    description: "Add JWT-based authentication with refresh tokens"
+                    status: "TODO"
+                    priority: "HIGH"
+                    division_id: "660e8400-e29b-41d4-a716-446655440000"
+                    assignee_id: "770e8400-e29b-41d4-a716-446655440000"
+                    due_date: "2026-05-20T00:00:00Z"
+                    organization_id: "880e8400-e29b-41d4-a716-446655440000"
+                    created_at: "2026-05-15T10:00:00Z"
+                    updated_at: "2026-05-15T10:00:00Z"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Division not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                division_not_found:
+                  summary: Division not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Division not found"
 
   /tasks/{id}:
     parameters:
@@ -277,21 +1596,117 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /tasks/{id}/status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Tasks]
+      summary: Update task status
+      description: |
+        Updates only the status of a task. Lighter weight than full PUT update.
+        
+        **Audit Logging:**
+        Status changes are logged with timestamp, user, and old/new values.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [TODO, IN_PROGRESS, DONE]
+                  description: New task status
+            examples:
+              mark_in_progress:
+                summary: Mark task as in progress
+                value:
+                  status: "IN_PROGRESS"
+              mark_done:
+                summary: Mark task as done
+                value:
+                  status: "DONE"
+      responses:
+        '200':
+          description: Task status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              examples:
+                success:
+                  summary: Status updated successfully
+                  value:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    title: "Implement user authentication"
+                    description: "Add JWT-based authentication"
+                    status: "IN_PROGRESS"
+                    priority: "HIGH"
+                    division_id: "660e8400-e29b-41d4-a716-446655440000"
+                    assignee_id: "770e8400-e29b-41d4-a716-446655440000"
+                    due_date: "2026-05-20T00:00:00Z"
+                    created_at: "2026-05-15T10:00:00Z"
+                    updated_at: "2026-05-15T14:30:00Z"
+        '400':
+          description: Invalid status value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_status:
+                  summary: Invalid status
+                  value:
+                    error:
+                      code: "INVALID_INPUT"
+                      message: "Invalid status value"
+                      details:
+                        - field: "status"
+                          message: "Must be one of: TODO, IN_PROGRESS, DONE"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /finance/transactions:
     get:
       tags: [Finance]
       summary: List transactions
+      description: |
+        Returns all transactions in the user's organization with optional filters.
+        
+        **Filtering:**
+        - Filter by division or transaction type
+        - Only APPROVED transactions are included in financial summaries
       parameters:
         - name: division_id
           in: query
           schema:
             type: string
             format: uuid
+          description: Filter by division
+          example: "660e8400-e29b-41d4-a716-446655440000"
         - name: type
           in: query
           schema:
             type: string
             enum: [INCOME, EXPENSE]
+          description: Filter by transaction type
+          example: "EXPENSE"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED]
+          description: Filter by approval status
+          example: "APPROVED"
       responses:
         '200':
           description: Transaction list
@@ -301,16 +1716,85 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Transaction'
+              examples:
+                success:
+                  summary: List of transactions
+                  value:
+                    - id: "550e8400-e29b-41d4-a716-446655440000"
+                      organization_id: "660e8400-e29b-41d4-a716-446655440000"
+                      division_id: "770e8400-e29b-41d4-a716-446655440000"
+                      event_id: null
+                      type: "EXPENSE"
+                      amount:
+                        amount_cents: 50000000
+                        currency: "IDR"
+                        formatted: "Rp 500,000"
+                      description: "Office supplies purchase"
+                      status: "APPROVED"
+                      requested_by: "880e8400-e29b-41d4-a716-446655440000"
+                      approved_by: "990e8400-e29b-41d4-a716-446655440000"
+                      receipt_url: "https://storage.sekre.co/receipts/abc123.pdf"
+                      created_at: "2026-05-15T10:00:00Z"
+                      updated_at: "2026-05-15T14:00:00Z"
+                    - id: "aa0e8400-e29b-41d4-a716-446655440000"
+                      organization_id: "660e8400-e29b-41d4-a716-446655440000"
+                      division_id: "770e8400-e29b-41d4-a716-446655440000"
+                      event_id: "bb0e8400-e29b-41d4-a716-446655440000"
+                      type: "INCOME"
+                      amount:
+                        amount_cents: 100000000
+                        currency: "IDR"
+                        formatted: "Rp 1,000,000"
+                      description: "Event ticket sales"
+                      status: "PENDING"
+                      requested_by: "880e8400-e29b-41d4-a716-446655440000"
+                      approved_by: null
+                      receipt_url: null
+                      created_at: "2026-05-15T11:00:00Z"
+                      updated_at: "2026-05-15T11:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
     post:
       tags: [Finance]
       summary: Create a transaction
+      description: |
+        Creates a new financial transaction.
+        
+        **Permissions:**
+        - Any authenticated user can create transactions
+        - Transactions start in PENDING status
+        - Requires ADMIN/OWNER approval to be included in reports
+        
+        **Workflow:**
+        1. User creates transaction (PENDING)
+        2. ADMIN/OWNER reviews and approves/rejects
+        3. APPROVED transactions are included in financial summaries
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateTransactionRequest'
+            examples:
+              expense:
+                summary: Create expense transaction
+                value:
+                  division_id: "660e8400-e29b-41d4-a716-446655440000"
+                  type: "EXPENSE"
+                  amount_cents: 50000000
+                  currency: "IDR"
+                  description: "Office supplies purchase"
+                  receipt_url: "https://storage.sekre.co/receipts/abc123.pdf"
+              income:
+                summary: Create income transaction
+                value:
+                  division_id: "660e8400-e29b-41d4-a716-446655440000"
+                  event_id: "770e8400-e29b-41d4-a716-446655440000"
+                  type: "INCOME"
+                  amount_cents: 100000000
+                  currency: "IDR"
+                  description: "Event ticket sales"
       responses:
         '201':
           description: Transaction created
@@ -318,12 +1802,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Transaction'
+              examples:
+                success:
+                  summary: Transaction created successfully
+                  value:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    organization_id: "660e8400-e29b-41d4-a716-446655440000"
+                    division_id: "770e8400-e29b-41d4-a716-446655440000"
+                    event_id: null
+                    type: "EXPENSE"
+                    amount:
+                      amount_cents: 50000000
+                      currency: "IDR"
+                      formatted: "Rp 500,000"
+                    description: "Office supplies purchase"
+                    status: "PENDING"
+                    requested_by: "880e8400-e29b-41d4-a716-446655440000"
+                    approved_by: null
+                    receipt_url: "https://storage.sekre.co/receipts/abc123.pdf"
+                    created_at: "2026-05-15T10:00:00Z"
+                    updated_at: "2026-05-15T10:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Division not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                division_not_found:
+                  summary: Division not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Division not found"
 
   /finance/summary:
     get:
       tags: [Finance]
       summary: Get finance summary
-      description: Returns aggregated income, expense, and balance.
+      description: |
+        Returns aggregated income, expense, and balance.
+        
+        **Aggregation:**
+        - Sums all APPROVED transactions
+        - Groups by currency
+        - Calculates balance (income - expense)
+        
+        **Filtering:**
+        - Optional division_id to scope to single division
+        - Without division_id, returns organization-wide summary
       parameters:
         - name: division_id
           in: query
@@ -331,6 +1862,7 @@ paths:
             type: string
             format: uuid
           description: Optional - scope summary to a single division
+          example: "660e8400-e29b-41d4-a716-446655440000"
       responses:
         '200':
           description: Finance summary
@@ -338,6 +1870,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FinanceSummary'
+              examples:
+                organization_summary:
+                  summary: Organization-wide summary
+                  value:
+                    total_income:
+                      amount_cents: 50000000
+                      currency: "IDR"
+                      formatted: "Rp 500,000"
+                    total_expense:
+                      amount_cents: 30000000
+                      currency: "IDR"
+                      formatted: "Rp 300,000"
+                    balance:
+                      amount_cents: 20000000
+                      currency: "IDR"
+                      formatted: "Rp 200,000"
+                division_summary:
+                  summary: Division-specific summary
+                  value:
+                    total_income:
+                      amount_cents: 15000000
+                      currency: "IDR"
+                      formatted: "Rp 150,000"
+                    total_expense:
+                      amount_cents: 8000000
+                      currency: "IDR"
+                      formatted: "Rp 80,000"
+                    balance:
+                      amount_cents: 7000000
+                      currency: "IDR"
+                      formatted: "Rp 70,000"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Division not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                division_not_found:
+                  summary: Division not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Division not found"
 
 components:
   securitySchemes:
@@ -353,24 +1931,69 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            validation_error:
+              summary: Validation error
+              value:
+                error:
+                  code: "INVALID_INPUT"
+                  message: "Validation failed"
+                  details:
+                    - field: "email"
+                      message: "Must be a valid email address"
+                    - field: "password"
+                      message: "Must be at least 8 characters"
     Unauthorized:
       description: Missing or invalid authentication token
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_token:
+              summary: Missing authentication token
+              value:
+                error:
+                  code: "UNAUTHORIZED"
+                  message: "Authentication required"
+            invalid_token:
+              summary: Invalid or expired token
+              value:
+                error:
+                  code: "UNAUTHORIZED"
+                  message: "Invalid or expired token"
     Forbidden:
       description: Insufficient permissions for this action
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            insufficient_permissions:
+              summary: Insufficient permissions
+              value:
+                error:
+                  code: "FORBIDDEN"
+                  message: "You do not have permission to perform this action"
+            role_required:
+              summary: Specific role required
+              value:
+                error:
+                  code: "FORBIDDEN"
+                  message: "This action requires OWNER or ADMIN role"
     NotFound:
       description: Resource not found (or cross-tenant access blocked)
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            not_found:
+              summary: Resource not found
+              value:
+                error:
+                  code: "NOT_FOUND"
+                  message: "Resource not found"
     RateLimited:
       description: Too many requests
       headers:
@@ -378,10 +2001,29 @@ components:
           schema:
             type: integer
           description: Seconds to wait before retrying
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Rate limit (requests per time window)
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in current window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Unix timestamp when rate limit resets
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            rate_limited:
+              summary: Rate limit exceeded
+              value:
+                error:
+                  code: "RATE_LIMITED"
+                  message: "Too many requests. Please try again later."
 
   schemas:
     # ------ Common ------
@@ -400,20 +2042,86 @@ components:
 
     ErrorResponse:
       type: object
-      required: [success, error, code]
+      required: [error]
       properties:
-        success:
-          type: boolean
-          example: false
         error:
-          type: string
-          example: "email: must be a valid email address"
-        code:
-          type: string
-          enum: [INVALID_INPUT, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, PRECONDITION_FAILED, TIMEOUT, INTERNAL, RATE_LIMITED]
-        details:
           type: object
-          additionalProperties: true
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: 
+                - INVALID_INPUT
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - DUPLICATE_ENTRY
+                - LIMIT_EXCEEDED
+                - INVALID_OPERATION
+                - CONFLICT
+                - PRECONDITION_FAILED
+                - TIMEOUT
+                - INTERNAL_ERROR
+                - RATE_LIMITED
+              description: |
+                Error codes:
+                - INVALID_INPUT: Validation failed or malformed request
+                - UNAUTHORIZED: Missing or invalid authentication
+                - FORBIDDEN: Insufficient permissions
+                - NOT_FOUND: Resource not found or cross-tenant access
+                - DUPLICATE_ENTRY: Unique constraint violation
+                - LIMIT_EXCEEDED: Subscription or rate limit exceeded
+                - INVALID_OPERATION: Operation not allowed in current state
+                - CONFLICT: Resource conflict (e.g., concurrent modification)
+                - PRECONDITION_FAILED: Precondition not met
+                - TIMEOUT: Request timeout
+                - INTERNAL_ERROR: Unexpected server error
+                - RATE_LIMITED: Too many requests
+            message:
+              type: string
+              description: Human-readable error message
+              example: "Validation failed"
+            details:
+              type: array
+              description: Detailed validation errors (for INVALID_INPUT)
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    description: Field name that failed validation
+                  message:
+                    type: string
+                    description: Specific validation error message
+      example:
+        error:
+          code: "INVALID_INPUT"
+          message: "Validation failed"
+          details:
+            - field: "email"
+              message: "Must be a valid email address"
+            - field: "password"
+              message: "Must be at least 8 characters"
+
+    PaginationMetadata:
+      type: object
+      required: [limit, offset, total]
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+          description: Number of items per page
+          example: 50
+        offset:
+          type: integer
+          minimum: 0
+          description: Number of items skipped
+          example: 0
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of items matching the filter
+          example: 150
 
     HealthResponse:
       type: object
@@ -476,21 +2184,50 @@ components:
           format: password
 
     AuthSuccessResponse:
-      allOf:
-        - $ref: '#/components/schemas/SuccessResponse'
-        - type: object
-          properties:
-            data:
-              type: object
+      type: object
+      required: [access_token, refresh_token, token_type, expires_in, user]
+      properties:
+        access_token:
+          type: string
+          description: |
+            JWT access token for API authentication.
+            
+            **Token Structure:**
+            - Header: {"alg": "HS256", "typ": "JWT"}
+            - Payload: {"user_id": "...", "org_id": "...", "role": "...", "exp": ..., "iat": ...}
+            - Signature: HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret)
+            
+            **Expiry:** 1 hour (3600 seconds)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwib3JnX2lkIjoiNjYwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwicm9sZSI6Ik9XTkVSIiwiZXhwIjoxNzE1Nzg0MDAwLCJpYXQiOjE3MTU3ODA0MDB9.signature"
+        refresh_token:
+          type: string
+          description: |
+            Long-lived refresh token for obtaining new access tokens.
+            
+            **Expiry:** 7 days (604800 seconds)
+            **Usage:** POST to /auth/refresh with this token to get new access token
+            **Security:** Invalidated on password change or logout
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwidHlwZSI6InJlZnJlc2giLCJleHAiOjE3MTYzODUyMDAsImlhdCI6MTcxNTc4MDQwMH0.signature"
+        token_type:
+          type: string
+          enum: [Bearer]
+          description: Token type for Authorization header
+          example: "Bearer"
+        expires_in:
+          type: integer
+          description: Access token expiry time in seconds
+          example: 3600
+        user:
+          allOf:
+            - $ref: '#/components/schemas/User'
+            - type: object
+              required: [role, organization_id]
               properties:
-                user:
-                  $ref: '#/components/schemas/User'
-                organization:
-                  $ref: '#/components/schemas/Organization'
                 role:
                   $ref: '#/components/schemas/Role'
-                tokens:
-                  $ref: '#/components/schemas/TokenPair'
+                organization_id:
+                  type: string
+                  format: uuid
 
     TokenPair:
       type: object
@@ -510,23 +2247,46 @@ components:
 
     User:
       type: object
+      required: [id, email, full_name, role, organization_id, created_at]
       properties:
         id:
           type: string
           format: uuid
+          description: Unique user identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
         email:
           type: string
           format: email
+          maxLength: 255
+          description: User's email address (unique within organization)
+          example: "john@acme.com"
         full_name:
           type: string
+          minLength: 1
+          maxLength: 100
+          description: User's full name
+          example: "John Doe"
+        role:
+          $ref: '#/components/schemas/Role'
+        organization_id:
+          type: string
+          format: uuid
+          description: Organization the user belongs to
+          example: "660e8400-e29b-41d4-a716-446655440000"
         must_reset_password:
           type: boolean
+          description: Whether user must reset password on next login
+          default: false
         created_at:
           type: string
           format: date-time
+          description: User creation timestamp
+          example: "2026-05-01T10:00:00Z"
         updated_at:
           type: string
           format: date-time
+          description: Last update timestamp
+          example: "2026-05-15T14:30:00Z"
 
     Organization:
       type: object
@@ -560,41 +2320,191 @@ components:
                 role:
                   $ref: '#/components/schemas/Role'
 
-    # ------ Tasks ------
+    # ------ Divisions ------
 
-    Task:
+    Division:
       type: object
+      required: [id, name, organization_id, member_count, created_at]
       properties:
         id:
           type: string
           format: uuid
+          description: Unique division identifier
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Division name
+          example: "Engineering"
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Division description
+          example: "Software development team"
+        head_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: User ID of division head
+          example: "550e8400-e29b-41d4-a716-446655440000"
         organization_id:
           type: string
           format: uuid
+          description: Organization the division belongs to
+          example: "770e8400-e29b-41d4-a716-446655440000"
+        member_count:
+          type: integer
+          minimum: 0
+          description: Number of members in the division
+          example: 12
+        created_at:
+          type: string
+          format: date-time
+          description: Division creation timestamp
+          example: "2026-05-01T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2026-05-15T14:30:00Z"
+
+    CreateDivisionRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Division name
+          example: "Engineering"
+        description:
+          type: string
+          maxLength: 500
+          description: Division description
+          example: "Software development team"
+        head_id:
+          type: string
+          format: uuid
+          description: User ID of division head
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    UpdateDivisionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Division name
+        description:
+          type: string
+          maxLength: 500
+          description: Division description
+        head_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: User ID of division head (null to remove head)
+
+    # ------ Members ------
+
+    CreateMemberRequest:
+      type: object
+      required: [email, full_name]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Member's email address
+          example: "newuser@acme.com"
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Member's full name
+          example: "New User"
+        role:
+          $ref: '#/components/schemas/Role'
+          default: MEMBER
+          description: Member's role (defaults to MEMBER)
+        division_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: List of division IDs to add the member to
+          example: ["660e8400-e29b-41d4-a716-446655440000"]
+
+    # ------ Tasks ------
+
+    Task:
+      type: object
+      required: [id, organization_id, division_id, title, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique task identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        organization_id:
+          type: string
+          format: uuid
+          description: Organization the task belongs to
+          example: "660e8400-e29b-41d4-a716-446655440000"
         division_id:
           type: string
           format: uuid
+          description: Division the task belongs to
+          example: "770e8400-e29b-41d4-a716-446655440000"
         assignee_id:
           type: string
           format: uuid
           nullable: true
+          description: User ID of task assignee
+          example: "880e8400-e29b-41d4-a716-446655440000"
         title:
           type: string
+          minLength: 3
+          maxLength: 500
+          description: Task title
+          example: "Implement user authentication"
         description:
           type: string
+          maxLength: 1000
+          nullable: true
+          description: Task description
+          example: "Add JWT-based authentication with refresh tokens"
         status:
           type: string
           enum: [TODO, IN_PROGRESS, DONE]
+          description: Task status
+          example: "IN_PROGRESS"
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, URGENT]
+          default: MEDIUM
+          description: Task priority
+          example: "HIGH"
         due_date:
           type: string
           format: date-time
           nullable: true
+          description: Task due date
+          example: "2026-05-20T00:00:00Z"
         created_at:
           type: string
           format: date-time
+          description: Task creation timestamp
+          example: "2026-05-15T10:00:00Z"
         updated_at:
           type: string
           format: date-time
+          description: Last update timestamp
+          example: "2026-05-15T14:30:00Z"
 
     CreateTaskRequest:
       type: object
@@ -603,92 +2513,172 @@ components:
         division_id:
           type: string
           format: uuid
+          description: Division the task belongs to
+          example: "660e8400-e29b-41d4-a716-446655440000"
         assignee_id:
           type: string
           format: uuid
+          description: User ID of task assignee
+          example: "550e8400-e29b-41d4-a716-446655440000"
         title:
           type: string
           minLength: 3
           maxLength: 500
+          description: Task title
+          example: "Implement user authentication"
         description:
           type: string
           maxLength: 1000
+          description: Task description
+          example: "Add JWT-based authentication with refresh tokens"
+        status:
+          type: string
+          enum: [TODO, IN_PROGRESS, DONE]
+          default: TODO
+          description: Initial task status
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, URGENT]
+          default: MEDIUM
+          description: Task priority
         due_date:
           type: string
           format: date-time
+          description: Task due date
+          example: "2026-05-20T00:00:00Z"
 
     UpdateTaskRequest:
       type: object
       properties:
         title:
           type: string
+          minLength: 3
+          maxLength: 500
+          description: Task title
         description:
           type: string
-        assignee_id:
-          type: string
-          format: uuid
-        due_date:
-          type: string
-          format: date-time
+          maxLength: 1000
+          description: Task description
         status:
           type: string
           enum: [TODO, IN_PROGRESS, DONE]
+          description: Task status
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, URGENT]
+          description: Task priority
+        assignee_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: User ID of task assignee (null to unassign)
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Task due date (null to remove due date)
 
     # ------ Finance ------
 
     Money:
       type: object
-      description: "Monetary value as integer cents with currency"
+      required: [amount_cents, currency]
+      description: |
+        Monetary value stored as integer cents to avoid floating-point precision issues.
+        
+        **Examples:**
+        - IDR 500,000 = 50000000 cents
+        - USD 100.50 = 10050 cents
       properties:
         amount_cents:
           type: integer
           format: int64
-          example: 5000000
+          minimum: 0
+          description: Amount in smallest currency unit (cents)
+          example: 50000000
         currency:
           type: string
           pattern: ^[A-Z]{3}$
+          description: ISO 4217 currency code
           example: "IDR"
+        formatted:
+          type: string
+          description: Human-readable formatted amount (optional, for display)
+          example: "Rp 500,000"
 
     Transaction:
       type: object
+      required: [id, organization_id, division_id, type, amount, description, status, requested_by, created_at]
       properties:
         id:
           type: string
           format: uuid
+          description: Unique transaction identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
         organization_id:
           type: string
           format: uuid
+          description: Organization the transaction belongs to
+          example: "660e8400-e29b-41d4-a716-446655440000"
         division_id:
           type: string
           format: uuid
+          description: Division the transaction belongs to
+          example: "770e8400-e29b-41d4-a716-446655440000"
         event_id:
           type: string
           format: uuid
           nullable: true
+          description: Associated event ID (if transaction is event-related)
+          example: "880e8400-e29b-41d4-a716-446655440000"
         type:
           type: string
           enum: [INCOME, EXPENSE]
+          description: Transaction type
+          example: "EXPENSE"
         amount:
           $ref: '#/components/schemas/Money'
         description:
           type: string
+          maxLength: 500
+          description: Transaction description
+          example: "Office supplies purchase"
         status:
           type: string
           enum: [PENDING, APPROVED, REJECTED]
+          description: |
+            Transaction approval status:
+            - PENDING: Awaiting approval
+            - APPROVED: Approved and included in financial reports
+            - REJECTED: Rejected and excluded from reports
+          example: "APPROVED"
         requested_by:
           type: string
           format: uuid
+          description: User ID who created the transaction
+          example: "990e8400-e29b-41d4-a716-446655440000"
         approved_by:
           type: string
           format: uuid
           nullable: true
+          description: User ID who approved/rejected the transaction
+          example: "aa0e8400-e29b-41d4-a716-446655440000"
         receipt_url:
           type: string
           format: uri
           nullable: true
+          description: URL to receipt/invoice document
+          example: "https://storage.sekre.co/receipts/abc123.pdf"
         created_at:
           type: string
           format: date-time
+          description: Transaction creation timestamp
+          example: "2026-05-15T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2026-05-15T14:30:00Z"
 
     CreateTransactionRequest:
       type: object
@@ -697,29 +2687,54 @@ components:
         division_id:
           type: string
           format: uuid
+          description: Division the transaction belongs to
+          example: "660e8400-e29b-41d4-a716-446655440000"
         event_id:
           type: string
           format: uuid
+          description: Associated event ID (optional)
+          example: "770e8400-e29b-41d4-a716-446655440000"
         type:
           type: string
           enum: [INCOME, EXPENSE]
+          description: Transaction type
+          example: "EXPENSE"
         amount_cents:
           type: integer
           format: int64
           minimum: 1
+          description: Amount in smallest currency unit (cents)
+          example: 50000000
         currency:
           type: string
           pattern: ^[A-Z]{3}$
+          description: ISO 4217 currency code
           example: "IDR"
         description:
           type: string
+          minLength: 1
           maxLength: 500
+          description: Transaction description
+          example: "Office supplies purchase"
         receipt_url:
           type: string
           format: uri
+          description: URL to receipt/invoice document
+          example: "https://storage.sekre.co/receipts/abc123.pdf"
 
     FinanceSummary:
       type: object
+      required: [total_income, total_expense, balance]
+      description: |
+        Aggregated financial summary.
+        
+        **Calculation:**
+        - total_income: Sum of all APPROVED INCOME transactions
+        - total_expense: Sum of all APPROVED EXPENSE transactions
+        - balance: total_income - total_expense
+        
+        **Multi-currency:**
+        All amounts are in the same currency (organization's default currency)
       properties:
         total_income:
           $ref: '#/components/schemas/Money'
@@ -727,3 +2742,16 @@ components:
           $ref: '#/components/schemas/Money'
         balance:
           $ref: '#/components/schemas/Money'
+      example:
+        total_income:
+          amount_cents: 50000000
+          currency: "IDR"
+          formatted: "Rp 500,000"
+        total_expense:
+          amount_cents: 30000000
+          currency: "IDR"
+          formatted: "Rp 300,000"
+        balance:
+          amount_cents: 20000000
+          currency: "IDR"
+          formatted: "Rp 200,000"
