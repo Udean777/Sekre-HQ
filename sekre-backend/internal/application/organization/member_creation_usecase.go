@@ -18,8 +18,7 @@ import (
 )
 
 const (
-	MaxMembersPerDivision    = 10
-	DefaultTemporaryPassword = "password123"
+	MaxMembersPerDivision = 10
 )
 
 type MemberCreationUsecase interface {

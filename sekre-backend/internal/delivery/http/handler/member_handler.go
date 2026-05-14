@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/organization"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
@@ -18,9 +19,18 @@ func NewMemberHandler(usecase organization.MemberUsecase) *MemberHandler {
 }
 
 func (h *MemberHandler) RegisterRoutes(router *mux.Router) {
+	// List members - any authenticated user can view
 	router.HandleFunc("/members", h.List).Methods("GET")
-	router.HandleFunc("/members/{userId}", h.UpdateRole).Methods("PATCH")
-	router.HandleFunc("/members/{userId}", h.Remove).Methods("DELETE")
+
+	// Update member role - requires OWNER or ADMIN
+	router.Handle("/members/{userId}",
+		middleware.RequireAdmin()(http.HandlerFunc(h.UpdateRole)),
+	).Methods("PATCH")
+
+	// Remove member - requires OWNER or ADMIN
+	router.Handle("/members/{userId}",
+		middleware.RequireAdmin()(http.HandlerFunc(h.Remove)),
+	).Methods("DELETE")
 }
 
 func (h *MemberHandler) List(w http.ResponseWriter, r *http.Request) {

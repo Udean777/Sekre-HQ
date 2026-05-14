@@ -157,6 +157,9 @@ func main() {
 	// Apply global rate limiting to all API routes (DDoS protection)
 	apiV1.Use(middleware.RateLimit(middleware.DefaultRateLimitConfig()))
 
+	// Apply input sanitization to all API routes (XSS protection)
+	apiV1.Use(middleware.SanitizeInput())
+
 	// Apply auth middleware to protected routes
 	protected := apiV1.PathPrefix("").Subrouter()
 	protected.Use(middleware.AuthMiddleware(tokenManager))
@@ -181,9 +184,17 @@ func main() {
 	organizationHandler := handler.NewOrganizationHandler(organizationUsecaseInst)
 	organizationHandler.RegisterRoutes(protected)
 
-	// Protected member creation routes
-	protected.HandleFunc("/members/create", memberCreationHandler.CreateMember).Methods("POST")
-	protected.HandleFunc("/members/bulk-import", memberCreationHandler.BulkImport).Methods("POST")
+	// Protected member creation routes - requires OWNER or ADMIN
+	protected.Handle("/members/create",
+		middleware.RequireAdmin()(http.HandlerFunc(memberCreationHandler.CreateMember)),
+	).Methods("POST")
+	
+	// Bulk import with stricter rate limiting (1 request/minute)
+	protected.Handle("/members/bulk-import",
+		middleware.RateLimit(middleware.BulkImportRateLimitConfig())(
+			middleware.RequireAdmin()(http.HandlerFunc(memberCreationHandler.BulkImport)),
+		),
+	).Methods("POST")
 
 	taskHandler := handler.NewTaskHandler(taskUsecaseInst)
 	taskHandler.RegisterRoutes(protected)

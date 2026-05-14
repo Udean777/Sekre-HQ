@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/auth"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
-	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/pkg/response"
 	"github.com/username/sekre-backend/pkg/token"
 )
@@ -26,6 +26,9 @@ func NewAuthHandler(usecase auth.AuthUsecase, tokenManager *token.Manager) *Auth
 
 func (h *AuthHandler) RegisterRoutes(router *mux.Router) {
 	authRouter := router.PathPrefix("/auth").Subrouter()
+
+	// Apply stricter rate limiting for auth endpoints (prevent brute force)
+	authRouter.Use(middleware.RateLimit(middleware.AuthRateLimitConfig()))
 
 	// Public routes
 	authRouter.HandleFunc("/register", h.Register).Methods("POST")

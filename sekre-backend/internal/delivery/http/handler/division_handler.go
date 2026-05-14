@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/organization"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
-	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
@@ -21,16 +21,38 @@ func NewDivisionHandler(usecase organization.DivisionUsecase) *DivisionHandler {
 }
 
 func (h *DivisionHandler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/divisions", h.Create).Methods("POST")
+	// Create division - requires OWNER or ADMIN
+	router.Handle("/divisions",
+		middleware.RequireAdmin()(http.HandlerFunc(h.Create)),
+	).Methods("POST")
+
+	// List and view divisions - any authenticated user
 	router.HandleFunc("/divisions", h.List).Methods("GET")
 	router.HandleFunc("/divisions/{id}", h.GetByID).Methods("GET")
-	router.HandleFunc("/divisions/{id}", h.Update).Methods("PUT")
-	router.HandleFunc("/divisions/{id}", h.Delete).Methods("DELETE")
-
-	router.HandleFunc("/divisions/{id}/members", h.AddMember).Methods("POST")
-	router.HandleFunc("/divisions/{id}/members/{userId}", h.RemoveMember).Methods("DELETE")
-	router.HandleFunc("/divisions/{id}/members/{userId}", h.UpdateMemberRole).Methods("PATCH")
 	router.HandleFunc("/divisions/{id}/members", h.GetMembers).Methods("GET")
+
+	// Update division - requires OWNER or ADMIN
+	router.Handle("/divisions/{id}",
+		middleware.RequireAdmin()(http.HandlerFunc(h.Update)),
+	).Methods("PUT")
+
+	// Delete division - requires OWNER or ADMIN
+	router.Handle("/divisions/{id}",
+		middleware.RequireAdmin()(http.HandlerFunc(h.Delete)),
+	).Methods("DELETE")
+
+	// Manage division members - requires OWNER or ADMIN
+	router.Handle("/divisions/{id}/members",
+		middleware.RequireAdmin()(http.HandlerFunc(h.AddMember)),
+	).Methods("POST")
+
+	router.Handle("/divisions/{id}/members/{userId}",
+		middleware.RequireAdmin()(http.HandlerFunc(h.RemoveMember)),
+	).Methods("DELETE")
+
+	router.Handle("/divisions/{id}/members/{userId}",
+		middleware.RequireAdmin()(http.HandlerFunc(h.UpdateMemberRole)),
+	).Methods("PATCH")
 }
 
 // orgFromContext extracts the authenticated organization ID from the request
