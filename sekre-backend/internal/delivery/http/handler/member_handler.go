@@ -7,6 +7,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/organization"
 	"github.com/username/sekre-backend/internal/delivery/http/middleware"
+	"github.com/username/sekre-backend/internal/domain/types"
+	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
@@ -40,13 +42,19 @@ func (h *MemberHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := h.usecase.ListMembers(r.Context(), orgID)
+	// Parse pagination params
+	paginationParams := pagination.ParseParams(r)
+	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
+
+	members, total, err := h.usecase.ListMembersPaginated(r.Context(), orgID, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return
 	}
 
-	response.Success(w, http.StatusOK, "members retrieved", members)
+	// Create paginated response
+	paginatedResponse := pagination.NewResponse(members, paginationParams, total)
+	response.Success(w, http.StatusOK, "members retrieved", paginatedResponse)
 }
 
 func (h *MemberHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {

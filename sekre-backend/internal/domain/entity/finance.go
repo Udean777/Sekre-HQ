@@ -38,4 +38,7 @@ type TransactionFilters struct {
 	Type       *types.TransactionType
 	StartDate  *string
 	EndDate    *string
+	Search     *string // Search in description
+	MinAmount  *int64  // Minimum amount in cents
+	MaxAmount  *int64  // Maximum amount in cents
 }

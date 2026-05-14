@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/mapper"
@@ -67,6 +67,36 @@ func (r *divisionRepository) List(ctx context.Context, orgID uuid.UUID) ([]entit
 		divisions[i] = *mapper.DivisionToEntity(&m)
 	}
 	return divisions, nil
+}
+
+func (r *divisionRepository) ListPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.Division, int, error) {
+	// Get total count
+	var totalCount int64
+	err := dbFor(ctx, r.db).
+		Model(&models.Division{}).
+		Where("organization_id = ?", orgID).
+		Count(&totalCount).Error
+	if err != nil {
+		return nil, 0, domainerrors.Internal("count divisions", err)
+	}
+
+	// Get paginated results
+	var models []models.Division
+	err = dbFor(ctx, r.db).
+		Where("organization_id = ?", orgID).
+		Order("created_at DESC").
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
+		Find(&models).Error
+	if err != nil {
+		return nil, 0, domainerrors.Internal("list divisions", err)
+	}
+
+	divisions := make([]entity.Division, len(models))
+	for i, m := range models {
+		divisions[i] = *mapper.DivisionToEntity(&m)
+	}
+	return divisions, int(totalCount), nil
 }
 
 func (r *divisionRepository) Update(ctx context.Context, orgID uuid.UUID, division *entity.Division) error {
@@ -177,6 +207,44 @@ func (r *divisionRepository) GetMembers(ctx context.Context, orgID, divisionID u
 	return result, nil
 }
 
+func (r *divisionRepository) GetMembersPaginated(ctx context.Context, orgID, divisionID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithRole, int, error) {
+	// Get total count
+	var totalCount int64
+	err := dbFor(ctx, r.db).
+		Model(&models.DivisionMember{}).
+		Where("division_id = ?", divisionID).
+		Count(&totalCount).Error
+	if err != nil {
+		return nil, 0, domainerrors.Internal("count division members", err)
+	}
+
+	// Get paginated results
+	var members []models.DivisionMember
+	err = dbFor(ctx, r.db).
+		Preload("User").
+		Where("division_id = ?", divisionID).
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
+		Find(&members).Error
+	if err != nil {
+		return nil, 0, domainerrors.Internal("get division members", err)
+	}
+
+	result := make([]entity.UserWithRole, len(members))
+	for i, m := range members {
+		result[i] = entity.UserWithRole{
+			User: entity.User{
+				ID:       m.User.ID,
+				Email:    m.User.Email,
+				FullName: m.User.FullName,
+			},
+			DivisionRole: m.DivisionRole,
+			JoinedAt:     m.JoinedAt,
+		}
+	}
+	return result, int(totalCount), nil
+}
+
 func (r *divisionRepository) UpdateMemberRole(ctx context.Context, orgID, divisionID, userID uuid.UUID, role string) error {
 	result := dbFor(ctx, r.db).
 		Model(&models.DivisionMember{}).
@@ -214,7 +282,6 @@ func (r *divisionRepository) CountMembers(ctx context.Context, divisionID uuid.U
 	}
 	return int(count), nil
 }
-
 
 // ============================================================================
 // DivisionMemberRepository implementation

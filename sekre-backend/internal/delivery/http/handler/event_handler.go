@@ -8,9 +8,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/username/sekre-backend/internal/application/event"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	"github.com/username/sekre-backend/internal/domain/types"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
-	"github.com/username/sekre-backend/internal/middleware"
+	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
@@ -95,25 +97,31 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse optional division_id
+	var divisionID *uuid.UUID
 	divID := r.URL.Query().Get("division_id")
-	if divID == "" {
-		response.HandleError(w, r, domainerrors.InvalidInput("division_id", "is required"))
-		return
+	if divID != "" {
+		parsed, err := uuid.Parse(divID)
+		if err != nil {
+			response.HandleError(w, r, domainerrors.InvalidInput("division_id", "invalid UUID"))
+			return
+		}
+		divisionID = &parsed
 	}
 
-	divisionID, err := uuid.Parse(divID)
-	if err != nil {
-		response.HandleError(w, r, domainerrors.InvalidInput("division_id", "invalid UUID"))
-		return
-	}
+	// Parse pagination params
+	paginationParams := pagination.ParseParams(r)
+	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
 
-	events, err := h.usecase.List(r.Context(), orgID, divisionID)
+	events, total, err := h.usecase.ListPaginated(r.Context(), orgID, divisionID, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return
 	}
 
-	response.Success(w, http.StatusOK, "events retrieved", events)
+	// Create paginated response
+	paginatedResponse := pagination.NewResponse(events, paginationParams, total)
+	response.Success(w, http.StatusOK, "events retrieved", paginatedResponse)
 }
 
 func (h *EventHandler) GetByID(w http.ResponseWriter, r *http.Request) {

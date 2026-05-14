@@ -8,6 +8,8 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	entity "github.com/username/sekre-backend/internal/domain/entity"
 
+	types "github.com/username/sekre-backend/internal/domain/types"
+
 	uuid "github.com/google/uuid"
 )
 
@@ -354,6 +356,74 @@ func (_c *TaskRepository_ListFiltered_Call) Return(_a0 []entity.TaskWithAssignee
 }
 
 func (_c *TaskRepository_ListFiltered_Call) RunAndReturn(run func(context.Context, uuid.UUID, entity.TaskFilters) ([]entity.TaskWithAssignee, error)) *TaskRepository_ListFiltered_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListFilteredPaginated provides a mock function with given fields: ctx, orgID, filters, pagination
+func (_m *TaskRepository) ListFilteredPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams) ([]entity.TaskWithAssignee, int, error) {
+	ret := _m.Called(ctx, orgID, filters, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListFilteredPaginated")
+	}
+
+	var r0 []entity.TaskWithAssignee
+	var r1 int
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, entity.TaskFilters, types.PaginationParams) ([]entity.TaskWithAssignee, int, error)); ok {
+		return rf(ctx, orgID, filters, pagination)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, entity.TaskFilters, types.PaginationParams) []entity.TaskWithAssignee); ok {
+		r0 = rf(ctx, orgID, filters, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.TaskWithAssignee)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, entity.TaskFilters, types.PaginationParams) int); ok {
+		r1 = rf(ctx, orgID, filters, pagination)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID, entity.TaskFilters, types.PaginationParams) error); ok {
+		r2 = rf(ctx, orgID, filters, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// TaskRepository_ListFilteredPaginated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListFilteredPaginated'
+type TaskRepository_ListFilteredPaginated_Call struct {
+	*mock.Call
+}
+
+// ListFilteredPaginated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - filters entity.TaskFilters
+//   - pagination types.PaginationParams
+func (_e *TaskRepository_Expecter) ListFilteredPaginated(ctx interface{}, orgID interface{}, filters interface{}, pagination interface{}) *TaskRepository_ListFilteredPaginated_Call {
+	return &TaskRepository_ListFilteredPaginated_Call{Call: _e.mock.On("ListFilteredPaginated", ctx, orgID, filters, pagination)}
+}
+
+func (_c *TaskRepository_ListFilteredPaginated_Call) Run(run func(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams)) *TaskRepository_ListFilteredPaginated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(entity.TaskFilters), args[3].(types.PaginationParams))
+	})
+	return _c
+}
+
+func (_c *TaskRepository_ListFilteredPaginated_Call) Return(_a0 []entity.TaskWithAssignee, _a1 int, _a2 error) *TaskRepository_ListFilteredPaginated_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *TaskRepository_ListFilteredPaginated_Call) RunAndReturn(run func(context.Context, uuid.UUID, entity.TaskFilters, types.PaginationParams) ([]entity.TaskWithAssignee, int, error)) *TaskRepository_ListFilteredPaginated_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/username/sekre-backend/internal/domain/entity"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/types"
+	"github.com/username/sekre-backend/pkg/pagination"
 	"github.com/username/sekre-backend/pkg/response"
 )
 
@@ -84,13 +85,19 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		filters.Status = &statusStr
 	}
 
-	tasks, err := h.usecase.List(r.Context(), orgID, filters)
+	// Parse pagination params
+	paginationParams := pagination.ParseParams(r)
+	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
+
+	tasks, total, err := h.usecase.ListPaginated(r.Context(), orgID, filters, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return
 	}
 
-	response.Success(w, http.StatusOK, "tasks retrieved", tasks)
+	// Create paginated response
+	paginatedResponse := pagination.NewResponse(tasks, paginationParams, total)
+	response.Success(w, http.StatusOK, "tasks retrieved", paginatedResponse)
 }
 
 func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {

@@ -14,12 +14,14 @@ type DivisionRepository interface {
 	GetByID(ctx context.Context, orgID, divisionID uuid.UUID) (*entity.Division, error)
 	GetByNames(ctx context.Context, orgID uuid.UUID, names []string) ([]entity.Division, error)
 	List(ctx context.Context, orgID uuid.UUID) ([]entity.Division, error)
+	ListPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.Division, int, error)
 	Update(ctx context.Context, orgID uuid.UUID, division *entity.Division) error
 	Delete(ctx context.Context, orgID, divisionID uuid.UUID) error
 	CountByOrganization(ctx context.Context, orgID uuid.UUID) (int, error)
 	AddMember(ctx context.Context, divisionID, userID uuid.UUID, role types.DivisionRole) error
 	RemoveMember(ctx context.Context, orgID, divisionID, userID uuid.UUID) error
 	GetMembers(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.UserWithRole, error)
+	GetMembersPaginated(ctx context.Context, orgID, divisionID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithRole, int, error)
 	UpdateMemberRole(ctx context.Context, orgID, divisionID, userID uuid.UUID, role string) error
 	CountHeads(ctx context.Context, divisionID uuid.UUID) (int, error)
 	CountMembers(ctx context.Context, divisionID uuid.UUID) (int, error)

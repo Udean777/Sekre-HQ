@@ -8,6 +8,7 @@ import (
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
+	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/mapper"
 	"github.com/username/sekre-backend/internal/models"
 	"gorm.io/gorm"
@@ -112,6 +113,61 @@ func (r *taskRepository) ListFiltered(ctx context.Context, orgID uuid.UUID, filt
 		}
 	}
 	return tasks, nil
+}
+
+func (r *taskRepository) ListFilteredPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams) ([]entity.TaskWithAssignee, int, error) {
+	// Build base query
+	baseQuery := dbFor(ctx, r.db).
+		Model(&models.Task{}).
+		Where("organization_id = ?", orgID)
+
+	if filters.DivisionID != nil {
+		baseQuery = baseQuery.Where("division_id = ?", *filters.DivisionID)
+	}
+	if filters.AssigneeID != nil {
+		baseQuery = baseQuery.Where("assignee_id = ?", *filters.AssigneeID)
+	}
+	if filters.Status != nil {
+		baseQuery = baseQuery.Where("status = ?", *filters.Status)
+	}
+
+	// Get total count
+	var totalCount int64
+	if err := baseQuery.Count(&totalCount).Error; err != nil {
+		return nil, 0, domainerrors.Internal("count tasks", err)
+	}
+
+	// Get paginated results
+	query := dbFor(ctx, r.db).
+		Preload("Assignee").
+		Where("organization_id = ?", orgID)
+
+	if filters.DivisionID != nil {
+		query = query.Where("division_id = ?", *filters.DivisionID)
+	}
+	if filters.AssigneeID != nil {
+		query = query.Where("assignee_id = ?", *filters.AssigneeID)
+	}
+	if filters.Status != nil {
+		query = query.Where("status = ?", *filters.Status)
+	}
+
+	var rows []models.Task
+	if err := query.Order("created_at DESC").
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
+		Find(&rows).Error; err != nil {
+		return nil, 0, domainerrors.Internal("list tasks", err)
+	}
+
+	tasks := make([]entity.TaskWithAssignee, len(rows))
+	for i := range rows {
+		tasks[i] = entity.TaskWithAssignee{
+			Task:     *mapper.TaskToEntity(&rows[i]),
+			Assignee: mapper.UserToEntity(rows[i].Assignee),
+		}
+	}
+	return tasks, int(totalCount), nil
 }
 
 func (r *taskRepository) Update(ctx context.Context, orgID uuid.UUID, task *entity.Task) error {

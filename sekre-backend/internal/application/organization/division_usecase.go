@@ -35,6 +35,7 @@ type DivisionUsecase interface {
 	Create(ctx context.Context, orgID uuid.UUID, req *CreateDivisionRequest) (*entity.Division, error)
 	GetByID(ctx context.Context, orgID, id uuid.UUID) (*entity.DivisionWithMembers, error)
 	List(ctx context.Context, orgID uuid.UUID) ([]entity.Division, error)
+	ListPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.Division, int, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, req *UpdateDivisionRequest) (*entity.Division, error)
 	Delete(ctx context.Context, orgID, id uuid.UUID) error
 
@@ -42,6 +43,7 @@ type DivisionUsecase interface {
 	RemoveMember(ctx context.Context, orgID, divisionID, userID uuid.UUID) error
 	UpdateMemberRole(ctx context.Context, orgID, divisionID, userID uuid.UUID, role string) error
 	GetMembers(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.UserWithRole, error)
+	GetMembersPaginated(ctx context.Context, orgID, divisionID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithRole, int, error)
 }
 
 type divisionUsecase struct {
@@ -123,6 +125,10 @@ func (u *divisionUsecase) GetByID(ctx context.Context, orgID, id uuid.UUID) (*en
 
 func (u *divisionUsecase) List(ctx context.Context, orgID uuid.UUID) ([]entity.Division, error) {
 	return u.repo.List(ctx, orgID)
+}
+
+func (u *divisionUsecase) ListPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.Division, int, error) {
+	return u.repo.ListPaginated(ctx, orgID, pagination)
 }
 
 func (u *divisionUsecase) Update(ctx context.Context, orgID, id uuid.UUID, req *UpdateDivisionRequest) (*entity.Division, error) {
@@ -289,6 +295,13 @@ func (u *divisionUsecase) GetMembers(ctx context.Context, orgID, divisionID uuid
 		return nil, err
 	}
 	return u.repo.GetMembers(ctx, orgID, divisionID)
+}
+
+func (u *divisionUsecase) GetMembersPaginated(ctx context.Context, orgID, divisionID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithRole, int, error) {
+	if err := u.ensureDivisionInOrg(ctx, orgID, divisionID); err != nil {
+		return nil, 0, err
+	}
+	return u.repo.GetMembersPaginated(ctx, orgID, divisionID, pagination)
 }
 
 func (u *divisionUsecase) validateCreateRequest(req *CreateDivisionRequest) error {

@@ -11,15 +11,15 @@ import (
 	"github.com/username/sekre-backend/internal/domain/types"
 )
 
-// FinanceUsecase defines business operations for finance transactions.
-// Operates on entity.Transaction directly.
 type FinanceUsecase interface {
 	CreateTransaction(ctx context.Context, tx *entity.Transaction) error
 	GetByID(ctx context.Context, orgID, id uuid.UUID) (*entity.Transaction, error)
 	List(ctx context.Context, orgID uuid.UUID, filters entity.TransactionFilters) ([]entity.Transaction, error)
+	ListPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TransactionFilters, pagination types.PaginationParams) ([]entity.Transaction, int, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, tx *entity.Transaction) error
 	Delete(ctx context.Context, orgID, id uuid.UUID) error
 	GetSummary(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID) (*entity.FinanceSummary, error)
+	GetSummaryWithDateRange(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, startDate, endDate *time.Time) (*entity.FinanceSummary, error)
 }
 
 type financeUsecase struct {
@@ -63,6 +63,10 @@ func (u *financeUsecase) List(ctx context.Context, orgID uuid.UUID, filters enti
 	return u.repo.ListFiltered(ctx, orgID, filters)
 }
 
+func (u *financeUsecase) ListPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TransactionFilters, pagination types.PaginationParams) ([]entity.Transaction, int, error) {
+	return u.repo.ListFilteredPaginated(ctx, orgID, filters, pagination)
+}
+
 func (u *financeUsecase) Update(ctx context.Context, orgID, id uuid.UUID, tx *entity.Transaction) error {
 	if !tx.Amount.IsPositive() {
 		return domainerrors.ErrInvalidAmount
@@ -88,4 +92,8 @@ func (u *financeUsecase) Delete(ctx context.Context, orgID, id uuid.UUID) error 
 
 func (u *financeUsecase) GetSummary(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID) (*entity.FinanceSummary, error) {
 	return u.repo.GetSummary(ctx, orgID, divisionID)
+}
+
+func (u *financeUsecase) GetSummaryWithDateRange(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, startDate, endDate *time.Time) (*entity.FinanceSummary, error) {
+	return u.repo.GetSummaryWithDateRange(ctx, orgID, divisionID, startDate, endDate)
 }

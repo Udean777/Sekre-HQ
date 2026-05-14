@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	"github.com/username/sekre-backend/internal/domain/types"
 )
 
 // TaskRepository handles task persistence
@@ -17,6 +18,7 @@ type TaskRepository interface {
 	// optional criteria. Use this instead of ListWithAssignee when callers
 	// need richer filtering than division scope.
 	ListFiltered(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters) ([]entity.TaskWithAssignee, error)
+	ListFilteredPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams) ([]entity.TaskWithAssignee, int, error)
 	Update(ctx context.Context, orgID uuid.UUID, task *entity.Task) error
 	UpdateStatus(ctx context.Context, orgID, taskID uuid.UUID, status string) error
 	Delete(ctx context.Context, orgID, taskID uuid.UUID) error

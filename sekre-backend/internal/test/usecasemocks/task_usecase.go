@@ -10,6 +10,8 @@ import (
 
 	task "github.com/username/sekre-backend/internal/application/task"
 
+	types "github.com/username/sekre-backend/internal/domain/types"
+
 	uuid "github.com/google/uuid"
 )
 
@@ -250,6 +252,74 @@ func (_c *TaskUsecase_List_Call) Return(_a0 []entity.TaskWithAssignee, _a1 error
 }
 
 func (_c *TaskUsecase_List_Call) RunAndReturn(run func(context.Context, uuid.UUID, entity.TaskFilters) ([]entity.TaskWithAssignee, error)) *TaskUsecase_List_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListPaginated provides a mock function with given fields: ctx, orgID, filters, pagination
+func (_m *TaskUsecase) ListPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams) ([]entity.TaskWithAssignee, int, error) {
+	ret := _m.Called(ctx, orgID, filters, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPaginated")
+	}
+
+	var r0 []entity.TaskWithAssignee
+	var r1 int
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, entity.TaskFilters, types.PaginationParams) ([]entity.TaskWithAssignee, int, error)); ok {
+		return rf(ctx, orgID, filters, pagination)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, entity.TaskFilters, types.PaginationParams) []entity.TaskWithAssignee); ok {
+		r0 = rf(ctx, orgID, filters, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.TaskWithAssignee)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, entity.TaskFilters, types.PaginationParams) int); ok {
+		r1 = rf(ctx, orgID, filters, pagination)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID, entity.TaskFilters, types.PaginationParams) error); ok {
+		r2 = rf(ctx, orgID, filters, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// TaskUsecase_ListPaginated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPaginated'
+type TaskUsecase_ListPaginated_Call struct {
+	*mock.Call
+}
+
+// ListPaginated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - filters entity.TaskFilters
+//   - pagination types.PaginationParams
+func (_e *TaskUsecase_Expecter) ListPaginated(ctx interface{}, orgID interface{}, filters interface{}, pagination interface{}) *TaskUsecase_ListPaginated_Call {
+	return &TaskUsecase_ListPaginated_Call{Call: _e.mock.On("ListPaginated", ctx, orgID, filters, pagination)}
+}
+
+func (_c *TaskUsecase_ListPaginated_Call) Run(run func(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams)) *TaskUsecase_ListPaginated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(entity.TaskFilters), args[3].(types.PaginationParams))
+	})
+	return _c
+}
+
+func (_c *TaskUsecase_ListPaginated_Call) Return(_a0 []entity.TaskWithAssignee, _a1 int, _a2 error) *TaskUsecase_ListPaginated_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *TaskUsecase_ListPaginated_Call) RunAndReturn(run func(context.Context, uuid.UUID, entity.TaskFilters, types.PaginationParams) ([]entity.TaskWithAssignee, int, error)) *TaskUsecase_ListPaginated_Call {
 	_c.Call.Return(run)
 	return _c
 }

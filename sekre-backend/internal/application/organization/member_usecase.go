@@ -4,14 +4,15 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
 )
 
 type MemberUsecase interface {
 	ListMembers(ctx context.Context, orgID uuid.UUID) ([]entity.UserWithOrgRole, error)
+	ListMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
 	UpdateMemberRole(ctx context.Context, orgID, userID uuid.UUID, role string) error
 	RemoveMember(ctx context.Context, orgID, userID uuid.UUID) error
 }
@@ -36,6 +37,18 @@ func (u *memberUsecase) ListMembers(ctx context.Context, orgID uuid.UUID) ([]ent
 		return []entity.UserWithOrgRole{}, nil
 	}
 	return members, nil
+}
+
+func (u *memberUsecase) ListMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+	members, total, err := u.memberRepo.GetOrganizationMembersPaginated(ctx, orgID, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if members == nil {
+		return []entity.UserWithOrgRole{}, 0, nil
+	}
+	return members, total, nil
 }
 
 func (u *memberUsecase) UpdateMemberRole(ctx context.Context, orgID, userID uuid.UUID, role string) error {

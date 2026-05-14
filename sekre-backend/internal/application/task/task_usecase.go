@@ -1,11 +1,12 @@
 package task
 
 import (
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"context"
 	"fmt"
 	"strings"
 	"time"
+
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 
 	"github.com/google/uuid"
 	"github.com/username/sekre-backend/internal/domain/entity"
@@ -33,6 +34,7 @@ type TaskUsecase interface {
 	Create(ctx context.Context, orgID uuid.UUID, req *CreateTaskRequest) (*entity.TaskWithAssignee, error)
 	GetByID(ctx context.Context, orgID, id uuid.UUID) (*entity.TaskWithAssignee, error)
 	List(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters) ([]entity.TaskWithAssignee, error)
+	ListPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams) ([]entity.TaskWithAssignee, int, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, req *UpdateTaskRequest) (*entity.TaskWithAssignee, error)
 	UpdateStatus(ctx context.Context, orgID, id uuid.UUID, status string) error
 	Delete(ctx context.Context, orgID, id uuid.UUID) error
@@ -83,6 +85,10 @@ func (u *taskUsecase) GetByID(ctx context.Context, orgID, id uuid.UUID) (*entity
 
 func (u *taskUsecase) List(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters) ([]entity.TaskWithAssignee, error) {
 	return u.repo.ListFiltered(ctx, orgID, filters)
+}
+
+func (u *taskUsecase) ListPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams) ([]entity.TaskWithAssignee, int, error) {
+	return u.repo.ListFilteredPaginated(ctx, orgID, filters, pagination)
 }
 
 func (u *taskUsecase) Update(ctx context.Context, orgID, id uuid.UUID, req *UpdateTaskRequest) (*entity.TaskWithAssignee, error) {

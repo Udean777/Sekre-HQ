@@ -1,20 +1,23 @@
 package organization
 
 import (
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"context"
 	"errors"
 	"strings"
+
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 
 	"github.com/google/uuid"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/service"
+	"github.com/username/sekre-backend/internal/domain/types"
 )
 
 type UserUsecase interface {
 	SearchUsers(ctx context.Context, orgID uuid.UUID, query string) ([]entity.UserBasic, error)
 	GetOrganizationUsers(ctx context.Context, orgID uuid.UUID) ([]entity.UserWithOrgRole, error)
+	GetOrganizationUsersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
 	UpdateProfile(ctx context.Context, userID uuid.UUID, fullName, email string) (*entity.User, error)
 	ChangePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword string) error
 }
@@ -59,6 +62,19 @@ func (u *userUsecase) GetOrganizationUsers(ctx context.Context, orgID uuid.UUID)
 	}
 
 	return users, nil
+}
+
+func (u *userUsecase) GetOrganizationUsersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+	users, total, err := u.userRepo.GetUsersByOrganizationPaginated(ctx, orgID, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if users == nil {
+		return []entity.UserWithOrgRole{}, 0, nil
+	}
+
+	return users, total, nil
 }
 
 // UpdateProfile updates user's profile information
