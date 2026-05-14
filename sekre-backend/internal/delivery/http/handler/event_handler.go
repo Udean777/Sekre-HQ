@@ -185,9 +185,20 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse division_id from request (allow updating division)
+	divisionID := existing.DivisionID
+	if req.DivisionID != "" {
+		parsed, err := uuid.Parse(req.DivisionID)
+		if err != nil {
+			response.HandleError(w, r, domainerrors.InvalidInput("division_id", "invalid UUID"))
+			return
+		}
+		divisionID = parsed
+	}
+
 	ev := &entity.Event{
 		OrganizationID: orgID,
-		DivisionID:     existing.DivisionID,
+		DivisionID:     divisionID,
 		Title:          req.Title,
 		Description:    req.Description,
 		StartTime:      startTime,

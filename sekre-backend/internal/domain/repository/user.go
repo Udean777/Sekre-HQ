@@ -67,6 +67,7 @@ type MemberRepository interface {
 	AddUserToOrganization(ctx context.Context, orgID, userID uuid.UUID, role types.Role) error
 	AddMemberToDivision(ctx context.Context, divisionID, userID uuid.UUID, divisionRole types.DivisionRole) error
 	GetDivisionByName(ctx context.Context, orgID uuid.UUID, name string) (*entity.Division, error)
+	EmailExistsInOrganization(ctx context.Context, orgID uuid.UUID, email string) (bool, error)
 
 	// Audit log
 	CreateAuditLog(ctx context.Context, log *entity.AuditLog) error

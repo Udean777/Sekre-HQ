@@ -107,7 +107,7 @@ func main() {
 	memberUsecaseInst := orgApp.NewMemberUsecase(memberRepo)
 	memberCreationUsecaseInst := orgApp.NewMemberCreationUsecase(memberRepo, divisionRepo, txRunner, passwordHasher)
 	organizationUsecaseInst := orgApp.NewOrganizationUsecase(orgRepo)
-	taskUsecaseInst := taskApp.NewTaskUsecase(taskRepo)
+	taskUsecaseInst := taskApp.NewTaskUsecase(taskRepo, divisionRepo)
 	eventUsecaseInst := eventApp.NewEventUsecase(eventRepo)
 	financeUsecaseInst := financeApp.NewFinanceUsecase(financeRepo)
 

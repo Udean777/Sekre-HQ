@@ -195,6 +195,19 @@ func (r *memberRepository) GetDivisionByName(ctx context.Context, orgID uuid.UUI
 	return mapper.DivisionToEntity(&model), nil
 }
 
+func (r *memberRepository) EmailExistsInOrganization(ctx context.Context, orgID uuid.UUID, email string) (bool, error) {
+	var count int64
+	err := dbFor(ctx, r.db).
+		Table("users u").
+		Joins("INNER JOIN user_organizations uo ON u.id = uo.user_id").
+		Where("uo.organization_id = ? AND LOWER(u.email) = LOWER(?)", orgID, email).
+		Count(&count).Error
+	if err != nil {
+		return false, domainerrors.Internal("check email in organization", err)
+	}
+	return count > 0, nil
+}
+
 // CreateAuditLog creates an audit log entry.
 func (r *memberRepository) CreateAuditLog(ctx context.Context, log *entity.AuditLog) error {
 	model := mapper.AuditLogToModel(log)

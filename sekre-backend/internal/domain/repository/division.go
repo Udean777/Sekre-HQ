@@ -25,6 +25,7 @@ type DivisionRepository interface {
 	UpdateMemberRole(ctx context.Context, orgID, divisionID, userID uuid.UUID, role string) error
 	CountHeads(ctx context.Context, divisionID uuid.UUID) (int, error)
 	CountMembers(ctx context.Context, divisionID uuid.UUID) (int, error)
+	IsUserMemberOfDivision(ctx context.Context, orgID, divisionID, userID uuid.UUID) (bool, error)
 }
 
 // DivisionMemberRepository handles division membership

@@ -218,6 +218,64 @@ func (_c *MemberRepository_CreateUser_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// EmailExistsInOrganization provides a mock function with given fields: ctx, orgID, email
+func (_m *MemberRepository) EmailExistsInOrganization(ctx context.Context, orgID uuid.UUID, email string) (bool, error) {
+	ret := _m.Called(ctx, orgID, email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EmailExistsInOrganization")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string) (bool, error)); ok {
+		return rf(ctx, orgID, email)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string) bool); ok {
+		r0 = rf(ctx, orgID, email)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, string) error); ok {
+		r1 = rf(ctx, orgID, email)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MemberRepository_EmailExistsInOrganization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EmailExistsInOrganization'
+type MemberRepository_EmailExistsInOrganization_Call struct {
+	*mock.Call
+}
+
+// EmailExistsInOrganization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - email string
+func (_e *MemberRepository_Expecter) EmailExistsInOrganization(ctx interface{}, orgID interface{}, email interface{}) *MemberRepository_EmailExistsInOrganization_Call {
+	return &MemberRepository_EmailExistsInOrganization_Call{Call: _e.mock.On("EmailExistsInOrganization", ctx, orgID, email)}
+}
+
+func (_c *MemberRepository_EmailExistsInOrganization_Call) Run(run func(ctx context.Context, orgID uuid.UUID, email string)) *MemberRepository_EmailExistsInOrganization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MemberRepository_EmailExistsInOrganization_Call) Return(_a0 bool, _a1 error) *MemberRepository_EmailExistsInOrganization_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MemberRepository_EmailExistsInOrganization_Call) RunAndReturn(run func(context.Context, uuid.UUID, string) (bool, error)) *MemberRepository_EmailExistsInOrganization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetDivisionByName provides a mock function with given fields: ctx, orgID, name
 func (_m *MemberRepository) GetDivisionByName(ctx context.Context, orgID uuid.UUID, name string) (*entity.Division, error) {
 	ret := _m.Called(ctx, orgID, name)

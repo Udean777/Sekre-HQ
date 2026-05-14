@@ -19,17 +19,16 @@ func TestTaskUsecase_Create_Success(t *testing.T) {
 
 	// Setup
 	repo := mocks.NewTaskRepository(t)
-	uc := NewTaskUsecase(repo)
+	uc := NewTaskUsecase(repo, nil)
 
 	ctx := context.Background()
 	orgID := uuid.New()
 	divisionID := uuid.New()
-	assigneeID := uuid.New()
 	dueDate := time.Now().Add(24 * time.Hour)
 
 	req := &CreateTaskRequest{
 		DivisionID:  divisionID,
-		AssigneeID:  &assigneeID,
+		AssigneeID:  nil,
 		Title:       "Test Task",
 		Description: "Test Description",
 		DueDate:     &dueDate,
@@ -71,7 +70,7 @@ func TestTaskUsecase_Create_EmptyTitle(t *testing.T) {
 	t.Parallel()
 
 	// Setup
-	uc := NewTaskUsecase(nil)
+	uc := NewTaskUsecase(nil, nil)
 
 	req := &CreateTaskRequest{
 		DivisionID:  uuid.New(),
@@ -93,7 +92,7 @@ func TestTaskUsecase_GetByID_Success(t *testing.T) {
 
 	// Setup
 	repo := mocks.NewTaskRepository(t)
-	uc := NewTaskUsecase(repo)
+	uc := NewTaskUsecase(repo, nil)
 
 	ctx := context.Background()
 	orgID := uuid.New()
@@ -126,7 +125,7 @@ func TestTaskUsecase_GetByID_NotFound(t *testing.T) {
 
 	// Setup
 	repo := mocks.NewTaskRepository(t)
-	uc := NewTaskUsecase(repo)
+	uc := NewTaskUsecase(repo, nil)
 
 	ctx := context.Background()
 	orgID := uuid.New()
@@ -151,7 +150,7 @@ func TestTaskUsecase_UpdateStatus_Success(t *testing.T) {
 
 	// Setup
 	repo := mocks.NewTaskRepository(t)
-	uc := NewTaskUsecase(repo)
+	uc := NewTaskUsecase(repo, nil)
 
 	ctx := context.Background()
 	orgID := uuid.New()
@@ -173,7 +172,7 @@ func TestTaskUsecase_UpdateStatus_InvalidStatus(t *testing.T) {
 	t.Parallel()
 
 	// Setup
-	uc := NewTaskUsecase(nil)
+	uc := NewTaskUsecase(nil, nil)
 
 	// Execute
 	err := uc.UpdateStatus(context.Background(), uuid.New(), uuid.New(), "INVALID")
@@ -188,7 +187,7 @@ func TestTaskUsecase_Delete_Success(t *testing.T) {
 
 	// Setup
 	repo := mocks.NewTaskRepository(t)
-	uc := NewTaskUsecase(repo)
+	uc := NewTaskUsecase(repo, nil)
 
 	ctx := context.Background()
 	orgID := uuid.New()
@@ -211,7 +210,7 @@ func TestTaskUsecase_List_Success(t *testing.T) {
 
 	// Setup
 	repo := mocks.NewTaskRepository(t)
-	uc := NewTaskUsecase(repo)
+	uc := NewTaskUsecase(repo, nil)
 
 	ctx := context.Background()
 	orgID := uuid.New()

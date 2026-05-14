@@ -590,6 +590,65 @@ func (_c *DivisionRepository_GetMembersPaginated_Call) RunAndReturn(run func(con
 	return _c
 }
 
+// IsUserMemberOfDivision provides a mock function with given fields: ctx, orgID, divisionID, userID
+func (_m *DivisionRepository) IsUserMemberOfDivision(ctx context.Context, orgID uuid.UUID, divisionID uuid.UUID, userID uuid.UUID) (bool, error) {
+	ret := _m.Called(ctx, orgID, divisionID, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsUserMemberOfDivision")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (bool, error)); ok {
+		return rf(ctx, orgID, divisionID, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) bool); ok {
+		r0 = rf(ctx, orgID, divisionID, userID)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, orgID, divisionID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DivisionRepository_IsUserMemberOfDivision_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsUserMemberOfDivision'
+type DivisionRepository_IsUserMemberOfDivision_Call struct {
+	*mock.Call
+}
+
+// IsUserMemberOfDivision is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - divisionID uuid.UUID
+//   - userID uuid.UUID
+func (_e *DivisionRepository_Expecter) IsUserMemberOfDivision(ctx interface{}, orgID interface{}, divisionID interface{}, userID interface{}) *DivisionRepository_IsUserMemberOfDivision_Call {
+	return &DivisionRepository_IsUserMemberOfDivision_Call{Call: _e.mock.On("IsUserMemberOfDivision", ctx, orgID, divisionID, userID)}
+}
+
+func (_c *DivisionRepository_IsUserMemberOfDivision_Call) Run(run func(ctx context.Context, orgID uuid.UUID, divisionID uuid.UUID, userID uuid.UUID)) *DivisionRepository_IsUserMemberOfDivision_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *DivisionRepository_IsUserMemberOfDivision_Call) Return(_a0 bool, _a1 error) *DivisionRepository_IsUserMemberOfDivision_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *DivisionRepository_IsUserMemberOfDivision_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (bool, error)) *DivisionRepository_IsUserMemberOfDivision_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // List provides a mock function with given fields: ctx, orgID
 func (_m *DivisionRepository) List(ctx context.Context, orgID uuid.UUID) ([]entity.Division, error) {
 	ret := _m.Called(ctx, orgID)

@@ -68,6 +68,14 @@ func (u *financeUsecase) ListPaginated(ctx context.Context, orgID uuid.UUID, fil
 }
 
 func (u *financeUsecase) Update(ctx context.Context, orgID, id uuid.UUID, tx *entity.Transaction) error {
+	existing, err := u.repo.GetByID(ctx, orgID, id)
+	if err != nil {
+		return err
+	}
+	if existing.Status == types.TransactionStatusApproved || existing.Status == types.TransactionStatusRejected {
+		return domainerrors.Forbidden("update", "transaction in terminal status")
+	}
+
 	if !tx.Amount.IsPositive() {
 		return domainerrors.ErrInvalidAmount
 	}
@@ -79,6 +87,12 @@ func (u *financeUsecase) Update(ctx context.Context, orgID, id uuid.UUID, tx *en
 	}
 	if err := tx.Type.Validate(); err != nil {
 		return err
+	}
+	if err := tx.Status.Validate(); err != nil {
+		return domainerrors.InvalidInput("status", err.Error())
+	}
+	if tx.Status != types.TransactionStatusPending && tx.Status != types.TransactionStatusApproved && tx.Status != types.TransactionStatusRejected {
+		return domainerrors.InvalidInput("status", "invalid status transition")
 	}
 
 	tx.ID = id

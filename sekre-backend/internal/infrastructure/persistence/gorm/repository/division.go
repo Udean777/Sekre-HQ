@@ -283,6 +283,19 @@ func (r *divisionRepository) CountMembers(ctx context.Context, divisionID uuid.U
 	return int(count), nil
 }
 
+func (r *divisionRepository) IsUserMemberOfDivision(ctx context.Context, orgID, divisionID, userID uuid.UUID) (bool, error) {
+	var count int64
+	err := dbFor(ctx, r.db).
+		Table("division_members dm").
+		Joins("JOIN divisions d ON d.id = dm.division_id").
+		Where("dm.division_id = ? AND dm.user_id = ? AND d.organization_id = ?", divisionID, userID, orgID).
+		Count(&count).Error
+	if err != nil {
+		return false, domainerrors.Internal("check division membership", err)
+	}
+	return count > 0, nil
+}
+
 // ============================================================================
 // DivisionMemberRepository implementation
 // ============================================================================

@@ -5,15 +5,11 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/username/sekre-backend/internal/domain/constants"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
-)
-
-const (
-	MaxDivisionsFree = 7
-	MaxMembersPerDiv = 15
 )
 
 type CreateDivisionRequest struct {
@@ -87,7 +83,7 @@ func (u *divisionUsecase) Create(ctx context.Context, orgID uuid.UUID, req *Crea
 	if err != nil {
 		return nil, domainerrors.Internal("count divisions", err)
 	}
-	if count >= MaxDivisionsFree {
+	if count >= constants.MaxDivisionsFreePlan {
 		return nil, domainerrors.ErrDivisionLimitReached
 	}
 
@@ -200,7 +196,7 @@ func (u *divisionUsecase) AddMember(ctx context.Context, orgID, divisionID uuid.
 	if err != nil {
 		return domainerrors.Internal("count members", err)
 	}
-	if memberCount >= MaxMembersPerDiv {
+	if memberCount >= constants.MaxMembersPerDivision {
 		return domainerrors.ErrDivisionMemberLimitReached
 	}
 

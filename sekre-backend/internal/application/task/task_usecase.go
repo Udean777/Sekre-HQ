@@ -41,11 +41,12 @@ type TaskUsecase interface {
 }
 
 type taskUsecase struct {
-	repo repository.TaskRepository
+	repo        repository.TaskRepository
+	divisionRepo repository.DivisionRepository
 }
 
-func NewTaskUsecase(repo repository.TaskRepository) TaskUsecase {
-	return &taskUsecase{repo: repo}
+func NewTaskUsecase(repo repository.TaskRepository, divisionRepo repository.DivisionRepository) TaskUsecase {
+	return &taskUsecase{repo: repo, divisionRepo: divisionRepo}
 }
 
 func (u *taskUsecase) Create(ctx context.Context, orgID uuid.UUID, req *CreateTaskRequest) (*entity.TaskWithAssignee, error) {
@@ -62,6 +63,19 @@ func (u *taskUsecase) Create(ctx context.Context, orgID uuid.UUID, req *CreateTa
 		Description:    strings.TrimSpace(req.Description),
 		Status:         types.TaskStatusTodo,
 		DueDate:        req.DueDate,
+	}
+
+	if req.AssigneeID != nil {
+		if u.divisionRepo == nil {
+			return nil, domainerrors.Internal("validate assignee membership", fmt.Errorf("division repository is not configured"))
+		}
+		isMember, err := u.divisionRepo.IsUserMemberOfDivision(ctx, orgID, req.DivisionID, *req.AssigneeID)
+		if err != nil {
+			return nil, err
+		}
+		if !isMember {
+			return nil, domainerrors.InvalidInput("assignee_id", "assignee must be a member of the task division")
+		}
 	}
 
 	if err := u.repo.Create(ctx, orgID, task); err != nil {
@@ -107,6 +121,19 @@ func (u *taskUsecase) Update(ctx context.Context, orgID, id uuid.UUID, req *Upda
 	existing.AssigneeID = req.AssigneeID
 	existing.DueDate = req.DueDate
 	existing.Status = status
+
+	if req.AssigneeID != nil {
+		if u.divisionRepo == nil {
+			return nil, domainerrors.Internal("validate assignee membership", fmt.Errorf("division repository is not configured"))
+		}
+		isMember, err := u.divisionRepo.IsUserMemberOfDivision(ctx, orgID, existing.DivisionID, *req.AssigneeID)
+		if err != nil {
+			return nil, err
+		}
+		if !isMember {
+			return nil, domainerrors.InvalidInput("assignee_id", "assignee must be a member of the task division")
+		}
+	}
 
 	if err := u.repo.Update(ctx, orgID, existing); err != nil {
 		return nil, domainerrors.Internal("update task", err)
