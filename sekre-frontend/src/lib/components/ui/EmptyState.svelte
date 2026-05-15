@@ -1,37 +1,56 @@
 <script lang="ts">
-  import type { Snippet } from "svelte";
+  import type { ComponentType, Snippet } from "svelte";
+  import { Icon, Inbox } from "lucide-svelte";
+  import Button from "./Button.svelte";
 
   interface Props {
     title: string;
     description?: string;
-    action?: Snippet;
+    icon?: ComponentType;
+    actionText?: string;
+    onAction?: () => void;
+    children?: Snippet;
+    class?: string;
   }
 
-  let { title, description, action }: Props = $props();
+  let {
+    title,
+    description,
+    icon = Inbox,
+    actionText,
+    onAction,
+    children,
+    class: className = "",
+  }: Props = $props();
 </script>
 
-<div class="text-center py-12">
-  <svg
-    class="mx-auto h-12 w-12 text-gray-400"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    aria-hidden="true"
-  >
-    <path
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      stroke-width="2"
-      d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-    />
-  </svg>
-  <h3 class="mt-2 text-sm font-medium text-gray-900">{title}</h3>
+<!--
+ * EmptyState Component - Svelte 5 Runes
+ * Empty state placeholder with optional action or custom children
+ -->
+
+<div
+  class="flex flex-col items-center justify-center py-12 px-4 text-center {className}"
+>
+  <Icon this={icon} class="h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" />
+
+  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+    {title}
+  </h3>
+
   {#if description}
-    <p class="mt-1 text-sm text-gray-500">{description}</p>
+    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-sm">
+      {description}
+    </p>
   {/if}
-  {#if action}
-    <div class="mt-6">
-      {@render action()}
+
+  {#if children}
+    <div class="mt-4">
+      {@render children()}
     </div>
+  {:else if actionText && onAction}
+    <Button onclick={onAction}>
+      {actionText}
+    </Button>
   {/if}
 </div>

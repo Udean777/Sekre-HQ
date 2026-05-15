@@ -1,6 +1,10 @@
 <script lang="ts">
-  import { enhance } from "$app/forms";
+  import { enhance, applyAction } from "$app/forms";
   import type { ActionData } from "./$types";
+  import { Button, Card } from "$lib/components/ui";
+  import { FormField, FormError } from "$lib/components/forms";
+  import { validateEmail, validateRequired } from "$lib/utils/validation";
+  import { LogIn } from "lucide-svelte";
 
   interface Props {
     form?: ActionData;
@@ -9,122 +13,142 @@
   let { form }: Props = $props();
 
   let isLoading = $state(false);
+  let email = $state("");
+  let password = $state("");
+  let errors = $state<Record<string, string>>({});
+
+  // Initialize email from form data
+  $effect(() => {
+    if (form?.email) {
+      email = form.email;
+    }
+  });
+
+  function validateForm(): boolean {
+    const newErrors: Record<string, string> = {};
+
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      newErrors.email = emailValidation.error || "Invalid email";
+    }
+
+    const passwordValidation = validateRequired(password);
+    if (!passwordValidation.valid) {
+      newErrors.password = passwordValidation.error || "Password is required";
+    }
+
+    errors = newErrors;
+    return Object.keys(newErrors).length === 0;
+  }
+
+  function handleSubmit(e: SubmitEvent) {
+    console.log('[Form Submit] Client values:', { email, password: password ? '***' : '(empty)' });
+    
+    if (!validateForm()) {
+      e.preventDefault();
+      return;
+    }
+    isLoading = true;
+  }
 </script>
 
 <svelte:head>
   <title>Login - Sekre</title>
 </svelte:head>
 
-<div
-  class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
->
+<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
   <div class="max-w-md w-full space-y-8">
-    <div>
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <div class="text-center">
+      <div class="flex justify-center mb-4">
+        <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+          <LogIn class="w-6 h-6 text-white" />
+        </div>
+      </div>
+      <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white">
         Sign in to your organization
       </h2>
-      <p class="mt-2 text-center text-sm text-gray-600">
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
         Or
-        <a
-          href="/register"
-          class="font-medium text-blue-600 hover:text-blue-500"
-        >
+        <a href="/register" class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
           create a new organization
         </a>
       </p>
     </div>
 
-    <form
-      method="POST"
-      class="mt-8 space-y-6"
-      use:enhance={() => {
-        isLoading = true;
-        return async ({ update }) => {
-          await update();
-          isLoading = false;
-        };
-      }}
-    >
-      {#if form?.error}
-        <div class="rounded-md bg-red-50 p-4">
-          <div class="flex">
-            <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">
-                {form.error}
-              </h3>
-            </div>
-          </div>
-        </div>
-      {/if}
+    <Card class="p-8">
+      <form
+        method="POST"
+        class="space-y-6"
+        onsubmit={handleSubmit}
+        use:enhance={({ formData }) => {
+          // Manually set form data from state to ensure it's sent
+          formData.set('email', email);
+          formData.set('password', password);
+          
+          return async ({ result }) => {
+            console.log('[Form Enhance] Result type:', result.type);
+            
+            // Always apply the action result
+            // This handles redirect, failure, and success properly
+            await applyAction(result);
+            
+            // Only reset loading for non-redirect results
+            // For redirects, the page will navigate away
+            if (result.type === 'failure' || result.type === 'error') {
+              isLoading = false;
+            }
+          };
+        }}
+      >
+        {#if form?.error}
+          <FormError message={form.error} />
+        {/if}
 
-      <div class="rounded-md shadow-sm space-y-4">
-        <div>
-          <label for="email" class="block text-sm font-medium text-gray-700">
-            Email address
-          </label>
+        <FormField label="Email address" id="email" required error={errors.email}>
           <input
             id="email"
             name="email"
             type="email"
             autocomplete="email"
-            required
-            value={form?.email ?? ""}
-            class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
             placeholder="you@example.com"
+            bind:value={email}
+            disabled={isLoading}
+            required
+            class="block w-full rounded-lg border px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600"
+            class:border-red-300={errors.email}
+            class:focus:border-red-500={errors.email}
+            class:focus:ring-red-500={errors.email}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label for="password" class="block text-sm font-medium text-gray-700">
-            Password
-          </label>
+        <FormField label="Password" id="password" required error={errors.password}>
           <input
             id="password"
             name="password"
             type="password"
             autocomplete="current-password"
-            required
-            class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
             placeholder="••••••••"
+            bind:value={password}
+            disabled={isLoading}
+            required
+            class="block w-full rounded-lg border px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600"
+            class:border-red-300={errors.password}
+            class:focus:border-red-500={errors.password}
+            class:focus:ring-red-500={errors.password}
           />
-        </div>
-      </div>
+        </FormField>
 
-      <div>
-        <button
+        <Button
           type="submit"
+          variant="primary"
+          size="lg"
+          fullWidth
+          loading={isLoading}
           disabled={isLoading}
-          class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {#if isLoading}
-            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-              <svg
-                class="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            </span>
-            Signing in...
-          {:else}
-            Sign in
-          {/if}
-        </button>
-      </div>
-    </form>
+          {isLoading ? "Signing in..." : "Sign in"}
+        </Button>
+      </form>
+    </Card>
   </div>
 </div>

@@ -80,6 +80,13 @@ type PasswordResetRepository interface {
 	MarkAsUsed(ctx context.Context, resetID uuid.UUID) error
 }
 
+type RefreshSessionRepository interface {
+	Create(ctx context.Context, session *entity.RefreshSession) error
+	GetByJTI(ctx context.Context, jti string) (*entity.RefreshSession, error)
+	RevokeByJTI(ctx context.Context, jti string) error
+	RevokeByUser(ctx context.Context, userID uuid.UUID) error
+}
+
 // AuditLogRepository handles audit trail persistence
 type AuditLogRepository interface {
 	Create(ctx context.Context, log *entity.AuditLog) error

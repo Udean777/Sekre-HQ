@@ -13,6 +13,7 @@ type Claims struct {
 	UserID         uuid.UUID  `json:"user_id"`
 	OrganizationID uuid.UUID  `json:"organization_id"`
 	Role           types.Role `json:"role"`
+	TokenType      string     `json:"token_type"`
 	jwt.RegisteredClaims
 }
 
@@ -41,12 +42,12 @@ func (m *Manager) GenerateTokenPair(userID, organizationID uuid.UUID, role types
 		return nil, fmt.Errorf("invalid role for token: %w", err)
 	}
 
-	accessToken, err := m.generateToken(userID, organizationID, role, m.accessTokenTTL)
+	accessToken, _, err := m.generateToken(userID, organizationID, role, m.accessTokenTTL, "access")
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	refreshToken, err := m.generateToken(userID, organizationID, role, m.refreshTokenTTL)
+	refreshToken, _, err := m.generateToken(userID, organizationID, role, m.refreshTokenTTL, "refresh")
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -57,13 +58,16 @@ func (m *Manager) GenerateTokenPair(userID, organizationID uuid.UUID, role types
 	}, nil
 }
 
-func (m *Manager) generateToken(userID, organizationID uuid.UUID, role types.Role, ttl time.Duration) (string, error) {
+func (m *Manager) generateToken(userID, organizationID uuid.UUID, role types.Role, ttl time.Duration, tokenType string) (string, string, error) {
 	now := time.Now()
+	jti := uuid.NewString()
 	claims := Claims{
 		UserID:         userID,
 		OrganizationID: organizationID,
 		Role:           role,
+		TokenType:      tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        jti,
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
@@ -71,7 +75,18 @@ func (m *Manager) generateToken(userID, organizationID uuid.UUID, role types.Rol
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(m.secret))
+	signed, err := token.SignedString([]byte(m.secret))
+	if err != nil {
+		return "", "", err
+	}
+	return signed, jti, nil
+}
+
+func (m *Manager) GenerateRefreshToken(userID, organizationID uuid.UUID, role types.Role) (string, string, error) {
+	if err := role.Validate(); err != nil {
+		return "", "", fmt.Errorf("invalid role for token: %w", err)
+	}
+	return m.generateToken(userID, organizationID, role, m.refreshTokenTTL, "refresh")
 }
 
 // ValidateToken validates and parses a JWT token

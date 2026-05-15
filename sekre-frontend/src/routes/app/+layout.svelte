@@ -4,7 +4,8 @@
   import AppSidebar from "$lib/components/layout/AppSidebar.svelte";
   import AppHeader from "$lib/components/layout/AppHeader.svelte";
   import MobileNav from "$lib/components/layout/MobileNav.svelte";
-  import UserMenu from "$lib/components/layout/UserMenu.svelte";
+  import Container from "$lib/components/layout/Container.svelte";
+  import { ErrorBoundary } from "$lib/components/ui";
 
   interface Props {
     children: Snippet;
@@ -23,31 +24,27 @@
   }
 </script>
 
-<div class="min-h-screen bg-gray-100">
-  <!-- Mobile navigation -->
-  <MobileNav isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
-
+<div class="flex h-screen bg-gray-50 dark:bg-gray-950">
   <!-- Desktop sidebar -->
-  <div class="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
+  <div class="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
     <AppSidebar />
   </div>
 
-  <!-- Main content -->
-  <div class="lg:pl-64 flex flex-col flex-1">
+  <!-- Mobile navigation -->
+  <MobileNav isOpen={isMobileMenuOpen} onClose={closeMobileMenu} user={data.user} organization={data.organization} />
+
+  <!-- Main content area -->
+  <div class="flex-1 flex flex-col lg:pl-64">
     <!-- Header -->
-    <AppHeader organization={data.organization} onMenuClick={openMobileMenu}>
-      {#snippet userMenu()}
-        <UserMenu user={data.user} />
-      {/snippet}
-    </AppHeader>
+    <AppHeader onMenuClick={openMobileMenu} user={data.user} organization={data.organization} />
 
     <!-- Page content -->
-    <main class="flex-1">
-      <div class="py-6">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <main class="flex-1 overflow-auto">
+      <Container size="xl" centered>
+        <ErrorBoundary>
           {@render children()}
-        </div>
-      </div>
+        </ErrorBoundary>
+      </Container>
     </main>
   </div>
 </div>

@@ -6,6 +6,8 @@
    */
   import type { PageData, ActionData } from "./$types";
   import Button from "$lib/components/ui/Button.svelte";
+  import Card from "$lib/components/ui/Card.svelte";
+  import Select from "$lib/components/ui/Select.svelte";
   import Modal from "$lib/components/ui/Modal.svelte";
   import EmptyState from "$lib/components/ui/EmptyState.svelte";
   import Alert from "$lib/components/ui/Alert.svelte";
@@ -33,9 +35,15 @@
   let isSubmitting = $state(false);
 
   // Filter state
-  let selectedDivision = $derived(data.filters.division_id || "");
-  let selectedType = $derived(data.filters.type || "");
-  let selectedStatus = $derived(data.filters.status || "");
+  let selectedDivision = $state("");
+  let selectedType = $state("");
+  let selectedStatus = $state("");
+
+  $effect(() => {
+    selectedDivision = (data as any).filters?.division_id || "";
+    selectedType = (data as any).filters?.type || "";
+    selectedStatus = (data as any).filters?.status || "";
+  });
 
   // Group transactions
   const groupedTransactions = $derived(
@@ -83,8 +91,8 @@
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Finance</h1>
-      <p class="mt-1 text-sm text-gray-500">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Finance</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         Manage your organization's financial transactions
       </p>
     </div>
@@ -118,10 +126,12 @@
   <!-- Financial Summary -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <!-- Total Income -->
-    <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <Card padding="lg">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm font-medium text-gray-600">Total Income</p>
+          <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Total Income
+          </p>
           <p class="text-2xl font-bold text-green-600 mt-2">
             {formatCurrency(data.summary.total_income)}
           </p>
@@ -142,13 +152,15 @@
           </svg>
         </div>
       </div>
-    </div>
+    </Card>
 
     <!-- Total Expense -->
-    <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <Card padding="lg">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm font-medium text-gray-600">Total Expense</p>
+          <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Total Expense
+          </p>
           <p class="text-2xl font-bold text-red-600 mt-2">
             {formatCurrency(data.summary.total_expense)}
           </p>
@@ -169,13 +181,15 @@
           </svg>
         </div>
       </div>
-    </div>
+    </Card>
 
     <!-- Balance -->
-    <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <Card padding="lg">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm font-medium text-gray-600">Balance</p>
+          <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Balance
+          </p>
           <p
             class="text-2xl font-bold mt-2"
             class:text-green-600={data.summary.balance >= 0}
@@ -206,70 +220,53 @@
           </svg>
         </div>
       </div>
-    </div>
+    </Card>
   </div>
 
   <!-- Filters -->
-  <div class="bg-white border border-gray-200 rounded-lg p-4">
+  <Card padding="md">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <!-- Division filter -->
-      <div>
-        <label
-          for="division-filter"
-          class="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Division
-        </label>
-        <select
-          id="division-filter"
-          bind:value={selectedDivision}
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Divisions</option>
-          {#each data.divisions as division}
-            <option value={division.id}>{division.name}</option>
-          {/each}
-        </select>
-      </div>
+      <Select
+        id="division-filter"
+        name="division-filter"
+        label="Division"
+        bind:value={selectedDivision}
+        options={[
+          { value: "", label: "All Divisions" },
+          ...data.divisions.map((division) => ({
+            value: division.id,
+            label: division.name,
+          })),
+        ]}
+      />
 
       <!-- Type filter -->
-      <div>
-        <label
-          for="type-filter"
-          class="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Type
-        </label>
-        <select
-          id="type-filter"
-          bind:value={selectedType}
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Types</option>
-          <option value="INCOME">Income</option>
-          <option value="EXPENSE">Expense</option>
-        </select>
-      </div>
+      <Select
+        id="type-filter"
+        name="type-filter"
+        label="Type"
+        bind:value={selectedType}
+        options={[
+          { value: "", label: "All Types" },
+          { value: "INCOME", label: "Income" },
+          { value: "EXPENSE", label: "Expense" },
+        ]}
+      />
 
       <!-- Status filter -->
-      <div>
-        <label
-          for="status-filter"
-          class="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Status
-        </label>
-        <select
-          id="status-filter"
-          bind:value={selectedStatus}
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Statuses</option>
-          <option value="PENDING">Pending</option>
-          <option value="APPROVED">Approved</option>
-          <option value="REJECTED">Rejected</option>
-        </select>
-      </div>
+      <Select
+        id="status-filter"
+        name="status-filter"
+        label="Status"
+        bind:value={selectedStatus}
+        options={[
+          { value: "", label: "All Statuses" },
+          { value: "PENDING", label: "Pending" },
+          { value: "APPROVED", label: "Approved" },
+          { value: "REJECTED", label: "Rejected" },
+        ]}
+      />
 
       <!-- Filter actions -->
       <div class="flex items-end gap-2">
@@ -279,7 +276,7 @@
         <Button variant="secondary" onclick={clearFilters}>Clear</Button>
       </div>
     </div>
-  </div>
+  </Card>
 
   <!-- Transactions List -->
   {#if data.transactions.length > 0}
@@ -287,7 +284,7 @@
       <!-- Income Transactions -->
       {#if groupedTransactions.income.length > 0}
         <div>
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Income ({groupedTransactions.income.length})
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -304,7 +301,7 @@
       <!-- Expense Transactions -->
       {#if groupedTransactions.expense.length > 0}
         <div>
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Expense ({groupedTransactions.expense.length})
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -323,11 +320,9 @@
       title="No transactions yet"
       description="Get started by recording your first financial transaction."
     >
-      {#snippet action()}
-        <Button variant="primary" onclick={openCreateModal}
-          >Create Transaction</Button
-        >
-      {/snippet}
+      <Button variant="primary" onclick={openCreateModal}
+        >Create Transaction</Button
+      >
     </EmptyState>
   {/if}
 </div>
@@ -448,7 +443,7 @@
           }
         };
       }}
-      class="mt-4 pt-4 border-t border-gray-200"
+      class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
     >
       <input
         type="hidden"

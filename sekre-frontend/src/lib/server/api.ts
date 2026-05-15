@@ -61,6 +61,14 @@ export class ServerApiClient {
 		console.log('[API Client] GET', endpoint);
 		console.log('[API Client] Response success:', response.success);
 		console.log('[API Client] Response data type:', typeof response.data);
+		
+		// Handle paginated response (backend returns { data: [...], pagination: {...} })
+		if (response.data && typeof response.data === 'object' && 'data' in response.data && 'pagination' in response.data) {
+			console.log('[API Client] Detected paginated response');
+			console.log('[API Client] Items count:', Array.isArray((response.data as any).data) ? (response.data as any).data.length : 0);
+			return (response.data as any).data as T;
+		}
+		
 		console.log('[API Client] Response data:', Array.isArray(response.data) ? `Array(${response.data.length})` : response.data);
 		
 		return response.data as T;

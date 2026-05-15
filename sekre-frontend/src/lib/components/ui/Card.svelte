@@ -1,21 +1,59 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+  import type { Snippet } from "svelte";
 
-	interface Props {
-		title?: string;
-		children: Snippet;
-	}
+  interface Props {
+    padding?: "none" | "sm" | "md" | "lg";
+    hover?: boolean;
+    onclick?: () => void;
+    children?: Snippet;
+    class?: string;
+    title?: string;
+  }
 
-	let { title, children }: Props = $props();
+  let {
+    padding = "md",
+    hover = false,
+    onclick,
+    children,
+    class: className = "",
+    title,
+  }: Props = $props();
+
+  const paddingClasses = {
+    none: "",
+    sm: "p-3",
+    md: "p-4",
+    lg: "p-6",
+  };
+
+  const baseClasses =
+    "bg-white rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700";
+
+  const classes = $derived(
+    `${baseClasses} ${hover ? "hover:shadow-md transition-shadow cursor-pointer" : ""} ${paddingClasses[padding]} ${className}`,
+  );
 </script>
 
-<div class="bg-white shadow rounded-lg overflow-hidden">
-	{#if title}
-		<div class="px-4 py-5 sm:px-6 border-b border-gray-200">
-			<h3 class="text-lg font-medium leading-6 text-gray-900">{title}</h3>
-		</div>
-	{/if}
-	<div class="px-4 py-5 sm:p-6">
-		{@render children()}
-	</div>
-</div>
+{#if onclick}
+  <button type="button" class={classes} {onclick}>
+    {#if title}
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        {title}
+      </h3>
+    {/if}
+    {#if children}
+      {@render children()}
+    {/if}
+  </button>
+{:else}
+  <div class={classes}>
+    {#if title}
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        {title}
+      </h3>
+    {/if}
+    {#if children}
+      {@render children()}
+    {/if}
+  </div>
+{/if}

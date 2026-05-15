@@ -87,6 +87,7 @@ func main() {
 	orgRepo := gormRepo.NewOrganizationRepository(db)
 	userOrgRepo := gormRepo.NewUserOrganizationRepository(db)
 	userProfileRepo := gormRepo.NewUserProfileRepository(db)
+	refreshSessionRepo := gormRepo.NewRefreshSessionRepository(db)
 	memberRepo := gormRepo.NewMemberRepository(db)
 	divisionRepo := gormRepo.NewDivisionRepository(db)
 	taskRepo := gormRepo.NewTaskRepository(db)
@@ -107,6 +108,7 @@ func main() {
 		passwordHasher,
 		tokenGenerator,
 		registrationValidator,
+		refreshSessionRepo,
 	)
 	divisionUsecaseInst := orgApp.NewDivisionUsecase(divisionRepo, taskRepo, eventRepo, financeRepo)
 	userUsecaseInst := orgApp.NewUserUsecase(userProfileRepo, passwordHasher)

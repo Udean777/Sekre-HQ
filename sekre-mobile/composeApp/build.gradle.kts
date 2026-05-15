@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -29,8 +30,22 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            
+            // Ktor Client - Android
+            implementation(libs.ktor.client.okhttp)
+            
+            // Coroutines - Android
+            implementation(libs.kotlinx.coroutines.android)
+            
+            // Koin - Android
+            implementation(libs.koin.android)
+            
+            // Security - Android (for encrypted token storage)
+            implementation(libs.androidx.security.crypto)
         }
+        
         commonMain.dependencies {
+            // Compose
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
@@ -39,7 +54,33 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            
+            // Ktor Client - Core
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.client.auth)
+            
+            // Kotlinx Serialization
+            implementation(libs.kotlinx.serialization.json)
+            
+            // Coroutines
+            implementation(libs.kotlinx.coroutines.core)
+            
+            // DateTime
+            implementation(libs.kotlinx.datetime)
+            
+            // Koin DI
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
         }
+        
+        iosMain.dependencies {
+            // Ktor Client - iOS
+            implementation(libs.ktor.client.darwin)
+        }
+        
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
