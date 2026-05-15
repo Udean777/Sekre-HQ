@@ -20,7 +20,7 @@
 
 <button
   type="button"
-  class="w-full text-left bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+  class="w-full text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
   {onclick}
 >
   <!-- Status badge -->
@@ -29,29 +29,35 @@
       class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
       class:bg-blue-100={viewModel.statusColor === "blue"}
       class:text-blue-800={viewModel.statusColor === "blue"}
+      class:dark:bg-blue-900={viewModel.statusColor === "blue"}
+      class:dark:text-blue-200={viewModel.statusColor === "blue"}
       class:bg-green-100={viewModel.statusColor === "green"}
       class:text-green-800={viewModel.statusColor === "green"}
+      class:dark:bg-green-900={viewModel.statusColor === "green"}
+      class:dark:text-green-200={viewModel.statusColor === "green"}
       class:bg-gray-100={viewModel.statusColor === "gray"}
       class:text-gray-800={viewModel.statusColor === "gray"}
+      class:dark:bg-gray-700={viewModel.statusColor === "gray"}
+      class:dark:text-gray-200={viewModel.statusColor === "gray"}
     >
       {viewModel.statusLabel}
     </span>
   </div>
 
   <!-- Title -->
-  <h3 class="text-base font-semibold text-gray-900 mb-1 line-clamp-2">
+  <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2">
     {event.title}
   </h3>
 
   <!-- Description -->
   {#if event.description}
-    <p class="text-sm text-gray-600 mb-3 line-clamp-2">
+    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
       {event.description}
     </p>
   {/if}
 
   <!-- Event details -->
-  <div class="space-y-2 text-xs text-gray-500">
+  <div class="space-y-2 text-xs text-gray-500 dark:text-gray-400">
     <!-- Date -->
     <div class="flex items-center gap-1">
       <svg
@@ -86,7 +92,7 @@
         />
       </svg>
       <span>{viewModel.formattedTime}</span>
-      <span class="text-gray-400">({viewModel.duration})</span>
+      <span class="text-gray-400 dark:text-gray-500">({viewModel.duration})</span>
     </div>
 
     <!-- Location -->

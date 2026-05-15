@@ -6,6 +6,8 @@
    */
   import type { PageData, ActionData } from "./$types";
   import Button from "$lib/components/ui/Button.svelte";
+  import Card from "$lib/components/ui/Card.svelte";
+  import Select from "$lib/components/ui/Select.svelte";
   import Modal from "$lib/components/ui/Modal.svelte";
   import EmptyState from "$lib/components/ui/EmptyState.svelte";
   import Alert from "$lib/components/ui/Alert.svelte";
@@ -32,7 +34,11 @@
   let isSubmitting = $state(false);
 
   // Filter state
-  let selectedDivision = $derived(data.filters.division_id || "");
+  let selectedDivision = $state("");
+
+  $effect(() => {
+    selectedDivision = (data as any).filters?.division_id || "";
+  });
 
   // Group events by status
   const groupedEvents = $derived(groupEventsByStatus(data.events));
@@ -77,8 +83,8 @@
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Events</h1>
-      <p class="mt-1 text-sm text-gray-500">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Events</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         Schedule and manage your organization's events
       </p>
     </div>
@@ -111,27 +117,22 @@
   {/if}
 
   <!-- Filters -->
-  <div class="bg-white border border-gray-200 rounded-lg p-4">
+  <Card padding="md">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <!-- Division filter -->
-      <div>
-        <label
-          for="division-filter"
-          class="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Division
-        </label>
-        <select
-          id="division-filter"
-          bind:value={selectedDivision}
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Divisions</option>
-          {#each data.divisions as division}
-            <option value={division.id}>{division.name}</option>
-          {/each}
-        </select>
-      </div>
+      <Select
+        id="division-filter"
+        name="division-filter"
+        label="Division"
+        bind:value={selectedDivision}
+        options={[
+          { value: "", label: "All Divisions" },
+          ...data.divisions.map((division) => ({
+            value: division.id,
+            label: division.name,
+          })),
+        ]}
+      />
 
       <!-- Filter actions -->
       <div class="flex items-end gap-2 md:col-span-2">
@@ -141,7 +142,7 @@
         <Button variant="secondary" onclick={clearFilters}>Clear</Button>
       </div>
     </div>
-  </div>
+  </Card>
 
   <!-- Events by status -->
   {#if data.events.length > 0}
@@ -149,7 +150,7 @@
       <!-- Ongoing Events -->
       {#if groupedEvents.ongoing.length > 0}
         <div>
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Ongoing Events ({groupedEvents.ongoing.length})
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -163,7 +164,7 @@
       <!-- Upcoming Events -->
       {#if groupedEvents.upcoming.length > 0}
         <div>
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Upcoming Events ({groupedEvents.upcoming.length})
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -177,7 +178,7 @@
       <!-- Past Events -->
       {#if groupedEvents.past.length > 0}
         <div>
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Past Events ({groupedEvents.past.length})
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -295,7 +296,7 @@
           }
         };
       }}
-      class="mt-4 pt-4 border-t border-gray-200"
+      class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
     >
       <input type="hidden" name="event_id" value={selectedEvent.id} />
       <Button

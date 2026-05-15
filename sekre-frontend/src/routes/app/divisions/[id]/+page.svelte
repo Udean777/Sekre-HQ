@@ -6,6 +6,7 @@
    */
   import type { PageData, ActionData } from "./$types";
   import Button from "$lib/components/ui/Button.svelte";
+  import Badge from "$lib/components/ui/Badge.svelte";
   import Card from "$lib/components/ui/Card.svelte";
   import Alert from "$lib/components/ui/Alert.svelte";
   import Modal from "$lib/components/ui/Modal.svelte";
@@ -81,7 +82,7 @@
       <div class="flex items-center gap-3">
         <a
           href="/app/divisions"
-          class="text-gray-400 hover:text-gray-600 transition-colors"
+          class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
           aria-label="Back to divisions"
         >
           <svg
@@ -98,9 +99,13 @@
             />
           </svg>
         </a>
-        <h1 class="text-2xl font-bold text-gray-900">{data.division.name}</h1>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+          {data.division.name}
+        </h1>
       </div>
-      <p class="mt-1 text-sm text-gray-500">Division details and management</p>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        Division details and management
+      </p>
     </div>
   </div>
 
@@ -113,30 +118,32 @@
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
     <Card>
       <div class="text-center">
-        <p class="text-sm text-gray-600">Members</p>
-        <p class="text-3xl font-bold text-gray-900 mt-2">
+        <p class="text-sm text-gray-600 dark:text-gray-400">Members</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">
           {data.members.length}
         </p>
       </div>
     </Card>
     <Card>
       <div class="text-center">
-        <p class="text-sm text-gray-600">Tasks</p>
-        <p class="text-3xl font-bold text-gray-900 mt-2">{data.tasks.length}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Tasks</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+          {data.tasks.length}
+        </p>
       </div>
     </Card>
     <Card>
       <div class="text-center">
-        <p class="text-sm text-gray-600">Events</p>
-        <p class="text-3xl font-bold text-gray-900 mt-2">
+        <p class="text-sm text-gray-600 dark:text-gray-400">Events</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">
           {data.events.length}
         </p>
       </div>
     </Card>
     <Card>
       <div class="text-center">
-        <p class="text-sm text-gray-600">Transactions</p>
-        <p class="text-3xl font-bold text-gray-900 mt-2">
+        <p class="text-sm text-gray-600 dark:text-gray-400">Transactions</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">
           {data.transactions.length}
         </p>
       </div>
@@ -144,7 +151,7 @@
   </div>
 
   <!-- Tabs -->
-  <div class="border-b border-gray-200">
+  <div class="border-b border-gray-200 dark:border-gray-700">
     <nav class="-mb-px flex space-x-8">
       <button
         type="button"
@@ -152,10 +159,14 @@
         class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
         class:border-blue-500={activeTab === "members"}
         class:text-blue-600={activeTab === "members"}
+        class:dark:text-blue-400={activeTab === "members"}
         class:border-transparent={activeTab !== "members"}
         class:text-gray-500={activeTab !== "members"}
+        class:dark:text-gray-400={activeTab !== "members"}
         class:hover:text-gray-700={activeTab !== "members"}
+        class:dark:hover:text-gray-300={activeTab !== "members"}
         class:hover:border-gray-300={activeTab !== "members"}
+        class:dark:hover:border-gray-600={activeTab !== "members"}
       >
         Members ({data.members.length})
       </button>
@@ -166,10 +177,14 @@
         class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
         class:border-blue-500={activeTab === "tasks"}
         class:text-blue-600={activeTab === "tasks"}
+        class:dark:text-blue-400={activeTab === "tasks"}
         class:border-transparent={activeTab !== "tasks"}
         class:text-gray-500={activeTab !== "tasks"}
+        class:dark:text-gray-400={activeTab !== "tasks"}
         class:hover:text-gray-700={activeTab !== "tasks"}
+        class:dark:hover:text-gray-300={activeTab !== "tasks"}
         class:hover:border-gray-300={activeTab !== "tasks"}
+        class:dark:hover:border-gray-600={activeTab !== "tasks"}
       >
         Tasks ({data.tasks.length})
       </button>
@@ -180,10 +195,14 @@
         class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
         class:border-blue-500={activeTab === "events"}
         class:text-blue-600={activeTab === "events"}
+        class:dark:text-blue-400={activeTab === "events"}
         class:border-transparent={activeTab !== "events"}
         class:text-gray-500={activeTab !== "events"}
+        class:dark:text-gray-400={activeTab !== "events"}
         class:hover:text-gray-700={activeTab !== "events"}
+        class:dark:hover:text-gray-300={activeTab !== "events"}
         class:hover:border-gray-300={activeTab !== "events"}
+        class:dark:hover:border-gray-600={activeTab !== "events"}
       >
         Events ({data.events.length})
       </button>
@@ -194,10 +213,14 @@
         class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
         class:border-blue-500={activeTab === "transactions"}
         class:text-blue-600={activeTab === "transactions"}
+        class:dark:text-blue-400={activeTab === "transactions"}
         class:border-transparent={activeTab !== "transactions"}
         class:text-gray-500={activeTab !== "transactions"}
+        class:dark:text-gray-400={activeTab !== "transactions"}
         class:hover:text-gray-700={activeTab !== "transactions"}
+        class:dark:hover:text-gray-300={activeTab !== "transactions"}
         class:hover:border-gray-300={activeTab !== "transactions"}
+        class:dark:hover:border-gray-600={activeTab !== "transactions"}
       >
         Transactions ({data.transactions.length})
       </button>
@@ -209,7 +232,7 @@
     {#if activeTab === "members"}
       <div class="space-y-4">
         <!-- Add Member Button -->
-        <div class="flex justify-end">
+        <div class="flex start">
           <Button variant="primary" onclick={openAddMemberModal}>
             <svg
               class="h-5 w-5 mr-2"
@@ -234,21 +257,19 @@
               <Card>
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="font-medium text-gray-900">
+                    <p class="font-medium text-gray-900 dark:text-white">
                       {member.user?.full_name || "Unknown"}
                     </p>
-                    <p class="text-sm text-gray-500">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
                       {member.user?.email || ""}
                     </p>
-                    <span
-                      class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-2"
-                      class:bg-blue-100={member.division_role === "HEAD"}
-                      class:text-blue-800={member.division_role === "HEAD"}
-                      class:bg-gray-100={member.division_role === "STAFF"}
-                      class:text-gray-800={member.division_role === "STAFF"}
+                    <Badge
+                      size="sm"
+                      class="mt-2"
+                      color={member.division_role === "HEAD" ? "blue" : "gray"}
                     >
                       {member.division_role}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
               </Card>
@@ -256,7 +277,9 @@
           </div>
         {:else}
           <Card>
-            <p class="text-center text-gray-500 py-8">No members yet</p>
+            <p class="text-center text-gray-500 dark:text-gray-400 py-8">
+              No members yet
+            </p>
           </Card>
         {/if}
       </div>
@@ -273,7 +296,9 @@
           </div>
         {:else}
           <Card>
-            <p class="text-center text-gray-500 py-8">No tasks yet</p>
+            <p class="text-center text-gray-500 dark:text-gray-400 py-8">
+              No tasks yet
+            </p>
           </Card>
         {/if}
       </div>
@@ -290,7 +315,9 @@
           </div>
         {:else}
           <Card>
-            <p class="text-center text-gray-500 py-8">No events yet</p>
+            <p class="text-center text-gray-500 dark:text-gray-400 py-8">
+              No events yet
+            </p>
           </Card>
         {/if}
       </div>
@@ -307,7 +334,9 @@
           </div>
         {:else}
           <Card>
-            <p class="text-center text-gray-500 py-8">No transactions yet</p>
+            <p class="text-center text-gray-500 dark:text-gray-400 py-8">
+              No transactions yet
+            </p>
           </Card>
         {/if}
       </div>
@@ -342,7 +371,7 @@
       <div>
         <label
           for="user-search-input"
-          class="block text-sm font-medium text-gray-700 mb-1"
+          class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
         >
           Select User <span class="text-red-500">*</span>
         </label>
@@ -364,7 +393,7 @@
                 {selectedUser.full_name.charAt(0).toUpperCase()}
               </div>
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-900">
+                <p class="text-sm font-medium text-gray-900 dark:text-white">
                   {selectedUser.full_name}
                 </p>
                 <p class="text-xs text-gray-600">{selectedUser.email}</p>
@@ -392,7 +421,7 @@
             </div>
           </div>
         {:else}
-          <p class="mt-1 text-xs text-gray-500">
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Start typing to search for users in your organization
           </p>
         {/if}
@@ -400,20 +429,23 @@
 
       <!-- Role Selection -->
       <div>
-        <label for="role" class="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          for="role"
+          class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+        >
           Role <span class="text-red-500">*</span>
         </label>
         <select
           id="role"
           name="role"
           bind:value={selectedRole}
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         >
           <option value="HEAD">Head</option>
           <option value="STAFF">Staff</option>
         </select>
-        <p class="mt-1 text-xs text-gray-500">
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
           {selectedRole === "HEAD"
             ? "Heads can manage division members and settings"
             : "Staff members can view and participate in division activities"}
@@ -421,7 +453,7 @@
       </div>
 
       <!-- Actions -->
-      <div class="flex justify-end gap-3 pt-4">
+      <div class="flex justify-start items-start gap-3 pt-4">
         <Button
           type="button"
           variant="secondary"

@@ -40,8 +40,10 @@
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Divisions</h1>
-      <p class="mt-1 text-sm text-gray-500">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        Divisions
+      </h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         Manage your organization's divisions and teams
       </p>
     </div>

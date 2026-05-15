@@ -20,7 +20,7 @@
 
 <button
   type="button"
-  class="w-full text-left bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+  class="w-full text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
   {onclick}
 >
   <!-- Header: Type & Status -->
@@ -29,8 +29,12 @@
       class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
       class:bg-green-100={viewModel.typeColor === "green"}
       class:text-green-800={viewModel.typeColor === "green"}
+      class:dark:bg-green-900={viewModel.typeColor === "green"}
+      class:dark:text-green-200={viewModel.typeColor === "green"}
       class:bg-red-100={viewModel.typeColor === "red"}
       class:text-red-800={viewModel.typeColor === "red"}
+      class:dark:bg-red-900={viewModel.typeColor === "red"}
+      class:dark:text-red-200={viewModel.typeColor === "red"}
     >
       {viewModel.typeLabel}
     </span>
@@ -39,10 +43,16 @@
       class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
       class:bg-yellow-100={viewModel.statusColor === "yellow"}
       class:text-yellow-800={viewModel.statusColor === "yellow"}
+      class:dark:bg-yellow-900={viewModel.statusColor === "yellow"}
+      class:dark:text-yellow-200={viewModel.statusColor === "yellow"}
       class:bg-green-100={viewModel.statusColor === "green"}
       class:text-green-800={viewModel.statusColor === "green"}
+      class:dark:bg-green-900={viewModel.statusColor === "green"}
+      class:dark:text-green-200={viewModel.statusColor === "green"}
       class:bg-red-100={viewModel.statusColor === "red"}
       class:text-red-800={viewModel.statusColor === "red"}
+      class:dark:bg-red-900={viewModel.statusColor === "red"}
+      class:dark:text-red-200={viewModel.statusColor === "red"}
     >
       {viewModel.statusLabel}
     </span>
@@ -60,12 +70,12 @@
   </div>
 
   <!-- Description -->
-  <p class="text-sm text-gray-900 mb-3 line-clamp-2">
+  <p class="text-sm text-gray-900 dark:text-white mb-3 line-clamp-2">
     {transaction.description}
   </p>
 
   <!-- Footer: Date -->
-  <div class="flex items-center justify-between text-xs text-gray-500">
+  <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
     <div class="flex items-center gap-1">
       <svg
         class="h-4 w-4"
@@ -84,7 +94,7 @@
     </div>
 
     {#if transaction.receipt_url}
-      <div class="flex items-center gap-1 text-blue-600">
+      <div class="flex items-center gap-1 text-blue-600 dark:text-blue-400">
         <svg
           class="h-4 w-4"
           fill="none"

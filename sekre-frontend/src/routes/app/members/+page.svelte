@@ -5,6 +5,8 @@
    */
   import type { PageData } from "./$types";
   import Button from "$lib/components/ui/Button.svelte";
+  import Card from "$lib/components/ui/Card.svelte";
+  import Badge from "$lib/components/ui/Badge.svelte";
   import EmptyState from "$lib/components/ui/EmptyState.svelte";
   import Alert from "$lib/components/ui/Alert.svelte";
   import Modal from "$lib/components/ui/Modal.svelte";
@@ -39,13 +41,13 @@
   // Get role badge color
   function getRoleBadgeColor(role: string): string {
     const colors: Record<string, string> = {
-      OWNER: "bg-purple-100 text-purple-800",
-      ADMIN: "bg-blue-100 text-blue-800",
-      MEMBER: "bg-gray-100 text-gray-800",
-      HEAD: "bg-green-100 text-green-800",
-      STAFF: "bg-yellow-100 text-yellow-800",
+      OWNER: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+      ADMIN: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      MEMBER: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
+      HEAD: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+      STAFF: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
     };
-    return colors[role] || "bg-gray-100 text-gray-800";
+    return colors[role] || "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
   }
 
   function openEditModal(member: any) {
@@ -156,8 +158,8 @@
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Organization Members</h1>
-      <p class="mt-1 text-sm text-gray-500">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Organization Members</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         Manage your organization's team members and their roles
       </p>
     </div>
@@ -214,11 +216,11 @@
 
   <!-- Members List -->
   {#if data.members.length > 0}
-    <div class="bg-white shadow overflow-hidden sm:rounded-md">
-      <ul class="divide-y divide-gray-200">
+    <Card padding="none" class="overflow-hidden">
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700">
         {#each data.members as member}
           <li>
-            <div class="px-4 py-4 sm:px-6 hover:bg-gray-50">
+            <div class="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-700">
               <div class="flex items-center justify-between">
                 <div class="flex items-center min-w-0 flex-1">
                   <!-- Avatar -->
@@ -233,18 +235,19 @@
                   <!-- Member Info -->
                   <div class="ml-4 min-w-0 flex-1">
                     <div class="flex items-center gap-3">
-                      <p class="text-sm font-medium text-gray-900 truncate">
+                      <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
                         {member.user?.full_name || "Unknown User"}
                       </p>
-                      <span
-                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getRoleBadgeColor(
-                          member.division_role || member.role || 'MEMBER',
-                        )}"
+                      <Badge
+                        size="sm"
+                        class={getRoleBadgeColor(
+                          member.division_role || member.role || "MEMBER",
+                        )}
                       >
                         {member.division_role || member.role || "MEMBER"}
-                      </span>
+                      </Badge>
                     </div>
-                    <p class="mt-1 text-sm text-gray-500 truncate">
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">
                       {member.user?.email || "No email"}
                     </p>
                   </div>
@@ -296,25 +299,25 @@
           </li>
         {/each}
       </ul>
-    </div>
+    </Card>
 
     <!-- Stats -->
-    <div class="bg-white rounded-lg border border-gray-200 p-4">
+    <Card padding="md">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-gray-500">Total Members</p>
-          <p class="text-2xl font-semibold text-gray-900">
+          <p class="text-sm text-gray-500 dark:text-gray-400">Total Members</p>
+          <p class="text-2xl font-semibold text-gray-900 dark:text-white">
             {data.members.length}
           </p>
         </div>
         <div>
-          <p class="text-sm text-gray-500">Total Divisions</p>
-          <p class="text-2xl font-semibold text-gray-900">
+          <p class="text-sm text-gray-500 dark:text-gray-400">Total Divisions</p>
+          <p class="text-2xl font-semibold text-gray-900 dark:text-white">
             {data.divisions.length}
           </p>
         </div>
       </div>
-    </div>
+    </Card>
   {:else}
     <EmptyState
       title="No members yet"
@@ -339,7 +342,7 @@
   <div class="space-y-4">
     {#if selectedMember}
       <!-- Member Info -->
-      <div class="p-3 bg-gray-50 rounded-md">
+      <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
         <div class="flex items-center gap-3">
           <div
             class="shrink-0 h-10 w-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold"
@@ -347,10 +350,10 @@
             {selectedMember.user?.full_name?.charAt(0) || "U"}
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-900">
+            <p class="text-sm font-medium text-gray-900 dark:text-white">
               {selectedMember.user?.full_name || "Unknown User"}
             </p>
-            <p class="text-xs text-gray-500">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
               {selectedMember.user?.email || "No email"}
             </p>
           </div>
@@ -361,21 +364,21 @@
       <div>
         <label
           for="edit-role"
-          class="block text-sm font-medium text-gray-700 mb-1"
+          class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
         >
           Organization Role <span class="text-red-500">*</span>
         </label>
         <select
           id="edit-role"
           bind:value={selectedRole}
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           disabled={isSubmitting}
         >
           <option value="OWNER">Owner</option>
           <option value="ADMIN">Admin</option>
           <option value="MEMBER">Member</option>
         </select>
-        <p class="mt-1 text-xs text-gray-500">
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
           {#if selectedRole === "OWNER"}
             Full access to all organization features and settings
           {:else if selectedRole === "ADMIN"}
@@ -431,7 +434,7 @@
       </Alert>
 
       <!-- Member Info -->
-      <div class="p-3 bg-gray-50 rounded-md">
+      <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
         <div class="flex items-center gap-3">
           <div
             class="shrink-0 h-10 w-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold"
@@ -439,17 +442,17 @@
             {selectedMember.user?.full_name?.charAt(0) || "U"}
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-900">
+            <p class="text-sm font-medium text-gray-900 dark:text-white">
               {selectedMember.user?.full_name || "Unknown User"}
             </p>
-            <p class="text-xs text-gray-500">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
               {selectedMember.user?.email || "No email"}
             </p>
           </div>
         </div>
       </div>
 
-      <p class="text-sm text-gray-600">
+      <p class="text-sm text-gray-600 dark:text-gray-300">
         Are you sure you want to remove this member from the organization?
       </p>
 
