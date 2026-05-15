@@ -193,10 +193,7 @@
       title="No events yet"
       description="Get started by creating your first event to keep your team informed."
     >
-      {#snippet action()}
-        <Button variant="primary" onclick={openCreateModal}>Create Event</Button
-        >
-      {/snippet}
+      <Button variant="primary" onclick={openCreateModal}>Create Event</Button>
     </EmptyState>
   {/if}
 </div>

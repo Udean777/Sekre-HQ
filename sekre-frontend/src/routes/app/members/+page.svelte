@@ -121,21 +121,30 @@
     }
   }
 
-  function showToastMessage(message: string, type: "success" | "error" | "info" | "warning" = "info") {
+  function showToastMessage(
+    message: string,
+    type: "success" | "error" | "info" | "warning" = "info",
+  ) {
     toastMessage = message;
     toastType = type;
     showToast = true;
   }
 
   function handleAddMemberSuccess(result: any) {
-    showToastMessage(`Member created successfully! Temporary password: ${result.temporary_password}`, "success");
+    showToastMessage(
+      `Member created successfully! Temporary password: ${result.temporary_password}`,
+      "success",
+    );
     setTimeout(() => window.location.reload(), 2000);
   }
 
   function handleImportSuccess(result: any) {
     importResult = result;
     isImportResultModalOpen = true;
-    showToastMessage(`Import completed: ${result.success_count} success, ${result.failure_count} failed`, result.failure_count > 0 ? "warning" : "success");
+    showToastMessage(
+      `Import completed: ${result.success_count} success, ${result.failure_count} failed`,
+      result.failure_count > 0 ? "warning" : "success",
+    );
   }
 </script>
 
@@ -154,7 +163,12 @@
     </div>
     <div class="flex gap-2">
       <Button variant="secondary" onclick={() => (isImportModalOpen = true)}>
-        <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg
+          class="h-5 w-5 mr-2"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -165,7 +179,12 @@
         Import Excel
       </Button>
       <Button variant="primary" onclick={() => (isAddMemberModalOpen = true)}>
-        <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg
+          class="h-5 w-5 mr-2"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -205,7 +224,7 @@
                   <!-- Avatar -->
                   <div class="shrink-0">
                     <div
-                      class="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg"
+                      class="h-12 w-12 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg"
                     >
                       {member.user?.full_name?.charAt(0) || "U"}
                     </div>
@@ -237,7 +256,6 @@
                     variant="secondary"
                     size="sm"
                     onclick={() => openEditModal(member)}
-                    title="Edit role"
                   >
                     <svg
                       class="h-4 w-4"
@@ -257,7 +275,6 @@
                     variant="danger"
                     size="sm"
                     onclick={() => openRemoveModal(member)}
-                    title="Remove member"
                   >
                     <svg
                       class="h-4 w-4"
@@ -303,14 +320,12 @@
       title="No members yet"
       description="Start by adding members to your divisions."
     >
-      {#snippet action()}
-        <Button
-          variant="primary"
-          onclick={() => (window.location.href = "/app/divisions")}
-        >
-          Go to Divisions
-        </Button>
-      {/snippet}
+      <Button
+        variant="primary"
+        onclick={() => (window.location.href = "/app/divisions")}
+      >
+        Go to Divisions
+      </Button>
     </EmptyState>
   {/if}
 </div>
@@ -327,7 +342,7 @@
       <div class="p-3 bg-gray-50 rounded-md">
         <div class="flex items-center gap-3">
           <div
-            class="shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold"
+            class="shrink-0 h-10 w-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold"
           >
             {selectedMember.user?.full_name?.charAt(0) || "U"}
           </div>
@@ -419,7 +434,7 @@
       <div class="p-3 bg-gray-50 rounded-md">
         <div class="flex items-center gap-3">
           <div
-            class="shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold"
+            class="shrink-0 h-10 w-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold"
           >
             {selectedMember.user?.full_name?.charAt(0) || "U"}
           </div>
@@ -492,6 +507,8 @@
 />
 
 <!-- Toast Notification -->
+<!-- TODO: Refactor to use toastStore instead of props -->
+<!--
 {#if showToast}
   <Toast
     message={toastMessage}
@@ -499,4 +516,4 @@
     onClose={() => (showToast = false)}
   />
 {/if}
-
+-->

@@ -39,7 +39,7 @@
 				<button
 					type="button"
 					class="toggle-password"
-					on:click={() => showCurrentPassword = !showCurrentPassword}
+					onclick={() => showCurrentPassword = !showCurrentPassword}
 					disabled={isSubmitting}
 				>
 					{#if showCurrentPassword}
@@ -71,7 +71,7 @@
 				<button
 					type="button"
 					class="toggle-password"
-					on:click={() => showNewPassword = !showNewPassword}
+					onclick={() => showNewPassword = !showNewPassword}
 					disabled={isSubmitting}
 				>
 					{#if showNewPassword}
@@ -104,7 +104,7 @@
 				<button
 					type="button"
 					class="toggle-password"
-					on:click={() => showConfirmPassword = !showConfirmPassword}
+					onclick={() => showConfirmPassword = !showConfirmPassword}
 					disabled={isSubmitting}
 				>
 					{#if showConfirmPassword}

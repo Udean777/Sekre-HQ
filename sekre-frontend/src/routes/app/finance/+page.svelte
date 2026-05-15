@@ -323,11 +323,9 @@
       title="No transactions yet"
       description="Get started by recording your first financial transaction."
     >
-      {#snippet action()}
-        <Button variant="primary" onclick={openCreateModal}
-          >Create Transaction</Button
-        >
-      {/snippet}
+      <Button variant="primary" onclick={openCreateModal}
+        >Create Transaction</Button
+      >
     </EmptyState>
   {/if}
 </div>

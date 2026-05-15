@@ -1,15 +1,19 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ locals }) => {
+export const load: LayoutServerLoad = async ({ locals, parent }) => {
 	// Protect this route - require authentication
 	if (!locals.user) {
 		throw redirect(303, '/login');
 	}
 
-	// Pass user and organization to all app pages
+	// Get parent data (from root layout)
+	const parentData = await parent();
+
+	// Return user and organization from parent
+	// This ensures consistency across all app pages
 	return {
-		user: locals.user,
-		organization: locals.organization
+		user: parentData.user,
+		organization: parentData.organization
 	};
 };

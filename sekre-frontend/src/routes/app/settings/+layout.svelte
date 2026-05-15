@@ -1,8 +1,14 @@
 <script lang="ts">
+	import type { Snippet } from "svelte";
 	import { page } from '$app/stores';
 	import type { LayoutData } from './$types';
 
-	let { data }: { data: LayoutData } = $props();
+	interface Props {
+		data: LayoutData;
+		children: Snippet;
+	}
+
+	let { data, children }: Props = $props();
 
 	const tabs = [
 		{ label: 'Profile', href: '/app/settings/profile', icon: 'user' },
@@ -55,7 +61,7 @@
 	</div>
 
 	<div class="settings-content">
-		<slot />
+		{@render children()}
 	</div>
 </div>
 

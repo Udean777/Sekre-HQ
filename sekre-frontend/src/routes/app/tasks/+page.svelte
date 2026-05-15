@@ -77,21 +77,22 @@
 </svelte:head>
 
 <div class="space-y-6">
-	<!-- Debug Info -->
-	<div class="bg-yellow-50 border border-yellow-200 rounded p-4 text-sm">
-		<p><strong>Debug Info:</strong></p>
-		<p>Tasks loaded: {data.tasks?.length || 0}</p>
-		<p>Divisions loaded: {data.divisions?.length || 0}</p>
-		<p>Has error: {data.error ? 'Yes' : 'No'}</p>
-		<p>Form error: {form?.error ? 'Yes' : 'No'}</p>
-		{#if selectedDivision || selectedStatus}
-			<p class="text-orange-600 font-semibold mt-2">
-				⚠️ Filters active! Division: {selectedDivision || 'All'}, Status: {selectedStatus || 'All'}
-			</p>
-		{/if}
-	</div>
+  <!-- Debug Info -->
+  <div class="bg-yellow-50 border border-yellow-200 rounded p-4 text-sm">
+    <p><strong>Debug Info:</strong></p>
+    <p>Tasks loaded: {data.tasks?.length || 0}</p>
+    <p>Divisions loaded: {data.divisions?.length || 0}</p>
+    <p>Has error: {data.error ? "Yes" : "No"}</p>
+    <p>Form error: {form?.error ? "Yes" : "No"}</p>
+    {#if selectedDivision || selectedStatus}
+      <p class="text-orange-600 font-semibold mt-2">
+        ⚠️ Filters active! Division: {selectedDivision || "All"}, Status: {selectedStatus ||
+          "All"}
+      </p>
+    {/if}
+  </div>
 
-	<!-- Header -->
+  <!-- Header -->
   <div class="flex items-center justify-between">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Tasks</h1>
@@ -238,114 +239,120 @@
       title="No tasks yet"
       description="Get started by creating your first task to track your work."
     >
-      {#snippet action()}
-        <Button variant="primary" onclick={openCreateModal}>Create Task</Button>
-      {/snippet}
+      <Button variant="primary" onclick={openCreateModal}>Create Task</Button>
     </EmptyState>
   {/if}
 </div>
 
 <!-- Create Task Modal -->
-<Modal isOpen={isCreateModalOpen} onClose={closeCreateModal} title="Create New Task">
-	<form
-		method="POST"
-		action="?/create"
-		onsubmit={(e) => {
-			// Validate before submit
-			const formData = new FormData(e.currentTarget);
-			const title = formData.get('title') as string;
-			const division_id = formData.get('division_id') as string;
-			
-			if (!title?.trim() || !division_id) {
-				e.preventDefault();
-				return;
-			}
-		}}
-		use:enhance={() => {
-			isSubmitting = true;
-			return async ({ result, update }) => {
-				isSubmitting = false;
-				
-				if (result.type === 'success') {
-					closeCreateModal();
-					await update();
-				} else if (result.type === 'failure') {
-					await update();
-				}
-			};
-		}}
-	>
-		<TaskForm divisions={data.divisions} oncancel={closeCreateModal} loading={isSubmitting} />
-	</form>
+<Modal
+  isOpen={isCreateModalOpen}
+  onClose={closeCreateModal}
+  title="Create New Task"
+>
+  <form
+    method="POST"
+    action="?/create"
+    onsubmit={(e) => {
+      // Validate before submit
+      const formData = new FormData(e.currentTarget);
+      const title = formData.get("title") as string;
+      const division_id = formData.get("division_id") as string;
+
+      if (!title?.trim() || !division_id) {
+        e.preventDefault();
+        return;
+      }
+    }}
+    use:enhance={() => {
+      isSubmitting = true;
+      return async ({ result, update }) => {
+        isSubmitting = false;
+
+        if (result.type === "success") {
+          closeCreateModal();
+          await update();
+        } else if (result.type === "failure") {
+          await update();
+        }
+      };
+    }}
+  >
+    <TaskForm
+      divisions={data.divisions}
+      oncancel={closeCreateModal}
+      loading={isSubmitting}
+    />
+  </form>
 </Modal>
 
 <!-- Edit Task Modal -->
 {#if selectedTask}
-	<Modal isOpen={isEditModalOpen} onClose={closeEditModal} title="Edit Task">
-		<form
-			method="POST"
-			action="?/update"
-			onsubmit={(e) => {
-				// Validate before submit
-				const formData = new FormData(e.currentTarget);
-				const title = formData.get('title') as string;
-				
-				if (!title?.trim()) {
-					e.preventDefault();
-					return;
-				}
-			}}
-			use:enhance={() => {
-				isSubmitting = true;
-				return async ({ result, update }) => {
-					isSubmitting = false;
-					
-					if (result.type === 'success') {
-						closeEditModal();
-						await update();
-					} else if (result.type === 'failure') {
-						await update();
-					}
-				};
-			}}
-		>
-			<input type="hidden" name="task_id" value={selectedTask.task.id} />
-			<TaskForm
-				task={selectedTask}
-				divisions={data.divisions}
-				oncancel={closeEditModal}
-				loading={isSubmitting}
-			/>
-		</form>
+  <Modal isOpen={isEditModalOpen} onClose={closeEditModal} title="Edit Task">
+    <form
+      method="POST"
+      action="?/update"
+      onsubmit={(e) => {
+        // Validate before submit
+        const formData = new FormData(e.currentTarget);
+        const title = formData.get("title") as string;
 
-		<!-- Delete button -->
-		<form
-			method="POST"
-			action="?/delete"
-			use:enhance={() => {
-				return async ({ result, update }) => {
-					if (result.type === 'success') {
-						closeEditModal();
-						await update();
-					} else if (result.type === 'failure') {
-						await update();
-					}
-				};
-			}}
-			class="mt-4 pt-4 border-t border-gray-200"
-		>
-			<input type="hidden" name="task_id" value={selectedTask.task.id} />
-			<Button
-				type="submit"
-				variant="danger"
-				onclick={() => {
-					if (!confirm('Are you sure you want to delete this task?')) {
-						return false;
-					}
-				}}
-			>
-				Delete Task
-			</Button>
-		</form>
-	</Modal>
+        if (!title?.trim()) {
+          e.preventDefault();
+          return;
+        }
+      }}
+      use:enhance={() => {
+        isSubmitting = true;
+        return async ({ result, update }) => {
+          isSubmitting = false;
+
+          if (result.type === "success") {
+            closeEditModal();
+            await update();
+          } else if (result.type === "failure") {
+            await update();
+          }
+        };
+      }}
+    >
+      <input type="hidden" name="task_id" value={selectedTask.task.id} />
+      <TaskForm
+        task={selectedTask}
+        divisions={data.divisions}
+        oncancel={closeEditModal}
+        loading={isSubmitting}
+      />
+    </form>
+
+    <!-- Delete button -->
+    <form
+      method="POST"
+      action="?/delete"
+      use:enhance={() => {
+        return async ({ result, update }) => {
+          if (result.type === "success") {
+            closeEditModal();
+            await update();
+          } else if (result.type === "failure") {
+            await update();
+          }
+        };
+      }}
+      class="mt-4 pt-4 border-t border-gray-200"
+    >
+      <input type="hidden" name="task_id" value={selectedTask.task.id} />
+      <Button
+        type="submit"
+        variant="danger"
+        onclick={() => {
+          if (!confirm("Are you sure you want to delete this task?")) {
+            return false;
+          }
+        }}
+      >
+        Delete Task
+      </Button>
+    </form>
+  </Modal>
 {/if}

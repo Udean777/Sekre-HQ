@@ -33,11 +33,17 @@
   // Modal state
   let isAddMemberModalOpen = $state(false);
   let isSubmitting = $state(false);
-  let selectedUser = $state<{ id: string; full_name: string; email: string } | null>(null);
-  let selectedRole = $state('STAFF');
+  let selectedUser = $state<{
+    id: string;
+    full_name: string;
+    email: string;
+  } | null>(null);
+  let selectedRole = $state("STAFF");
 
   // Get existing member IDs to exclude from search
-  let existingMemberIds = $derived(data.members.map((m) => m.user?.id || m.user_id));
+  let existingMemberIds = $derived(
+    data.members.map((m) => m.user?.id || m.user_id),
+  );
 
   function setActiveTab(tab: typeof activeTab) {
     activeTab = tab;
@@ -45,17 +51,21 @@
 
   function openAddMemberModal() {
     selectedUser = null;
-    selectedRole = 'STAFF';
+    selectedRole = "STAFF";
     isAddMemberModalOpen = true;
   }
 
   function closeAddMemberModal() {
     isAddMemberModalOpen = false;
     selectedUser = null;
-    selectedRole = 'STAFF';
+    selectedRole = "STAFF";
   }
 
-  function handleUserSelect(user: { id: string; full_name: string; email: string }) {
+  function handleUserSelect(user: {
+    id: string;
+    full_name: string;
+    email: string;
+  }) {
     selectedUser = user;
   }
 </script>
@@ -330,7 +340,10 @@
     <div class="space-y-4">
       <!-- User Search -->
       <div>
-        <label for="user-search-input" class="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          for="user-search-input"
+          class="block text-sm font-medium text-gray-700 mb-1"
+        >
           Select User <span class="text-red-500">*</span>
         </label>
         <div id="user-search-input">
@@ -346,12 +359,14 @@
           <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <div class="flex items-center gap-3">
               <div
-                class="shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold"
+                class="shrink-0 h-10 w-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold"
               >
                 {selectedUser.full_name.charAt(0).toUpperCase()}
               </div>
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-900">{selectedUser.full_name}</p>
+                <p class="text-sm font-medium text-gray-900">
+                  {selectedUser.full_name}
+                </p>
                 <p class="text-xs text-gray-600">{selectedUser.email}</p>
               </div>
               <button
@@ -360,7 +375,12 @@
                 class="text-gray-400 hover:text-gray-600"
                 aria-label="Remove selected user"
               >
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -394,9 +414,9 @@
           <option value="STAFF">Staff</option>
         </select>
         <p class="mt-1 text-xs text-gray-500">
-          {selectedRole === 'HEAD'
-            ? 'Heads can manage division members and settings'
-            : 'Staff members can view and participate in division activities'}
+          {selectedRole === "HEAD"
+            ? "Heads can manage division members and settings"
+            : "Staff members can view and participate in division activities"}
         </p>
       </div>
 
@@ -410,7 +430,11 @@
         >
           Cancel
         </Button>
-        <Button type="submit" variant="primary" disabled={isSubmitting || !selectedUser}>
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={isSubmitting || !selectedUser}
+        >
           {isSubmitting ? "Adding..." : "Add Member"}
         </Button>
       </div>

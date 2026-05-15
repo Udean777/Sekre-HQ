@@ -1,6 +1,15 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import type { ActionData } from "./$types";
+  import { Button, Input, Card } from "$lib/components/ui";
+  import { FormField, FormError } from "$lib/components/forms";
+  import {
+    validateEmail,
+    validateRequired,
+    validateMinLength,
+    validatePattern,
+  } from "$lib/utils/validation";
+  import { Building2 } from "lucide-svelte";
 
   interface Props {
     form?: ActionData;
@@ -9,6 +18,81 @@
   let { form }: Props = $props();
 
   let isLoading = $state(false);
+  let organizationName = $state("");
+  let subdomain = $state("");
+  let fullName = $state("");
+  let email = $state("");
+  let password = $state("");
+  let errors = $state<Record<string, string>>({});
+
+  // Initialize form fields from form data
+  $effect(() => {
+    if (form?.organization_name) organizationName = form.organization_name;
+    if (form?.subdomain) subdomain = form.subdomain;
+    if (form?.full_name) fullName = form.full_name;
+    if (form?.email) email = form.email;
+  });
+
+  const subdomainPattern = /^[a-z0-9-]+$/;
+
+  function validateForm(): boolean {
+    const newErrors: Record<string, string> = {};
+
+    const orgNameValidation = validateRequired(organizationName);
+    if (!orgNameValidation.valid) {
+      newErrors.organization_name =
+        orgNameValidation.error || "Organization name is required";
+    }
+
+    const subdomainRequiredValidation = validateRequired(subdomain);
+    if (!subdomainRequiredValidation.valid) {
+      newErrors.subdomain =
+        subdomainRequiredValidation.error || "Subdomain is required";
+    } else {
+      const subdomainPatternValidation = validatePattern(
+        subdomain,
+        subdomainPattern,
+        "Subdomain can only contain lowercase letters, numbers, and hyphens",
+      );
+      if (!subdomainPatternValidation.valid) {
+        newErrors.subdomain =
+          subdomainPatternValidation.error || "Invalid subdomain format";
+      }
+    }
+
+    const fullNameValidation = validateRequired(fullName);
+    if (!fullNameValidation.valid) {
+      newErrors.full_name = fullNameValidation.error || "Full name is required";
+    }
+
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      newErrors.email = emailValidation.error || "Invalid email";
+    }
+
+    const passwordRequiredValidation = validateRequired(password);
+    if (!passwordRequiredValidation.valid) {
+      newErrors.password =
+        passwordRequiredValidation.error || "Password is required";
+    } else {
+      const passwordLengthValidation = validateMinLength(password, 8);
+      if (!passwordLengthValidation.valid) {
+        newErrors.password =
+          passwordLengthValidation.error ||
+          "Password must be at least 8 characters";
+      }
+    }
+
+    errors = newErrors;
+    return Object.keys(newErrors).length === 0;
+  }
+
+  function handleSubmit() {
+    if (!validateForm()) {
+      return false;
+    }
+    isLoading = true;
+  }
 </script>
 
 <svelte:head>
@@ -16,179 +100,155 @@
 </svelte:head>
 
 <div
-  class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
+  class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8"
 >
   <div class="max-w-md w-full space-y-8">
-    <div>
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <div class="text-center">
+      <div class="flex justify-center mb-4">
+        <div
+          class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center"
+        >
+          <Building2 class="w-6 h-6 text-white" />
+        </div>
+      </div>
+      <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white">
         Create your organization
       </h2>
-      <p class="mt-2 text-center text-sm text-gray-600">
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
         Already have an account?
-        <a href="/login" class="font-medium text-blue-600 hover:text-blue-500">
+        <a
+          href="/login"
+          class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
+        >
           Sign in
         </a>
       </p>
     </div>
 
-    <form
-      method="POST"
-      class="mt-8 space-y-6"
-      use:enhance={() => {
-        isLoading = true;
-        return async ({ update }) => {
-          await update();
-          isLoading = false;
-        };
-      }}
-    >
-      {#if form?.error}
-        <div class="rounded-md bg-red-50 p-4">
-          <div class="flex">
-            <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">
-                {form.error}
-              </h3>
-            </div>
-          </div>
-        </div>
-      {/if}
+    <Card class="p-8">
+      <form
+        method="POST"
+        class="space-y-6"
+        onsubmit={handleSubmit}
+        use:enhance={() => {
+          return async ({ update }) => {
+            await update();
+            isLoading = false;
+          };
+        }}
+      >
+        {#if form?.error}
+          <FormError message={form.error} />
+        {/if}
 
-      <div class="rounded-md shadow-sm space-y-4">
-        <div>
-          <label
-            for="organization_name"
-            class="block text-sm font-medium text-gray-700"
-          >
-            Organization Name
-          </label>
-          <input
+        <FormField
+          label="Organization Name"
+          id="organization_name"
+          required
+          error={errors.organization_name}
+        >
+          <Input
             id="organization_name"
             name="organization_name"
             type="text"
-            required
-            value={form?.organization_name ?? ""}
-            class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
             placeholder="HIMTI UNPAB"
+            bind:value={organizationName}
+            error={errors.organization_name}
+            disabled={isLoading}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label
-            for="subdomain"
-            class="block text-sm font-medium text-gray-700"
-          >
-            Subdomain
-          </label>
-          <div class="mt-1 flex rounded-md shadow-sm">
-            <input
+        <FormField
+          label="Subdomain"
+          id="subdomain"
+          required
+          error={errors.subdomain}
+          hint="Only lowercase letters, numbers, and hyphens"
+        >
+          <div class="flex rounded-md shadow-sm">
+            <Input
               id="subdomain"
               name="subdomain"
               type="text"
-              required
-              pattern="[a-z0-9-]+"
-              value={form?.subdomain ?? ""}
-              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-l-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
               placeholder="himti"
+              bind:value={subdomain}
+              error={errors.subdomain}
+              disabled={isLoading}
+              class="rounded-r-none"
             />
             <span
-              class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm"
+              class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm"
             >
               .sekre.app
             </span>
           </div>
-          <p class="mt-1 text-xs text-gray-500">
-            Only lowercase letters, numbers, and hyphens
-          </p>
-        </div>
+        </FormField>
 
-        <div>
-          <label
-            for="full_name"
-            class="block text-sm font-medium text-gray-700"
-          >
-            Your Full Name
-          </label>
-          <input
+        <FormField
+          label="Your Full Name"
+          id="full_name"
+          required
+          error={errors.full_name}
+        >
+          <Input
             id="full_name"
             name="full_name"
             type="text"
-            required
-            value={form?.full_name ?? ""}
-            class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
             placeholder="Sajudin Ma'ruf"
+            bind:value={fullName}
+            error={errors.full_name}
+            disabled={isLoading}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label for="email" class="block text-sm font-medium text-gray-700">
-            Email address
-          </label>
-          <input
+        <FormField
+          label="Email address"
+          id="email"
+          required
+          error={errors.email}
+        >
+          <Input
             id="email"
             name="email"
             type="email"
             autocomplete="email"
-            required
-            value={form?.email ?? ""}
-            class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
             placeholder="you@example.com"
+            bind:value={email}
+            error={errors.email}
+            disabled={isLoading}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label for="password" class="block text-sm font-medium text-gray-700">
-            Password
-          </label>
-          <input
+        <FormField
+          label="Password"
+          id="password"
+          required
+          error={errors.password}
+          hint="Minimum 8 characters"
+        >
+          <Input
             id="password"
             name="password"
             type="password"
             autocomplete="new-password"
-            required
-            minlength="8"
-            class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
             placeholder="••••••••"
+            bind:value={password}
+            error={errors.password}
+            disabled={isLoading}
           />
-          <p class="mt-1 text-xs text-gray-500">Minimum 8 characters</p>
-        </div>
-      </div>
+        </FormField>
 
-      <div>
-        <button
+        <Button
           type="submit"
+          variant="primary"
+          size="lg"
+          fullWidth
+          loading={isLoading}
           disabled={isLoading}
-          class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {#if isLoading}
-            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-              <svg
-                class="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            </span>
-            Creating organization...
-          {:else}
-            Create organization
-          {/if}
-        </button>
-      </div>
-    </form>
+          {isLoading ? "Creating organization..." : "Create organization"}
+        </Button>
+      </form>
+    </Card>
   </div>
 </div>

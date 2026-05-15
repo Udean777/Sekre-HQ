@@ -1,15 +1,26 @@
 <script lang="ts">
-  import { enhance } from "$app/forms";
-  import type { User } from "$lib/api/types";
+  import { User, Settings, LogOut, ChevronDown } from "lucide-svelte";
+  import { goto } from "$app/navigation";
+  import type { User as UserType, Organization } from "$lib/api/types";
 
   interface Props {
-    user: User;
+    user?: UserType;
+    organization?: Organization;
   }
 
-  let { user }: Props = $props();
+  let { user, organization }: Props = $props();
 
   let isOpen = $state(false);
-  let isLoggingOut = $state(false);
+
+  // Get user initials
+  const userInitials = $derived(() => {
+    if (!user?.full_name) return "?";
+    const names = user.full_name.split(" ");
+    if (names.length === 1) {
+      return names[0].substring(0, 2).toUpperCase();
+    }
+    return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+  });
 
   function toggleMenu() {
     isOpen = !isOpen;
@@ -18,77 +29,144 @@
   function closeMenu() {
     isOpen = false;
   }
+
+  async function handleLogout() {
+    if (confirm("Are you sure you want to logout?")) {
+      // Submit logout form
+      const form = document.getElementById("logout-form") as HTMLFormElement;
+      if (form) {
+        form.submit();
+      }
+    }
+    closeMenu();
+  }
+
+  // Close on click outside
+  $effect(() => {
+    if (!isOpen) return;
+
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-user-menu]")) {
+        closeMenu();
+      }
+    }
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  });
+
+  // Close on ESC
+  $effect(() => {
+    if (!isOpen) return;
+
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") closeMenu();
+    }
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  });
 </script>
 
-<div class="relative">
-  <!-- User button -->
+<!-- Hidden logout form -->
+<form
+  id="logout-form"
+  method="POST"
+  action="/logout"
+  style="display: none;"
+></form>
+
+<div class="relative" data-user-menu>
+  <!-- Trigger button -->
   <button
     type="button"
-    class="flex items-center max-w-xs rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
     onclick={toggleMenu}
+    class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+    aria-expanded={isOpen}
+    aria-haspopup="true"
   >
-    <span class="sr-only">Open user menu</span>
+    <!-- Avatar with initials -->
     <div
-      class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium"
+      class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium"
     >
-      {user.full_name.charAt(0).toUpperCase()}
+      {userInitials()}
     </div>
+
+    <!-- User info (desktop only) -->
+    {#if user}
+      <div class="hidden md:block text-left">
+        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {user.full_name}
+        </p>
+        {#if organization}
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            {organization.name}
+          </p>
+        {/if}
+      </div>
+    {/if}
+
+    <ChevronDown
+      class="h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform {isOpen
+        ? 'rotate-180'
+        : ''}"
+    />
   </button>
 
   <!-- Dropdown menu -->
   {#if isOpen}
-    <!-- Backdrop -->
-    <button
-      type="button"
-      class="fixed inset-0 z-10"
-      onclick={closeMenu}
-      aria-label="Close menu"
-      tabindex="-1"
-    ></button>
-
-    <!-- Menu -->
     <div
-      class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 z-20"
+      class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
     >
-      <div class="px-4 py-2 border-b border-gray-200">
-        <p class="text-sm font-medium text-gray-900">{user.full_name}</p>
-        <p class="text-xs text-gray-500 truncate">{user.email}</p>
-      </div>
+      <!-- User info (mobile) -->
+      {#if user}
+        <div
+          class="md:hidden px-4 py-3 border-b border-gray-200 dark:border-gray-700"
+        >
+          <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+            {user.full_name}
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            {user.email}
+          </p>
+          {#if organization}
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {organization.name}
+            </p>
+          {/if}
+        </div>
+      {/if}
 
+      <!-- Menu items -->
       <a
         href="/app/settings/profile"
-        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
         onclick={closeMenu}
+        class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
       >
-        <div class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M12 1v6m0 6v6m-9-9h6m6 0h6"></path>
-            <path d="M19.07 4.93l-4.24 4.24m0 5.66l4.24 4.24M4.93 4.93l4.24 4.24m0 5.66l-4.24 4.24"></path>
-          </svg>
-          <span>Settings</span>
-        </div>
+        <User class="h-4 w-4" />
+        Profile
       </a>
 
-      <form
-        method="POST"
-        action="/logout"
-        use:enhance={() => {
-          isLoggingOut = true;
-          return async ({ update }) => {
-            await update();
-            isLoggingOut = false;
-          };
-        }}
+      <a
+        href="/app/settings"
+        onclick={closeMenu}
+        class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
       >
-        <button
-          type="submit"
-          disabled={isLoggingOut}
-          class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-        >
-          {isLoggingOut ? "Logging out..." : "Logout"}
-        </button>
-      </form>
+        <Settings class="h-4 w-4" />
+        Settings
+      </a>
+
+      <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
+      <button
+        type="button"
+        onclick={handleLogout}
+        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      >
+        <LogOut class="h-4 w-4" />
+        Logout
+      </button>
     </div>
   {/if}
 </div>
