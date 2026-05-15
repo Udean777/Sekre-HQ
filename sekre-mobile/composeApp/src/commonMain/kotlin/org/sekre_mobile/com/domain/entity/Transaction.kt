@@ -17,7 +17,8 @@ data class Transaction(
     val divisionId: String,
     val eventId: String?,
     val type: TransactionType,
-    val amount: Double,
+    val amountCents: Long,
+    val currency: String,
     val description: String,
     val status: TransactionStatus,
     val requestedBy: String,
@@ -42,7 +43,7 @@ data class Transaction(
     fun isExpense(): Boolean = type == TransactionType.EXPENSE
 
     /** Get signed amount (positive for income, negative for expense) */
-    fun getSignedAmount(): Double = if (isIncome()) amount else -amount
+    fun getSignedAmountCents(): Long = if (isIncome()) amountCents else -amountCents
 
     /** Check if transaction can be approved */
     fun canBeApproved(): Boolean = isPending()
@@ -69,20 +70,21 @@ data class TransactionWithDetails(
 
 /** Finance Summary Value Object */
 data class FinanceSummary(
-    val totalIncome: Double,
-    val totalExpense: Double,
-    val balance: Double,
+    val totalIncomeCents: Long,
+    val totalExpenseCents: Long,
+    val balanceCents: Long,
+    val currency: String,
     val transactionCount: Int
 ) {
     /** Check if balance is positive */
-    fun hasPositiveBalance(): Boolean = balance > 0
+    fun hasPositiveBalance(): Boolean = balanceCents > 0
 
     /** Check if balance is negative */
-    fun hasNegativeBalance(): Boolean = balance < 0
+    fun hasNegativeBalance(): Boolean = balanceCents < 0
 
     /** Get balance percentage (income vs expense) */
     fun getBalancePercentage(): Double {
-        if (totalIncome == 0.0) return 0.0
-        return (balance / totalIncome) * 100
+        if (totalIncomeCents == 0L) return 0.0
+        return (balanceCents.toDouble() / totalIncomeCents.toDouble()) * 100
     }
 }

@@ -27,7 +27,8 @@ object TransactionMapper {
             divisionId = divisionId,
             eventId = eventId,
             type = parseTransactionType(type),
-            amount = amount,
+            amountCents = amount.amountCents,
+            currency = amount.currency,
             description = description,
             status = parseTransactionStatus(status),
             requestedBy = requestedBy,
@@ -68,10 +69,11 @@ object TransactionMapper {
     /** Convert FinanceSummaryDto to FinanceSummary entity */
     fun FinanceSummaryDto.toDomain(): FinanceSummary {
         return FinanceSummary(
-            totalIncome = totalIncome,
-            totalExpense = totalExpense,
-            balance = balance,
-            transactionCount = transactionCount
+            totalIncomeCents = totalIncome.amountCents,
+            totalExpenseCents = totalExpense.amountCents,
+            balanceCents = balance.amountCents,
+            currency = balance.currency,
+            transactionCount = transactionCount ?: 0
         )
     }
     

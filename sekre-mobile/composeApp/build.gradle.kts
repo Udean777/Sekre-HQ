@@ -74,6 +74,10 @@ kotlin {
             // Koin DI
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+
+            // Navigation
+            implementation(libs.androidx.navigation.compose)
         }
         
         iosMain.dependencies {
@@ -117,4 +121,3 @@ android {
 dependencies {
     debugImplementation(libs.compose.uiTooling)
 }
-

@@ -12,6 +12,7 @@ data class CreateTaskRequest(
     @SerialName("assignee_id") val assigneeId: String?,
     @SerialName("title") val title: String,
     @SerialName("description") val description: String?,
+    @SerialName("priority") val priority: String? = null,
     @SerialName("due_date") val dueDate: String?
 )
 
@@ -20,6 +21,7 @@ data class UpdateTaskRequest(
     @SerialName("title") val title: String?,
     @SerialName("description") val description: String?,
     @SerialName("assignee_id") val assigneeId: String?,
+    @SerialName("priority") val priority: String? = null,
     @SerialName("due_date") val dueDate: String?,
     @SerialName("status") val status: String?
 )

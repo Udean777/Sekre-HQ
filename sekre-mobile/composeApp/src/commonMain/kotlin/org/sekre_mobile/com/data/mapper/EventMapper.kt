@@ -14,6 +14,20 @@ import org.sekre_mobile.com.domain.entity.EventWithDivision
  * Data layer - converts between DTOs and domain entities
  */
 object EventMapper {
+    private fun EventWithDivisionDto.resolveEventDto(): EventDto {
+        val nested = event
+        if (nested != null) return nested
+        return EventDto(
+            id = id.orEmpty(),
+            divisionId = divisionId.orEmpty(),
+            title = title.orEmpty(),
+            description = description.orEmpty(),
+            startTime = startTime.orEmpty(),
+            endTime = endTime.orEmpty(),
+            location = location,
+            createdAt = createdAt.orEmpty(),
+        )
+    }
     
     /** Convert EventDto to Event entity */
     fun EventDto.toDomain(): Event {
@@ -39,8 +53,9 @@ object EventMapper {
     
     /** Convert EventWithDivisionDto to EventWithDivision entity */
     fun EventWithDivisionDto.toDomain(): EventWithDivision {
+        val resolved = resolveEventDto()
         return EventWithDivision(
-            event = event.toDomain(),
+            event = resolved.toDomain(),
             division = division?.toDomain()
         )
     }

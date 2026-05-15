@@ -34,5 +34,5 @@ data class AuthResponseDto(
     @SerialName("user") val user: UserDto,
     @SerialName("organization") val organization: OrganizationDto,
     @SerialName("role") val role: String,
-    @SerialName("tokens") val tokens: TokensDto
+    @SerialName("tokens") val tokens: TokensDto? = null,
 )

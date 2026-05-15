@@ -26,7 +26,18 @@ class AuthRepositoryImpl(
     private val tokenManager: TokenManager
 ) : AuthRepository {
 
+    private fun debugLog(tag: String, message: String) { /* debug disabled */ }
+
+    private fun debugError(tag: String, e: Exception) {
+        debugLog(tag, "type=${e::class.simpleName} message=${e.message}")
+        e.cause?.let { cause ->
+            debugLog(tag, "causeType=${cause::class.simpleName} causeMessage=${cause.message}")
+        }
+        debugLog(tag, "stacktrace=${e.stackTraceToString()}")
+    }
+
     override suspend fun login(email: String, password: String): Result<AuthenticatedUser> {
+        debugLog("login", "request start email=$email")
         return try {
             val response = unauthenticatedClient.post(ApiEndpoints.Auth.LOGIN) {
                 contentType(ContentType.Application.Json)
@@ -34,6 +45,11 @@ class AuthRepositoryImpl(
             }.body<ApiResponse<AuthResponseDto>>()
 
             if (response.success && response.data != null) {
+                if (response.data.tokens == null) {
+                    debugLog("login", "response invalid: tokens missing")
+                    return Result.Error(Exception("Login response missing tokens"))
+                }
+                debugLog("login", "response success userId=${response.data.user.id}")
                 // Save tokens
                 tokenManager.saveAccessToken(response.data.tokens.accessToken)
                 tokenManager.saveRefreshToken(response.data.tokens.refreshToken)
@@ -41,9 +57,11 @@ class AuthRepositoryImpl(
                 // Convert to domain entity
                 Result.Success(response.data.toDomain())
             } else {
+                debugLog("login", "response fail error=${response.error} message=${response.message}")
                 Result.Error(Exception(response.error ?: "Login failed"))
             }
         } catch (e: Exception) {
+            debugError("login", e)
             Result.Error(e)
         }
     }
@@ -55,6 +73,7 @@ class AuthRepositoryImpl(
         password: String,
         fullName: String
     ): Result<AuthenticatedUser> {
+        debugLog("register", "request start email=$email subdomain=$subdomain org=$organizationName")
         return try {
             val response = unauthenticatedClient.post(ApiEndpoints.Auth.REGISTER) {
                 contentType(ContentType.Application.Json)
@@ -70,6 +89,11 @@ class AuthRepositoryImpl(
             }.body<ApiResponse<AuthResponseDto>>()
 
             if (response.success && response.data != null) {
+                if (response.data.tokens == null) {
+                    debugLog("register", "response invalid: tokens missing")
+                    return Result.Error(Exception("Register response missing tokens"))
+                }
+                debugLog("register", "response success userId=${response.data.user.id}")
                 // Save tokens
                 tokenManager.saveAccessToken(response.data.tokens.accessToken)
                 tokenManager.saveRefreshToken(response.data.tokens.refreshToken)
@@ -77,9 +101,11 @@ class AuthRepositoryImpl(
                 // Convert to domain entity
                 Result.Success(response.data.toDomain())
             } else {
+                debugLog("register", "response fail error=${response.error} message=${response.message}")
                 Result.Error(Exception(response.error ?: "Registration failed"))
             }
         } catch (e: Exception) {
+            debugError("register", e)
             Result.Error(e)
         }
     }
@@ -105,15 +131,19 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun getCurrentUser(): Result<AuthenticatedUser> {
+        debugLog("me", "request start")
         return try {
             val response = httpClient.get(ApiEndpoints.Auth.ME).body<ApiResponse<AuthResponseDto>>()
 
             if (response.success && response.data != null) {
+                debugLog("me", "response success userId=${response.data.user.id}")
                 Result.Success(response.data.toDomain())
             } else {
+                debugLog("me", "response fail error=${response.error} message=${response.message}")
                 Result.Error(Exception(response.error ?: "Failed to get current user"))
             }
         } catch (e: Exception) {
+            debugError("me", e)
             Result.Error(e)
         }
     }

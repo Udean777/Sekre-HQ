@@ -26,6 +26,19 @@ data class EventDivisionDto(
 
 @Serializable
 data class EventWithDivisionDto(
-    @SerialName("event") val event: EventDto,
-    @SerialName("division") val division: EventDivisionDto?
+    @SerialName("event") val event: EventDto? = null,
+    @SerialName("division") val division: EventDivisionDto? = null,
+    @SerialName("id") val id: String? = null,
+    @SerialName("division_id") val divisionId: String? = null,
+    @SerialName("title") val title: String? = null,
+    @SerialName("description") val description: String? = null,
+    @SerialName("start_time") val startTime: String? = null,
+    @SerialName("end_time") val endTime: String? = null,
+    @SerialName("location") val location: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class EventListPayloadDto(
+    @SerialName("data") val data: List<EventWithDivisionDto> = emptyList(),
 )

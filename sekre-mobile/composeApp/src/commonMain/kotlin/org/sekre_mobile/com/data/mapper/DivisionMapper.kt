@@ -17,7 +17,7 @@ object DivisionMapper {
             organizationId = organizationId,
             name = name,
             createdAt = parseTimestamp(createdAt),
-            updatedAt = parseTimestamp(updatedAt)
+            updatedAt = updatedAt?.let { parseTimestamp(it) } ?: parseTimestamp(createdAt)
         )
     }
 }

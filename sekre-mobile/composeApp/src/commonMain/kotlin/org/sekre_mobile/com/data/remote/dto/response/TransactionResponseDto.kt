@@ -7,12 +7,19 @@ import kotlinx.serialization.Serializable
  * Transaction Response DTOs
  */
 @Serializable
+data class MoneyDto(
+    @SerialName("amount_cents") val amountCents: Long,
+    @SerialName("currency") val currency: String,
+    @SerialName("formatted") val formatted: String? = null,
+)
+
+@Serializable
 data class TransactionDto(
     @SerialName("id") val id: String,
     @SerialName("division_id") val divisionId: String,
     @SerialName("event_id") val eventId: String?,
     @SerialName("type") val type: String,
-    @SerialName("amount") val amount: Double,
+    @SerialName("amount") val amount: MoneyDto,
     @SerialName("description") val description: String,
     @SerialName("status") val status: String,
     @SerialName("requested_by") val requestedBy: String,
@@ -45,8 +52,8 @@ data class TransactionWithDetailsDto(
 
 @Serializable
 data class FinanceSummaryDto(
-    @SerialName("total_income") val totalIncome: Double,
-    @SerialName("total_expense") val totalExpense: Double,
-    @SerialName("balance") val balance: Double,
-    @SerialName("transaction_count") val transactionCount: Int
+    @SerialName("total_income") val totalIncome: MoneyDto,
+    @SerialName("total_expense") val totalExpense: MoneyDto,
+    @SerialName("balance") val balance: MoneyDto,
+    @SerialName("transaction_count") val transactionCount: Int? = null,
 )

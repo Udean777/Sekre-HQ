@@ -21,8 +21,16 @@ import org.sekre_mobile.com.domain.repository.DivisionRepository
 class DivisionRepositoryImpl(
     private val httpClient: HttpClient
 ) : DivisionRepository {
+    private fun log(tag: String, msg: String) { /* debug disabled */ }
+    private fun logErr(tag: String, e: Exception) {
+        log(tag, "type=${e::class.simpleName} message=${e.message}")
+        e.cause?.let { log(tag, "causeType=${it::class.simpleName} causeMessage=${it.message}") }
+        log(tag, "stacktrace=${e.stackTraceToString()}")
+    }
+
     
     override suspend fun createDivision(name: String): Result<Division> {
+        log("call", "start")
         return try {
             val response = httpClient.post(ApiEndpoints.Divisions.BASE) {
                 contentType(ContentType.Application.Json)
@@ -35,11 +43,13 @@ class DivisionRepositoryImpl(
                 Result.Error(Exception(response.error ?: "Failed to create division"))
             }
         } catch (e: Exception) {
+            logErr("call", e)
             Result.Error(e)
         }
     }
     
     override suspend fun getDivisionById(id: String): Result<Division> {
+        log("call", "start")
         return try {
             val response = httpClient.get(ApiEndpoints.Divisions.byId(id))
                 .body<ApiResponse<DivisionDto>>()
@@ -50,11 +60,13 @@ class DivisionRepositoryImpl(
                 Result.Error(Exception(response.error ?: "Failed to get division"))
             }
         } catch (e: Exception) {
+            logErr("call", e)
             Result.Error(e)
         }
     }
     
     override suspend fun listDivisions(): Result<List<Division>> {
+        log("call", "start")
         return try {
             val response = httpClient.get(ApiEndpoints.Divisions.BASE)
                 .body<ApiResponse<List<DivisionDto>>>()
@@ -65,11 +77,13 @@ class DivisionRepositoryImpl(
                 Result.Error(Exception(response.error ?: "Failed to list divisions"))
             }
         } catch (e: Exception) {
+            logErr("call", e)
             Result.Error(e)
         }
     }
     
     override suspend fun updateDivision(id: String, name: String): Result<Division> {
+        log("call", "start")
         return try {
             val response = httpClient.put(ApiEndpoints.Divisions.byId(id)) {
                 contentType(ContentType.Application.Json)
@@ -82,11 +96,13 @@ class DivisionRepositoryImpl(
                 Result.Error(Exception(response.error ?: "Failed to update division"))
             }
         } catch (e: Exception) {
+            logErr("call", e)
             Result.Error(e)
         }
     }
     
     override suspend fun deleteDivision(id: String): Result<Unit> {
+        log("call", "start")
         return try {
             val response = httpClient.delete(ApiEndpoints.Divisions.byId(id))
                 .body<ApiResponse<Unit>>()
@@ -97,6 +113,7 @@ class DivisionRepositoryImpl(
                 Result.Error(Exception(response.error ?: "Failed to delete division"))
             }
         } catch (e: Exception) {
+            logErr("call", e)
             Result.Error(e)
         }
     }

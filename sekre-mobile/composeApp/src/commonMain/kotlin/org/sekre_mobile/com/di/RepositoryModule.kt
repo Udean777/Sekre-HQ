@@ -7,11 +7,13 @@ import org.sekre_mobile.com.data.repository.DivisionRepositoryImpl
 import org.sekre_mobile.com.data.repository.EventRepositoryImpl
 import org.sekre_mobile.com.data.repository.TaskRepositoryImpl
 import org.sekre_mobile.com.data.repository.TransactionRepositoryImpl
+import org.sekre_mobile.com.data.repository.UserRepositoryImpl
 import org.sekre_mobile.com.domain.repository.AuthRepository
 import org.sekre_mobile.com.domain.repository.DivisionRepository
 import org.sekre_mobile.com.domain.repository.EventRepository
 import org.sekre_mobile.com.domain.repository.TaskRepository
 import org.sekre_mobile.com.domain.repository.TransactionRepository
+import org.sekre_mobile.com.domain.repository.UserRepository
 
 /**
  * Repository Module
@@ -52,6 +54,13 @@ val repositoryModule = module {
     // Division Repository
     single<DivisionRepository> {
         DivisionRepositoryImpl(
+            httpClient = get(named("authenticated"))
+        )
+    }
+
+    // User Repository
+    single<UserRepository> {
+        UserRepositoryImpl(
             httpClient = get(named("authenticated"))
         )
     }

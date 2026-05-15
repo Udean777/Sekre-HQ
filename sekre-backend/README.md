@@ -293,6 +293,180 @@ go test -v -tags=e2e ./tests/e2e/...       # E2E tests
 
 ---
 
+## Feature Explanations
+
+### Authentication and Tokens
+
+- `access_token`: short-lived JWT for API authorization (default `15` minutes via `JWT_ACCESS_EXPIRY`)
+- `refresh_token`: longer-lived JWT for session renewal (default `10080` minutes / 7 days via `JWT_REFRESH_EXPIRY`)
+- Why both: short access lifetime reduces blast radius, refresh token keeps user session practical
+
+#### Token lifecycle flow
+
+```text
+[Login/Register]
+    -> validate credentials/registration payload
+    -> issue access_token + refresh_token
+    -> client stores both tokens
+
+[Authenticated API Request]
+    -> client sends Authorization: Bearer access_token
+    -> middleware validates JWT
+    -> valid: request continues
+    -> invalid/expired: 401 Unauthorized
+
+[Refresh]
+    -> client sends refresh_token to refresh endpoint
+    -> valid: issue new access_token (optionally rotate refresh token)
+    -> invalid/expired: reject and require login
+```
+
+#### Login flow
+
+```text
+Client
+  -> POST /auth/login (email, password)
+  -> delivery validates request
+  -> application verifies credentials
+  -> infrastructure compares bcrypt hash
+  -> infrastructure signs JWTs
+  -> response returns authenticated user + tokens
+```
+
+#### Register flow
+
+```text
+Client
+  -> POST /auth/register
+  -> validate payload
+  -> create organization + owner user (tenant bootstrap)
+  -> issue tokens
+  -> return authenticated session payload
+```
+
+#### Current user (`/auth/me`) flow
+
+```text
+Client (Bearer access_token)
+  -> GET /auth/me
+  -> auth middleware parses JWT
+  -> context contains user_id + organization_id + role
+  -> handler resolves current user profile
+  -> return user + organization context
+```
+
+### Authorization (RBAC)
+
+- Roles: `OWNER`, `ADMIN`, `MEMBER`
+- Authorization happens after authentication, before protected action execution
+- Unauthorized action returns forbidden/not-found based on security policy
+
+```text
+Request + JWT
+  -> authenticate identity
+  -> resolve role + tenant scope
+  -> policy check for requested action
+  -> allow or deny
+```
+
+### Multi-tenancy Isolation
+
+- Every data access is scoped by `organization_id`
+- Cross-tenant data must not be exposed
+
+```text
+Incoming request
+  -> derive organization_id from auth context
+  -> repository query constrained by organization_id
+  -> no scoped match: return not found/forbidden
+```
+
+### Task Management
+
+- Supports create, read, list, update, delete, and status update (`TODO`, `IN_PROGRESS`, `DONE`)
+- Task records remain tenant-scoped
+
+```text
+Create/Update Task
+  -> validate request
+  -> map request to domain entity
+  -> persist via repository
+  -> return normalized response payload
+```
+
+```text
+Update Task Status
+  -> auth + tenant check
+  -> validate status input
+  -> patch task status
+  -> return success
+```
+
+### Event Scheduling
+
+- Supports create, read, list, update, delete for events
+- Typical validation includes temporal consistency (start < end)
+
+```text
+Create Event
+  -> validate title/time/division inputs
+  -> persist event in tenant scope
+  -> return event with related division data
+```
+
+### Finance Tracking
+
+- Transaction endpoints support ledger operations and summary retrieval
+- Monetary domain uses integer-safe representation (`valueobject.Money`), not `float64`
+
+```text
+Transaction Flow
+  -> validate amount/type/context
+  -> persist transaction
+  -> compute/read summary
+  -> return transaction/summary response
+```
+
+### Input Validation and Error Model
+
+- Request payloads validated using struct tags (`validator v10`)
+- Errors use standardized response shape with `request_id` for tracing
+
+```text
+Request
+  -> bind JSON
+  -> validate + sanitize
+  -> fail: return 4xx with code/message/request_id
+  -> pass: execute use case
+```
+
+### Rate Limiting
+
+- Per-IP token bucket limits request rate (default 10 rps)
+
+```text
+Request
+  -> limiter checks available tokens
+  -> token available: continue
+  -> token unavailable: 429 Too Many Requests
+```
+
+### Observability and Health
+
+- Liveness/readiness endpoints for orchestration checks
+- Prometheus metrics for monitoring
+- Structured logs with request correlation
+
+```text
+Request lifecycle
+  -> assign/request correlation ID
+  -> execute handler + use case
+  -> emit logs + metrics
+  -> return response (errors include request_id)
+```
+
+---
+
 ## License
 
 Internal project.

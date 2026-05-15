@@ -11,6 +11,7 @@ import org.sekre_mobile.com.data.remote.api.ApiEndpoints
 import org.sekre_mobile.com.data.remote.dto.request.CreateEventRequest
 import org.sekre_mobile.com.data.remote.dto.request.UpdateEventRequest
 import org.sekre_mobile.com.data.remote.dto.response.ApiResponse
+import org.sekre_mobile.com.data.remote.dto.response.EventListPayloadDto
 import org.sekre_mobile.com.data.remote.dto.response.EventWithDivisionDto
 import org.sekre_mobile.com.domain.entity.EventWithDivision
 import org.sekre_mobile.com.domain.model.Result
@@ -23,6 +24,13 @@ import org.sekre_mobile.com.domain.repository.EventRepository
 class EventRepositoryImpl(
     private val httpClient: HttpClient
 ) : EventRepository {
+    private fun log(tag: String, msg: String) { /* debug disabled */ }
+    private fun logErr(tag: String, e: Exception) {
+        log(tag, "type=${e::class.simpleName} message=${e.message}")
+        e.cause?.let { log(tag, "causeType=${it::class.simpleName} causeMessage=${it.message}") }
+        log(tag, "stacktrace=${e.stackTraceToString()}")
+    }
+
     
     override suspend fun createEvent(
         divisionId: String,
@@ -32,6 +40,7 @@ class EventRepositoryImpl(
         endTime: Long,
         location: String?
     ): Result<EventWithDivision> {
+        log("call", "start")
         return try {
             val response = httpClient.post(ApiEndpoints.Events.BASE) {
                 contentType(ContentType.Application.Json)
@@ -53,11 +62,13 @@ class EventRepositoryImpl(
                 Result.Error(Exception(response.error ?: "Failed to create event"))
             }
         } catch (e: Exception) {
+            logErr("call", e)
             Result.Error(e)
         }
     }
     
     override suspend fun getEventById(id: String): Result<EventWithDivision> {
+        log("call", "start")
         return try {
             val response = httpClient.get(ApiEndpoints.Events.byId(id))
                 .body<ApiResponse<EventWithDivisionDto>>()
@@ -68,6 +79,7 @@ class EventRepositoryImpl(
                 Result.Error(Exception(response.error ?: "Failed to get event"))
             }
         } catch (e: Exception) {
+            logErr("call", e)
             Result.Error(e)
         }
     }
@@ -77,19 +89,21 @@ class EventRepositoryImpl(
         startDate: Long?,
         endDate: Long?
     ): Result<List<EventWithDivision>> {
+        log("call", "start")
         return try {
             val response = httpClient.get(ApiEndpoints.Events.BASE) {
                 divisionId?.let { parameter("division_id", it) }
                 startDate?.let { parameter("start_date", it.toIso8601String()) }
                 endDate?.let { parameter("end_date", it.toIso8601String()) }
-            }.body<ApiResponse<List<EventWithDivisionDto>>>()
+            }.body<ApiResponse<EventListPayloadDto>>()
             
             if (response.success && response.data != null) {
-                Result.Success(response.data.map { it.toDomain() })
+                Result.Success(response.data.data.map { it.toDomain() })
             } else {
                 Result.Error(Exception(response.error ?: "Failed to list events"))
             }
         } catch (e: Exception) {
+            logErr("call", e)
             Result.Error(e)
         }
     }
@@ -102,6 +116,7 @@ class EventRepositoryImpl(
         endTime: Long?,
         location: String?
     ): Result<EventWithDivision> {
+        log("call", "start")
         return try {
             val response = httpClient.put(ApiEndpoints.Events.byId(id)) {
                 contentType(ContentType.Application.Json)
@@ -122,11 +137,13 @@ class EventRepositoryImpl(
                 Result.Error(Exception(response.error ?: "Failed to update event"))
             }
         } catch (e: Exception) {
+            logErr("call", e)
             Result.Error(e)
         }
     }
     
     override suspend fun deleteEvent(id: String): Result<Unit> {
+        log("call", "start")
         return try {
             val response = httpClient.delete(ApiEndpoints.Events.byId(id))
                 .body<ApiResponse<Unit>>()
@@ -137,6 +154,7 @@ class EventRepositoryImpl(
                 Result.Error(Exception(response.error ?: "Failed to delete event"))
             }
         } catch (e: Exception) {
+            logErr("call", e)
             Result.Error(e)
         }
     }
