@@ -527,6 +527,60 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access and refresh token pair
+      description: |
+        Rotates refresh token and returns a new token pair.
+
+        **Behavior:**
+        - Validates refresh token signature and token type
+        - Validates refresh token session in database
+        - Revokes old refresh token session
+        - Creates a new refresh token session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            examples:
+              basic:
+                value:
+                  refresh_token: "eyJhbGciOi..."
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPairResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout current user
+      description: |
+        Revokes all active refresh sessions for the authenticated user.
+        Access token must be provided via Bearer auth.
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /users:
     get:
       tags: [Users]
@@ -2183,6 +2237,14 @@ components:
           type: string
           format: password
 
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          description: Valid refresh token issued by login/register/refresh
+
     AuthSuccessResponse:
       type: object
       required: [access_token, refresh_token, token_type, expires_in, user]
@@ -2231,6 +2293,7 @@ components:
 
     TokenPair:
       type: object
+      required: [access_token, refresh_token]
       properties:
         access_token:
           type: string
@@ -2238,6 +2301,14 @@ components:
         refresh_token:
           type: string
           description: Long-lived refresh token (7 days default)
+
+    TokenPairResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TokenPair'
 
     Role:
       type: string

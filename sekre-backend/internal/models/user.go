@@ -79,6 +79,31 @@ type PasswordReset struct {
 	User User `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
+type RefreshSession struct {
+	ID             uuid.UUID      `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	UserID         uuid.UUID      `gorm:"type:uuid;not null;index" json:"user_id"`
+	OrganizationID uuid.UUID      `gorm:"type:uuid;not null" json:"organization_id"`
+	Role           types.Role     `gorm:"type:varchar(50);not null" json:"role"`
+	TokenHash      string         `gorm:"type:varchar(255);not null" json:"-"`
+	JTI            string         `gorm:"type:varchar(64);uniqueIndex;not null" json:"jti"`
+	ExpiresAt      time.Time      `gorm:"not null;index" json:"expires_at"`
+	RevokedAt      *time.Time     `gorm:"index" json:"revoked_at,omitempty"`
+	CreatedAt      time.Time      `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt      time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+func (RefreshSession) TableName() string {
+	return "refresh_sessions"
+}
+
+func (rs *RefreshSession) BeforeCreate(tx *gorm.DB) error {
+	if rs.ID == uuid.Nil {
+		rs.ID = uuid.New()
+	}
+	return nil
+}
+
 // TableName specifies the table name for PasswordReset
 func (PasswordReset) TableName() string {
 	return "password_resets"

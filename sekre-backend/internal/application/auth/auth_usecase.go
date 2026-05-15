@@ -2,12 +2,15 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/service"
 	"github.com/username/sekre-backend/internal/domain/types"
@@ -39,6 +42,8 @@ type AuthUsecase interface {
 	Register(ctx context.Context, req *RegisterRequest) (*AuthResponse, error)
 	Login(ctx context.Context, req *LoginRequest) (*AuthResponse, error)
 	GetMe(ctx context.Context, userID uuid.UUID) (*entity.UserWithOrganization, error)
+	Refresh(ctx context.Context, refreshToken string) (*token.TokenPair, error)
+	Logout(ctx context.Context, userID uuid.UUID) error
 }
 
 // authUsecase orchestrates the registration / login flow. All infrastructure
@@ -53,6 +58,7 @@ type authUsecase struct {
 	hasher    service.PasswordHasher
 	tokens    service.TokenGenerator
 	validator service.RegistrationValidator
+	refresh   repository.RefreshSessionRepository
 }
 
 // NewAuthUsecase wires the dependencies required by the auth flows.
@@ -64,7 +70,12 @@ func NewAuthUsecase(
 	hasher service.PasswordHasher,
 	tokens service.TokenGenerator,
 	validator service.RegistrationValidator,
+	refresh ...repository.RefreshSessionRepository,
 ) AuthUsecase {
+	var refreshRepo repository.RefreshSessionRepository
+	if len(refresh) > 0 {
+		refreshRepo = refresh[0]
+	}
 	return &authUsecase{
 		users:     users,
 		orgs:      orgs,
@@ -73,6 +84,7 @@ func NewAuthUsecase(
 		hasher:    hasher,
 		tokens:    tokens,
 		validator: validator,
+		refresh:   refreshRepo,
 	}
 }
 
@@ -145,6 +157,9 @@ func (u *authUsecase) Register(ctx context.Context, req *RegisterRequest) (*Auth
 	if err != nil {
 		return nil, domainerrors.Internal("generate tokens", err)
 	}
+	if err := u.persistRefreshSession(ctx, tokens.RefreshToken); err != nil {
+		return nil, err
+	}
 
 	return &AuthResponse{
 		User:         *user,
@@ -180,6 +195,9 @@ func (u *authUsecase) Login(ctx context.Context, req *LoginRequest) (*AuthRespon
 	if err != nil {
 		return nil, domainerrors.Internal("generate tokens", err)
 	}
+	if err := u.persistRefreshSession(ctx, tokens.RefreshToken); err != nil {
+		return nil, err
+	}
 
 	return &AuthResponse{
 		User:         userWithOrg.User,
@@ -191,6 +209,76 @@ func (u *authUsecase) Login(ctx context.Context, req *LoginRequest) (*AuthRespon
 
 func (u *authUsecase) GetMe(ctx context.Context, userID uuid.UUID) (*entity.UserWithOrganization, error) {
 	return u.userOrgs.GetUserWithOrganization(ctx, userID)
+}
+
+func (u *authUsecase) Refresh(ctx context.Context, refreshToken string) (*token.TokenPair, error) {
+	claims, err := u.tokens.Verify(refreshToken)
+	if err != nil {
+		return nil, domainerrors.ErrInvalidToken
+	}
+	if claims.TokenType != "refresh" {
+		return nil, domainerrors.ErrInvalidToken
+	}
+
+	session, err := u.refresh.GetByJTI(ctx, claims.ID)
+	if err != nil {
+		return nil, err
+	}
+	if session.RevokedAt != nil || time.Now().After(session.ExpiresAt) {
+		return nil, domainerrors.ErrInvalidToken
+	}
+	if hashToken(refreshToken) != session.TokenHash {
+		return nil, domainerrors.ErrInvalidToken
+	}
+
+	newTokens, err := u.tokens.Generate(claims.UserID, claims.OrganizationID, claims.Role)
+	if err != nil {
+		return nil, domainerrors.Internal("generate tokens", err)
+	}
+
+	if err := u.refresh.RevokeByJTI(ctx, claims.ID); err != nil {
+		return nil, err
+	}
+	if err := u.persistRefreshSession(ctx, newTokens.RefreshToken); err != nil {
+		return nil, err
+	}
+
+	return newTokens, nil
+}
+
+func (u *authUsecase) Logout(ctx context.Context, userID uuid.UUID) error {
+	if u.refresh == nil {
+		return nil
+	}
+	return u.refresh.RevokeByUser(ctx, userID)
+}
+
+func (u *authUsecase) persistRefreshSession(ctx context.Context, refreshToken string) error {
+	if u.refresh == nil {
+		return nil
+	}
+	claims, err := u.tokens.Verify(refreshToken)
+	if err != nil {
+		return domainerrors.Internal("verify refresh token", err)
+	}
+	session := &entity.RefreshSession{
+		ID:             uuid.New(),
+		UserID:         claims.UserID,
+		OrganizationID: claims.OrganizationID,
+		Role:           claims.Role,
+		TokenHash:      hashToken(refreshToken),
+		JTI:            claims.ID,
+		ExpiresAt:      claims.ExpiresAt.Time,
+	}
+	if err := u.refresh.Create(ctx, session); err != nil {
+		return err
+	}
+	return nil
+}
+
+func hashToken(raw string) string {
+	sum := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(sum[:])
 }
 
 // validateRegisterRequest validates presence of required fields and delegates
