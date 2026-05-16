@@ -293,177 +293,105 @@ go test -v -tags=e2e ./tests/e2e/...       # E2E tests
 
 ---
 
-## Feature Explanations
+## Alur Fitur (Versi Mudah Dipahami)
 
-### Authentication and Tokens
+Bagian ini menjelaskan cara kerja sistem dengan bahasa sederhana, agar bisa dipahami juga oleh non-engineer.
 
-- `access_token`: short-lived JWT for API authorization (default `15` minutes via `JWT_ACCESS_EXPIRY`)
-- `refresh_token`: longer-lived JWT for session renewal (default `10080` minutes / 7 days via `JWT_REFRESH_EXPIRY`)
-- Why both: short access lifetime reduces blast radius, refresh token keeps user session practical
+### 1) Login, Sesi, dan Token
 
-#### Token lifecycle flow
+Saat user login atau daftar, backend memberikan 2 "kunci digital":
 
-```text
-[Login/Register]
-    -> validate credentials/registration payload
-    -> issue access_token + refresh_token
-    -> client stores both tokens
+- `access_token` (umur pendek, default 15 menit): dipakai untuk akses API sehari-hari.
+- `refresh_token` (umur lebih panjang, default 7 hari): dipakai untuk minta `access_token` baru tanpa login ulang.
 
-[Authenticated API Request]
-    -> client sends Authorization: Bearer access_token
-    -> middleware validates JWT
-    -> valid: request continues
-    -> invalid/expired: 401 Unauthorized
-
-[Refresh]
-    -> client sends refresh_token to refresh endpoint
-    -> valid: issue new access_token (optionally rotate refresh token)
-    -> invalid/expired: reject and require login
-```
-
-#### Login flow
+Kenapa 2 token? Agar tetap nyaman dipakai user, tapi risiko keamanan tetap kecil jika token utama bocor.
 
 ```text
-Client
-  -> POST /auth/login (email, password)
-  -> delivery validates request
-  -> application verifies credentials
-  -> infrastructure compares bcrypt hash
-  -> infrastructure signs JWTs
-  -> response returns authenticated user + tokens
+User login/daftar
+  -> backend cek data user
+  -> backend kirim access_token + refresh_token
+
+User akses fitur
+  -> kirim access_token
+  -> kalau valid: proses lanjut
+  -> kalau expired/tidak valid: diminta refresh atau login ulang
+
+Saat access_token habis
+  -> kirim refresh_token
+  -> backend kirim access_token baru
 ```
 
-#### Register flow
+### 2) Hak Akses Per Peran (RBAC)
+
+Setiap user punya peran:
+
+- `OWNER`: akses tertinggi di organisasi.
+- `ADMIN`: mengelola sebagian besar operasional.
+- `MEMBER`: akses sesuai kebutuhan kerja harian.
+
+Alurnya sederhana: setelah user terbukti login, sistem cek apakah perannya boleh menjalankan aksi tersebut.
+
+### 3) Isolasi Data Antar Organisasi (Multi-tenant)
+
+Sistem ini dipakai banyak organisasi sekaligus, jadi data harus benar-benar terpisah.
+
+- Setiap request selalu membawa konteks `organization_id`.
+- Query database selalu difilter berdasarkan organisasi itu.
+- Jika user mencoba akses data organisasi lain, data tidak akan ditampilkan.
+
+### 4) Alur Fitur Operasional
+
+#### Task Management
+
+Untuk task, alur umumnya:
 
 ```text
-Client
-  -> POST /auth/register
-  -> validate payload
-  -> create organization + owner user (tenant bootstrap)
-  -> issue tokens
-  -> return authenticated session payload
+User kirim data task
+  -> backend validasi input
+  -> backend simpan/ubah data task
+  -> backend kirim hasil terbaru
 ```
 
-#### Current user (`/auth/me`) flow
+Status task yang didukung: `TODO`, `IN_PROGRESS`, `DONE`.
 
-```text
-Client (Bearer access_token)
-  -> GET /auth/me
-  -> auth middleware parses JWT
-  -> context contains user_id + organization_id + role
-  -> handler resolves current user profile
-  -> return user + organization context
-```
+#### Event Scheduling
 
-### Authorization (RBAC)
+Untuk event jadwal, backend akan memastikan data waktu masuk akal (misalnya waktu mulai harus sebelum waktu selesai), lalu menyimpan data event.
 
-- Roles: `OWNER`, `ADMIN`, `MEMBER`
-- Authorization happens after authentication, before protected action execution
-- Unauthorized action returns forbidden/not-found based on security policy
+#### Finance Tracking
 
-```text
-Request + JWT
-  -> authenticate identity
-  -> resolve role + tenant scope
-  -> policy check for requested action
-  -> allow or deny
-```
+Untuk transaksi keuangan:
 
-### Multi-tenancy Isolation
+- Data transaksi divalidasi dulu.
+- Data disimpan ke ledger.
+- Ringkasan keuangan dihitung/dibaca dari data tersimpan.
 
-- Every data access is scoped by `organization_id`
-- Cross-tenant data must not be exposed
+Catatan penting: nominal uang tidak pakai `float64`, tapi integer-safe (`valueobject.Money`) agar perhitungan presisi.
 
-```text
-Incoming request
-  -> derive organization_id from auth context
-  -> repository query constrained by organization_id
-  -> no scoped match: return not found/forbidden
-```
+### 5) Validasi Input dan Format Error
 
-### Task Management
+Setiap request dari client selalu melewati validasi.
 
-- Supports create, read, list, update, delete, and status update (`TODO`, `IN_PROGRESS`, `DONE`)
-- Task records remain tenant-scoped
+- Jika format/syarat data salah -> backend balas error 4xx.
+- Jika benar -> proses bisnis dilanjutkan.
+- Setiap error menyertakan `request_id` agar mudah ditelusuri di log.
 
-```text
-Create/Update Task
-  -> validate request
-  -> map request to domain entity
-  -> persist via repository
-  -> return normalized response payload
-```
+### 6) Pembatasan Request (Rate Limiting)
 
-```text
-Update Task Status
-  -> auth + tenant check
-  -> validate status input
-  -> patch task status
-  -> return success
-```
+Untuk mencegah spam/abuse, sistem membatasi jumlah request per IP (default 10 request/detik).
 
-### Event Scheduling
+- Masih dalam batas -> request diproses.
+- Lewat batas -> dapat `429 Too Many Requests`.
 
-- Supports create, read, list, update, delete for events
-- Typical validation includes temporal consistency (start < end)
+### 7) Monitoring dan Health Check
 
-```text
-Create Event
-  -> validate title/time/division inputs
-  -> persist event in tenant scope
-  -> return event with related division data
-```
+Backend menyediakan endpoint untuk memantau kondisi layanan:
 
-### Finance Tracking
+- `GET /health/live`: cek apakah service hidup.
+- `GET /health/ready`: cek apakah service siap melayani request.
+- `GET /metrics`: data metrik untuk monitoring (Prometheus).
 
-- Transaction endpoints support ledger operations and summary retrieval
-- Monetary domain uses integer-safe representation (`valueobject.Money`), not `float64`
-
-```text
-Transaction Flow
-  -> validate amount/type/context
-  -> persist transaction
-  -> compute/read summary
-  -> return transaction/summary response
-```
-
-### Input Validation and Error Model
-
-- Request payloads validated using struct tags (`validator v10`)
-- Errors use standardized response shape with `request_id` for tracing
-
-```text
-Request
-  -> bind JSON
-  -> validate + sanitize
-  -> fail: return 4xx with code/message/request_id
-  -> pass: execute use case
-```
-
-### Rate Limiting
-
-- Per-IP token bucket limits request rate (default 10 rps)
-
-```text
-Request
-  -> limiter checks available tokens
-  -> token available: continue
-  -> token unavailable: 429 Too Many Requests
-```
-
-### Observability and Health
-
-- Liveness/readiness endpoints for orchestration checks
-- Prometheus metrics for monitoring
-- Structured logs with request correlation
-
-```text
-Request lifecycle
-  -> assign/request correlation ID
-  -> execute handler + use case
-  -> emit logs + metrics
-  -> return response (errors include request_id)
-```
+Selain itu, log dibuat terstruktur dan menyertakan `request_id` agar investigasi insiden lebih cepat.
 
 ---
 
