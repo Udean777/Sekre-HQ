@@ -293,6 +293,108 @@ go test -v -tags=e2e ./tests/e2e/...       # E2E tests
 
 ---
 
+## Alur Fitur (Versi Mudah Dipahami)
+
+Bagian ini menjelaskan cara kerja sistem dengan bahasa sederhana, agar bisa dipahami juga oleh non-engineer.
+
+### 1) Login, Sesi, dan Token
+
+Saat user login atau daftar, backend memberikan 2 "kunci digital":
+
+- `access_token` (umur pendek, default 15 menit): dipakai untuk akses API sehari-hari.
+- `refresh_token` (umur lebih panjang, default 7 hari): dipakai untuk minta `access_token` baru tanpa login ulang.
+
+Kenapa 2 token? Agar tetap nyaman dipakai user, tapi risiko keamanan tetap kecil jika token utama bocor.
+
+```text
+User login/daftar
+  -> backend cek data user
+  -> backend kirim access_token + refresh_token
+
+User akses fitur
+  -> kirim access_token
+  -> kalau valid: proses lanjut
+  -> kalau expired/tidak valid: diminta refresh atau login ulang
+
+Saat access_token habis
+  -> kirim refresh_token
+  -> backend kirim access_token baru
+```
+
+### 2) Hak Akses Per Peran (RBAC)
+
+Setiap user punya peran:
+
+- `OWNER`: akses tertinggi di organisasi.
+- `ADMIN`: mengelola sebagian besar operasional.
+- `MEMBER`: akses sesuai kebutuhan kerja harian.
+
+Alurnya sederhana: setelah user terbukti login, sistem cek apakah perannya boleh menjalankan aksi tersebut.
+
+### 3) Isolasi Data Antar Organisasi (Multi-tenant)
+
+Sistem ini dipakai banyak organisasi sekaligus, jadi data harus benar-benar terpisah.
+
+- Setiap request selalu membawa konteks `organization_id`.
+- Query database selalu difilter berdasarkan organisasi itu.
+- Jika user mencoba akses data organisasi lain, data tidak akan ditampilkan.
+
+### 4) Alur Fitur Operasional
+
+#### Task Management
+
+Untuk task, alur umumnya:
+
+```text
+User kirim data task
+  -> backend validasi input
+  -> backend simpan/ubah data task
+  -> backend kirim hasil terbaru
+```
+
+Status task yang didukung: `TODO`, `IN_PROGRESS`, `DONE`.
+
+#### Event Scheduling
+
+Untuk event jadwal, backend akan memastikan data waktu masuk akal (misalnya waktu mulai harus sebelum waktu selesai), lalu menyimpan data event.
+
+#### Finance Tracking
+
+Untuk transaksi keuangan:
+
+- Data transaksi divalidasi dulu.
+- Data disimpan ke ledger.
+- Ringkasan keuangan dihitung/dibaca dari data tersimpan.
+
+Catatan penting: nominal uang tidak pakai `float64`, tapi integer-safe (`valueobject.Money`) agar perhitungan presisi.
+
+### 5) Validasi Input dan Format Error
+
+Setiap request dari client selalu melewati validasi.
+
+- Jika format/syarat data salah -> backend balas error 4xx.
+- Jika benar -> proses bisnis dilanjutkan.
+- Setiap error menyertakan `request_id` agar mudah ditelusuri di log.
+
+### 6) Pembatasan Request (Rate Limiting)
+
+Untuk mencegah spam/abuse, sistem membatasi jumlah request per IP (default 10 request/detik).
+
+- Masih dalam batas -> request diproses.
+- Lewat batas -> dapat `429 Too Many Requests`.
+
+### 7) Monitoring dan Health Check
+
+Backend menyediakan endpoint untuk memantau kondisi layanan:
+
+- `GET /health/live`: cek apakah service hidup.
+- `GET /health/ready`: cek apakah service siap melayani request.
+- `GET /metrics`: data metrik untuk monitoring (Prometheus).
+
+Selain itu, log dibuat terstruktur dan menyertakan `request_id` agar investigasi insiden lebih cepat.
+
+---
+
 ## License
 
 Internal project.

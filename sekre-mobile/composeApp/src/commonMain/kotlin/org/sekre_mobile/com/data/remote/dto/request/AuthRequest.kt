@@ -15,8 +15,13 @@ data class LoginRequest(
 @Serializable
 data class RegisterRequest(
     @SerialName("organization_name") val organizationName: String,
-    @SerialName("subdomain") val subdomain: String,
+    @SerialName("subdomain") val subdomain: String? = null,
     @SerialName("email") val email: String,
     @SerialName("password") val password: String,
     @SerialName("full_name") val fullName: String
+)
+
+@Serializable
+data class RefreshRequest(
+    @SerialName("refresh_token") val refreshToken: String,
 )

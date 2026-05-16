@@ -13,7 +13,8 @@ interface TransactionRepository {
         divisionId: String,
         eventId: String?,
         type: TransactionType,
-        amount: Double,
+        amountCents: Long,
+        currency: String,
         description: String,
         receiptUrl: String?
     ): Result<TransactionWithDetails>
@@ -34,7 +35,8 @@ interface TransactionRepository {
     suspend fun updateTransaction(
         id: String,
         type: TransactionType?,
-        amount: Double?,
+        amountCents: Long?,
+        currency: String?,
         description: String?,
         receiptUrl: String?
     ): Result<TransactionWithDetails>

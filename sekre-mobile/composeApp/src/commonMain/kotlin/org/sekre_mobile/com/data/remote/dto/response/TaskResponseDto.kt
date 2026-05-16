@@ -31,3 +31,8 @@ data class TaskWithAssigneeDto(
     @SerialName("task") val task: TaskDto,
     @SerialName("assignee") val assignee: AssigneeDto?
 )
+
+@Serializable
+data class TaskListPayloadDto(
+    @SerialName("data") val data: List<TaskWithAssigneeDto> = emptyList(),
+)

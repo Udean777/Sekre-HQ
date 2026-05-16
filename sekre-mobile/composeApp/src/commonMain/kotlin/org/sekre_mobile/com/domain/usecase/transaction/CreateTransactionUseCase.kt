@@ -17,7 +17,8 @@ class CreateTransactionUseCase(
         divisionId: String,
         eventId: String?,
         type: TransactionType,
-        amount: Double,
+        amountCents: Long,
+        currency: String,
         description: String,
         receiptUrl: String?
     ): Result<TransactionWithDetails> {
@@ -25,7 +26,7 @@ class CreateTransactionUseCase(
         if (divisionId.isBlank()) {
             return Result.Error(Exception("Division is required"))
         }
-        if (amount <= 0) {
+        if (amountCents <= 0) {
             return Result.Error(Exception("Amount must be greater than 0"))
         }
         if (description.isBlank()) {
@@ -40,7 +41,8 @@ class CreateTransactionUseCase(
             divisionId = divisionId,
             eventId = eventId,
             type = type,
-            amount = amount,
+            amountCents = amountCents,
+            currency = currency,
             description = description,
             receiptUrl = receiptUrl
         )
