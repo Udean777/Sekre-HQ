@@ -1,5 +1,7 @@
 package org.sekre_mobile.com.presentation.task
 
+import org.sekre_mobile.com.domain.entity.Division
+import org.sekre_mobile.com.domain.entity.DivisionMemberUser
 import org.sekre_mobile.com.domain.entity.TaskStatus
 import org.sekre_mobile.com.domain.entity.TaskWithAssignee
 import org.sekre_mobile.com.presentation.base.ViewEffect
@@ -15,9 +17,13 @@ data class TaskState(
     val hasMore: Boolean = true,
     val errorMessage: String? = null,
     val selectedTask: TaskWithAssignee? = null,
-    val formTitle: String = "",
-    val formDescription: String = "",
-    val formDivisionId: String = "",
+
+    // Division / assignee picker support
+    val divisions: List<Division> = emptyList(),
+    val isLoadingDivisions: Boolean = false,
+    /** Members of the currently selected division for assignee picker. */
+    val divisionMembers: List<DivisionMemberUser> = emptyList(),
+    val isLoadingMembers: Boolean = false,
 ) : ViewState
 
 sealed interface TaskEvent : ViewEvent {
@@ -25,10 +31,28 @@ sealed interface TaskEvent : ViewEvent {
     data object LoadNextPage : TaskEvent
     data class OpenDetail(val id: String) : TaskEvent
     data object OpenCreateForm : TaskEvent
-    data class SubmitCreate(val divisionId: String, val title: String, val description: String?) :
-        TaskEvent
 
-    data class SubmitEdit(val id: String, val title: String?, val description: String?) : TaskEvent
+    /** Fired by the create/edit screen when the user selects a division so the
+     *  assignee picker can load that division's members. */
+    data class LoadDivisionMembers(val divisionId: String) : TaskEvent
+
+    data class SubmitCreate(
+        val divisionId: String,
+        val title: String,
+        val description: String?,
+        val assigneeId: String?,
+        val dueDate: Long?,
+    ) : TaskEvent
+
+    data class SubmitEdit(
+        val id: String,
+        val title: String,
+        val status: TaskStatus,
+        val description: String?,
+        val assigneeId: String?,
+        val dueDate: Long?,
+    ) : TaskEvent
+
     data class SubmitStatus(val id: String, val status: TaskStatus) : TaskEvent
 }
 

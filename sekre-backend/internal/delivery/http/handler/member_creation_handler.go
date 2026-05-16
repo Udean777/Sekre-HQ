@@ -9,10 +9,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/username/sekre-backend/internal/application/organization"
+	"github.com/username/sekre-backend/internal/delivery/http/middleware"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/types"
-	"github.com/username/sekre-backend/internal/middleware"
 	"github.com/username/sekre-backend/pkg/response"
 	"github.com/xuri/excelize/v2"
 )

@@ -26,14 +26,16 @@ class AuthRepositoryImpl(
     private val tokenManager: TokenManager
 ) : AuthRepository {
 
-    private fun debugLog(tag: String, message: String) { /* debug disabled */ }
+    private fun debugLog(tag: String, message: String) {
+        println("[DEBUG][AuthRepository][$tag] $message")
+    }
 
     private fun debugError(tag: String, e: Exception) {
-        debugLog(tag, "type=${e::class.simpleName} message=${e.message}")
+        println("[DEBUG][AuthRepository][$tag][ERROR] type=${e::class.simpleName} message=${e.message}")
         e.cause?.let { cause ->
-            debugLog(tag, "causeType=${cause::class.simpleName} causeMessage=${cause.message}")
+            println("[DEBUG][AuthRepository][$tag][ERROR] causeType=${cause::class.simpleName} causeMessage=${cause.message}")
         }
-        debugLog(tag, "stacktrace=${e.stackTraceToString()}")
+        println("[DEBUG][AuthRepository][$tag][STACKTRACE]\n${e.stackTraceToString()}")
     }
 
     override suspend fun login(email: String, password: String): Result<AuthenticatedUser> {
@@ -111,6 +113,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout(): Result<Unit> {
+        debugLog("logout", "request start")
         return try {
             // Call logout endpoint
             val response = httpClient.post(ApiEndpoints.Auth.LOGOUT).body<ApiResponse<Unit>>()
@@ -118,6 +121,7 @@ class AuthRepositoryImpl(
             // Clear tokens regardless of API response
             tokenManager.clearTokens()
 
+            debugLog("logout", "response success=${response.success} error=${response.error}")
             if (response.success) {
                 Result.Success(Unit)
             } else {
@@ -126,6 +130,7 @@ class AuthRepositoryImpl(
         } catch (e: Exception) {
             // Clear tokens even if API call fails
             tokenManager.clearTokens()
+            debugError("logout", e)
             Result.Error(e)
         }
     }

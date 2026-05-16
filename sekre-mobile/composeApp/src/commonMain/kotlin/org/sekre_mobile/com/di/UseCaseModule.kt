@@ -5,8 +5,12 @@ import org.sekre_mobile.com.domain.usecase.auth.GetCurrentUserUseCase
 import org.sekre_mobile.com.domain.usecase.auth.LoginUseCase
 import org.sekre_mobile.com.domain.usecase.auth.LogoutUseCase
 import org.sekre_mobile.com.domain.usecase.auth.RegisterUseCase
+import org.sekre_mobile.com.domain.usecase.division.CreateDivisionUseCase
+import org.sekre_mobile.com.domain.usecase.division.DeleteDivisionUseCase
 import org.sekre_mobile.com.domain.usecase.division.GetDivisionByIdUseCase
+import org.sekre_mobile.com.domain.usecase.division.ListDivisionMembersUseCase
 import org.sekre_mobile.com.domain.usecase.division.ListDivisionsUseCase
+import org.sekre_mobile.com.domain.usecase.division.UpdateDivisionUseCase
 import org.sekre_mobile.com.domain.usecase.event.CreateEventUseCase
 import org.sekre_mobile.com.domain.usecase.event.DeleteEventUseCase
 import org.sekre_mobile.com.domain.usecase.event.GetEventByIdUseCase
@@ -71,6 +75,10 @@ val useCaseModule = module {
     // Division & Member Use Cases
     factory { ListDivisionsUseCase(divisionRepository = get()) }
     factory { GetDivisionByIdUseCase(divisionRepository = get()) }
+    factory { CreateDivisionUseCase(divisionRepository = get()) }
+    factory { UpdateDivisionUseCase(divisionRepository = get()) }
+    factory { DeleteDivisionUseCase(divisionRepository = get()) }
+    factory { ListDivisionMembersUseCase(divisionRepository = get()) }
     factory { ListMembersUseCase(userRepository = get()) }
     factory { CreateMemberUseCase(userRepository = get()) }
 }

@@ -6,6 +6,7 @@ import org.sekre_mobile.com.presentation.base.ViewEvent
 import org.sekre_mobile.com.presentation.base.ViewState
 
 data class AuthState(
+    val isBootstrapping: Boolean = true,
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
     val currentRoute: String = AuthRoutes.LOGIN,
@@ -29,10 +30,18 @@ sealed interface AuthEvent : ViewEvent {
     data object SubmitRegister : AuthEvent
     data object OpenLogin : AuthEvent
     data object OpenRegister : AuthEvent
+    /**
+     * Fired by other features (e.g. MoreViewModel) after they have already
+     * cleared tokens and finished their own logout work. This resets the
+     * Auth state and navigates back to the login screen.
+     */
+    data object SignedOut : AuthEvent
 }
 
 sealed interface AuthEffect : ViewEffect {
     data class ShowError(val message: String) : AuthEffect
+    data object OpenLogin : AuthEffect
+    data object OpenRegister : AuthEffect
     data object OpenMain : AuthEffect
 }
 

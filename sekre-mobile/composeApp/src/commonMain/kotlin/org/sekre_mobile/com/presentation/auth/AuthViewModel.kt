@@ -59,39 +59,75 @@ class AuthViewModel(
 
             AuthEvent.SubmitLogin -> submitLogin()
             AuthEvent.SubmitRegister -> submitRegister()
-            AuthEvent.OpenLogin -> setState {
-                it.copy(
-                    currentRoute = AuthRoutes.LOGIN,
-                    errorMessage = null
-                )
-            }
+            AuthEvent.OpenLogin -> openLogin()
 
-            AuthEvent.OpenRegister -> setState {
-                it.copy(
-                    currentRoute = AuthRoutes.REGISTER,
-                    errorMessage = null
-                )
-            }
+            AuthEvent.OpenRegister -> openRegister()
+
+            AuthEvent.SignedOut -> signedOut()
+        }
+    }
+
+    private fun signedOut() {
+        setState {
+            AuthState(
+                isBootstrapping = false,
+                isLoading = false,
+                isAuthenticated = false,
+                currentRoute = AuthRoutes.LOGIN,
+            )
+        }
+        viewModelScope.launch {
+            sendEffect(AuthEffect.OpenLogin)
+        }
+    }
+
+    private fun openLogin() {
+        setState {
+            it.copy(
+                currentRoute = AuthRoutes.LOGIN,
+                errorMessage = null,
+            )
+        }
+        viewModelScope.launch {
+            sendEffect(AuthEffect.OpenLogin)
+        }
+    }
+
+    private fun openRegister() {
+        setState {
+            it.copy(
+                currentRoute = AuthRoutes.REGISTER,
+                errorMessage = null,
+            )
+        }
+        viewModelScope.launch {
+            sendEffect(AuthEffect.OpenRegister)
         }
     }
 
     private fun bootstrap() {
         viewModelScope.launch {
-            setState { it.copy(isLoading = true, errorMessage = null) }
+            setState { it.copy(isBootstrapping = true, isLoading = true, errorMessage = null) }
             when (val result = getCurrentUserUseCase()) {
                 is Result.Success -> {
                     setState {
                         it.copy(
+                            isBootstrapping = false,
                             isLoading = false,
                             isAuthenticated = true,
                             currentUser = result.data
                         )
                     }
-                    sendEffect(AuthEffect.OpenMain)
                 }
 
                 is Result.Error -> {
-                    setState { it.copy(isLoading = false, isAuthenticated = false) }
+                    setState {
+                        it.copy(
+                            isBootstrapping = false,
+                            isLoading = false,
+                            isAuthenticated = false,
+                        )
+                    }
                 }
             }
         }

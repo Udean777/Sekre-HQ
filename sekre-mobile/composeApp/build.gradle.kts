@@ -42,8 +42,10 @@ kotlin {
             
             // Security - Android (for encrypted token storage)
             implementation(libs.androidx.security.crypto)
+
+            implementation(libs.compose.icons.extended)
         }
-        
+
         commonMain.dependencies {
             // Compose
             implementation(libs.compose.runtime)
@@ -78,6 +80,8 @@ kotlin {
 
             // Navigation
             implementation(libs.androidx.navigation.compose)
+
+            implementation(libs.compose.icons.extended)
         }
         
         iosMain.dependencies {

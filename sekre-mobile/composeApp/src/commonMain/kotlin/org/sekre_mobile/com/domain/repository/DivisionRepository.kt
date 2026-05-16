@@ -1,6 +1,7 @@
 package org.sekre_mobile.com.domain.repository
 
 import org.sekre_mobile.com.domain.entity.Division
+import org.sekre_mobile.com.domain.entity.DivisionMemberUser
 import org.sekre_mobile.com.domain.model.Result
 
 /** Division Repository Interface Domain layer - defines contract for data access */
@@ -19,4 +20,7 @@ interface DivisionRepository {
 
     /** Delete division */
     suspend fun deleteDivision(id: String): Result<Unit>
+
+    /** List members of a specific division (used e.g. for task assignee picker). */
+    suspend fun listDivisionMembers(divisionId: String): Result<List<DivisionMemberUser>>
 }

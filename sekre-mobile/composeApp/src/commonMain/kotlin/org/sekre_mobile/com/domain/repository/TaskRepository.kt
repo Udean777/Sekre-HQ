@@ -12,7 +12,7 @@ interface TaskRepository {
         assigneeId: String?,
         title: String,
         description: String?,
-        dueDate: Long?
+        dueDate: Long?,
     ): Result<TaskWithAssignee>
 
     /** Get task by ID */
@@ -22,17 +22,21 @@ interface TaskRepository {
     suspend fun listTasks(
         divisionId: String? = null,
         assigneeId: String? = null,
-        status: TaskStatus? = null
+        status: TaskStatus? = null,
     ): Result<List<TaskWithAssignee>>
 
-    /** Update task */
+    /**
+     * Update a task. Backend requires `title` and `status` to be present and
+     * valid; other fields are optional and will be applied as a partial update
+     * by the server.
+     */
     suspend fun updateTask(
         id: String,
-        title: String?,
+        title: String,
+        status: TaskStatus,
         description: String?,
         assigneeId: String?,
         dueDate: Long?,
-        status: TaskStatus?
     ): Result<TaskWithAssignee>
 
     /** Update task status only */

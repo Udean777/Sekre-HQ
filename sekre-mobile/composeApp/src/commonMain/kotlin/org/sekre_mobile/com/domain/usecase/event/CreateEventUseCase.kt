@@ -14,33 +14,23 @@ class CreateEventUseCase(
     suspend operator fun invoke(
         divisionId: String,
         title: String,
-        description: String?,
         startTime: Long,
         endTime: Long,
-        location: String?
+        description: String?,
+        location: String?,
     ): Result<EventWithDivision> {
-        // Validate input
-        if (title.isBlank()) {
-            return Result.Error(Exception("Title is required"))
-        }
-        if (title.length > 200) {
-            return Result.Error(Exception("Title must be less than 200 characters"))
-        }
-        if (divisionId.isBlank()) {
-            return Result.Error(Exception("Division is required"))
-        }
-        if (startTime >= endTime) {
-            return Result.Error(Exception("End time must be after start time"))
-        }
+        if (title.isBlank()) return Result.Error(Exception("Title is required"))
+        if (title.length > 200) return Result.Error(Exception("Title must be less than 200 characters"))
+        if (divisionId.isBlank()) return Result.Error(Exception("Division is required"))
+        if (startTime >= endTime) return Result.Error(Exception("End time must be after start time"))
 
-        // Create event via repository
         return eventRepository.createEvent(
             divisionId = divisionId,
             title = title,
-            description = description,
             startTime = startTime,
             endTime = endTime,
-            location = location
+            description = description,
+            location = location,
         )
     }
 }

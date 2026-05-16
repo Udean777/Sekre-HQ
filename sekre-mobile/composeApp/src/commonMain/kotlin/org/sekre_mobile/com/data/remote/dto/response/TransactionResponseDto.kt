@@ -50,6 +50,16 @@ data class TransactionWithDetailsDto(
     @SerialName("approver") val approver: ApproverDto?
 )
 
+/**
+ * Backend list endpoint returns paginated payload of flat transactions:
+ * { data: [Transaction, ...], pagination: {...} }
+ */
+@Serializable
+data class TransactionListPayloadDto(
+    @SerialName("data") val data: List<TransactionDto> = emptyList(),
+    @SerialName("pagination") val pagination: PaginationMetaDto? = null,
+)
+
 @Serializable
 data class FinanceSummaryDto(
     @SerialName("total_income") val totalIncome: MoneyDto,

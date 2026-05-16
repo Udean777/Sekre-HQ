@@ -83,27 +83,38 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 		return nil, domainerrors.Conflict("email", "already_exists_in_organization")
 	}
 
+	// Resolve which divisions the new member will join. DivisionIDs (plural)
+	// takes precedence; fall back to the legacy single DivisionID for backward
+	// compatibility with bulk import / older clients.
 	var (
-		divisionUUID uuid.UUID
-		divRole      = types.DivisionRoleStaff
-		assignToDiv  bool
+		divisionUUIDs []uuid.UUID
+		divRole       = types.DivisionRoleStaff
 	)
-	if req.DivisionID != nil && *req.DivisionID != "" {
-		parsed, err := uuid.Parse(*req.DivisionID)
+	rawDivisionIDs := make([]string, 0)
+	if len(req.DivisionIDs) > 0 {
+		rawDivisionIDs = append(rawDivisionIDs, req.DivisionIDs...)
+	} else if req.DivisionID != nil && *req.DivisionID != "" {
+		rawDivisionIDs = append(rawDivisionIDs, *req.DivisionID)
+	}
+
+	if req.DivisionRole != nil && *req.DivisionRole != "" {
+		divRole = types.DivisionRole(*req.DivisionRole)
+		if err := divRole.Validate(); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, raw := range rawDivisionIDs {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		parsed, err := uuid.Parse(raw)
 		if err != nil {
 			return nil, errors.New("invalid division ID")
 		}
-		divisionUUID = parsed
-		assignToDiv = true
 
-		if req.DivisionRole != nil && *req.DivisionRole != "" {
-			divRole = types.DivisionRole(*req.DivisionRole)
-			if err := divRole.Validate(); err != nil {
-				return nil, err
-			}
-		}
-
-		memberCount, err := u.divisionRepo.CountMembers(ctx, divisionUUID)
+		memberCount, err := u.divisionRepo.CountMembers(ctx, parsed)
 		if err != nil {
 			return nil, domainerrors.Internal("check division members", err)
 		}
@@ -112,7 +123,7 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 		}
 
 		if divRole == types.DivisionRoleHead {
-			headCount, err := u.divisionRepo.CountHeads(ctx, divisionUUID)
+			headCount, err := u.divisionRepo.CountHeads(ctx, parsed)
 			if err != nil {
 				return nil, domainerrors.Internal("check division heads", err)
 			}
@@ -120,6 +131,8 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 				return nil, domainerrors.ErrMaxHeadsReached
 			}
 		}
+
+		divisionUUIDs = append(divisionUUIDs, parsed)
 	}
 
 	var createdUser *entity.User
@@ -128,11 +141,11 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 			return domainerrors.Internal("create user", err)
 		}
 
-		if err := u.memberRepo.AddUserToOrganization(txCtx, user.ID, orgID, role); err != nil {
+		if err := u.memberRepo.AddUserToOrganization(txCtx, orgID, user.ID, role); err != nil {
 			return domainerrors.Internal("add user to organization", err)
 		}
 
-		if assignToDiv {
+		for _, divisionUUID := range divisionUUIDs {
 			if err := u.divisionRepo.AddMember(txCtx, divisionUUID, user.ID, divRole); err != nil {
 				return domainerrors.Internal("add user to division", err)
 			}
@@ -268,7 +281,7 @@ func (u *memberCreationUsecase) BulkImportMembers(ctx context.Context, members [
 			}
 
 			role := types.Role(members[i].Role)
-			if err := u.memberRepo.AddUserToOrganization(txCtx, user.ID, orgID, role); err != nil {
+			if err := u.memberRepo.AddUserToOrganization(txCtx, orgID, user.ID, role); err != nil {
 				return fmt.Errorf("failed to add user %d to organization: %w", i+1, err)
 			}
 		}

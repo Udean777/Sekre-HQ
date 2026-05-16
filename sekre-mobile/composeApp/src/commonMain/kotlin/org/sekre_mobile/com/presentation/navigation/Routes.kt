@@ -19,7 +19,10 @@ object Routes {
     const val CHANGE_PASSWORD = "change_password"
     const val DIVISIONS = "divisions"
     const val DIVISION_DETAIL = "division_detail"
+    const val DIVISION_CREATE = "division_create"
+    const val DIVISION_EDIT = "division_edit/{id}"
     const val MEMBERS = "members"
     const val ADD_MEMBER = "add_member"
-    const val DUMMY = "dummy"
+
+    fun divisionEdit(id: String): String = "division_edit/$id"
 }

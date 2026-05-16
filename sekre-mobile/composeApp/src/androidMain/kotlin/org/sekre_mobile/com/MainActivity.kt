@@ -16,7 +16,7 @@ import org.sekre_mobile.com.di.initKoin
 class SekreApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        
+
         // Initialize Koin
         initKoin(androidModule) {
             androidLogger(Level.DEBUG)
@@ -34,10 +34,4 @@ class MainActivity : ComponentActivity() {
             App()
         }
     }
-}
-
-@Preview
-@Composable
-fun AppAndroidPreview() {
-    App()
 }

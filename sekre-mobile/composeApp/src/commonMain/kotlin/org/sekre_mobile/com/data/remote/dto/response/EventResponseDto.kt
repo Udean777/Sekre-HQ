@@ -41,4 +41,5 @@ data class EventWithDivisionDto(
 @Serializable
 data class EventListPayloadDto(
     @SerialName("data") val data: List<EventWithDivisionDto> = emptyList(),
+    @SerialName("pagination") val pagination: PaginationMetaDto? = null,
 )
