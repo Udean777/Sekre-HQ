@@ -9,6 +9,7 @@ import org.sekre_mobile.com.domain.usecase.division.GetDivisionByIdUseCase
 import org.sekre_mobile.com.domain.usecase.division.ListDivisionMembersUseCase
 import org.sekre_mobile.com.domain.usecase.division.ListDivisionsUseCase
 import org.sekre_mobile.com.domain.usecase.division.UpdateDivisionUseCase
+import org.sekre_mobile.com.domain.util.ErrorMapper
 import org.sekre_mobile.com.presentation.base.BaseViewModel
 
 class DivisionViewModel(
@@ -46,7 +47,7 @@ class DivisionViewModel(
 
             is Result.Error -> {
                 log("loadDivisions", "FAIL message=${result.exception.message}")
-                handleError(result.exception.message ?: "Gagal memuat divisi")
+                handleError(ErrorMapper.toDisplayMessage("Gagal memuat divisi", result.exception))
             }
         }
     }
@@ -76,7 +77,7 @@ class DivisionViewModel(
             is Result.Error -> {
                 log("openDivisionDetail", "FAIL message=${result.exception.message}")
                 handleError(
-                    result.exception.message ?: "Gagal memuat detail divisi",
+                    ErrorMapper.toDisplayMessage("Gagal memuat detail divisi", result.exception),
                 )
             }
         }
@@ -101,7 +102,10 @@ class DivisionViewModel(
                 setState { it.copy(isLoadingDetailMembers = false) }
                 sendEffect(
                     DivisionEffect.ShowError(
-                        result.exception.message ?: "Gagal memuat anggota divisi",
+                        ErrorMapper.toDisplayMessage(
+                            "Gagal memuat anggota divisi",
+                            result.exception
+                        ),
                     ),
                 )
             }
@@ -122,7 +126,7 @@ class DivisionViewModel(
             is Result.Error -> {
                 log("submitCreate", "FAIL message=${result.exception.message}")
                 handleError(
-                    result.exception.message ?: "Gagal membuat divisi",
+                    ErrorMapper.toDisplayMessage("Gagal membuat divisi", result.exception),
                     submit = true,
                 )
             }
@@ -148,7 +152,7 @@ class DivisionViewModel(
             is Result.Error -> {
                 log("submitEdit", "FAIL message=${result.exception.message}")
                 handleError(
-                    result.exception.message ?: "Gagal memperbarui divisi",
+                    ErrorMapper.toDisplayMessage("Gagal memperbarui divisi", result.exception),
                     submit = true,
                 )
             }
@@ -175,7 +179,7 @@ class DivisionViewModel(
             is Result.Error -> {
                 log("submitDelete", "FAIL message=${result.exception.message}")
                 handleError(
-                    result.exception.message ?: "Gagal menghapus divisi",
+                    ErrorMapper.toDisplayMessage("Gagal menghapus divisi", result.exception),
                     delete = true,
                 )
             }

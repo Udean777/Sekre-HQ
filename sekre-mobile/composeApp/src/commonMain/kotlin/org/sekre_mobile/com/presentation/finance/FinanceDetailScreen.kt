@@ -4,27 +4,28 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,23 +39,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.domain.entity.TransactionStatus
 import org.sekre_mobile.com.domain.entity.TransactionType
 import org.sekre_mobile.com.presentation.finance.components.TransactionStatusChip
-import org.sekre_mobile.com.presentation.finance.components.TransactionTypeSelector
 import org.sekre_mobile.com.presentation.foundation.SafeArea
-import org.sekre_mobile.com.presentation.foundation.addThousandSeparators
 import org.sekre_mobile.com.presentation.foundation.formatCurrency
 import org.sekre_mobile.com.presentation.foundation.formatDate
-import org.sekre_mobile.com.presentation.foundation.parseRupiahInputToCents
 
+/**
+ * Read-only detail view for a transaction. Shows the full record without
+ * any input controls. Editing is performed in [FinanceEditScreen] reachable
+ * via [onOpenEdit] when the transaction is still editable. Mirrors the
+ * pattern used by Division detail/form.
+ *
+ * Layout uses stacked label/value blocks rather than horizontal SpaceBetween
+ * so that long values (description, event title, receipt URL) wrap cleanly
+ * instead of pushing each other out of the visible area.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FinanceDetailScreen(
     state: FinanceState,
     onBack: () -> Unit,
+    onOpenEdit: (String) -> Unit,
     onEvent: (FinanceEvent) -> Unit,
 ) {
     val selected = state.selectedTransaction
@@ -73,17 +81,12 @@ fun FinanceDetailScreen(
         val tx = selected.transaction
         val canEdit = tx.canBeEdited()
         val canDelete = tx.canBeDeleted()
-
-        var editType by remember(tx.id) { mutableStateOf(tx.type) }
-        var editDescription by remember(tx.id) { mutableStateOf(tx.description) }
-        var editAmountInput by remember(tx.id) { mutableStateOf((tx.amountCents / 100).toString()) }
-        var editReceiptUrl by remember(tx.id) { mutableStateOf(tx.receiptUrl.orEmpty()) }
         var showDeleteConfirm by remember { mutableStateOf(false) }
 
-        val parsedCents = parseRupiahInputToCents(editAmountInput)
-        val isValid = editDescription.isNotBlank() && (parsedCents ?: 0L) > 0L
-
         val divisionName = state.divisions.firstOrNull { it.id == tx.divisionId }?.name
+        val eventTitle = tx.eventId?.let { eventId ->
+            state.divisionEvents.firstOrNull { it.event.id == eventId }?.event?.title
+        }
 
         Scaffold(
             topBar = {
@@ -109,7 +112,6 @@ fun FinanceDetailScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
                     .padding(horizontal = 24.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column(
                     modifier = Modifier
@@ -117,142 +119,78 @@ fun FinanceDetailScreen(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    // Header — status & meta
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column {
-                            Text(
-                                text = formatCurrency(tx.amountCents, tx.currency),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (tx.type == TransactionType.INCOME) {
-                                    MaterialTheme.colorScheme.tertiary
-                                } else {
-                                    MaterialTheme.colorScheme.error
-                                },
+                    HeaderCard(
+                        amountText = formatCurrency(tx.amountCents, tx.currency),
+                        amountColor = if (tx.type == TransactionType.INCOME)
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.error,
+                        createdAt = formatDate(tx.createdAt),
+                        status = tx.status,
+                    )
+
+                    InfoCard(
+                        items = buildList {
+                            add(
+                                InfoItem(
+                                    "Tipe",
+                                    if (tx.type == TransactionType.INCOME) "Pemasukan" else "Pengeluaran",
+                                ),
                             )
+                            add(InfoItem("Divisi", divisionName ?: tx.divisionId))
+                            if (tx.eventId != null) {
+                                add(InfoItem("Acara", eventTitle ?: tx.eventId))
+                            }
+                            add(InfoItem("Mata Uang", tx.currency))
+                            add(InfoItem("Deskripsi", tx.description))
+                            if (!tx.receiptUrl.isNullOrBlank()) {
+                                add(InfoItem("URL Bukti", tx.receiptUrl))
+                            }
+                        },
+                    )
+
+                    if (!canEdit) {
+                        val notice = when (tx.status) {
+                            TransactionStatus.APPROVED ->
+                                "Transaksi sudah disetujui dan tidak bisa diubah lagi."
+                            TransactionStatus.REJECTED ->
+                                "Transaksi sudah ditolak dan tidak bisa diubah lagi."
+                            TransactionStatus.PENDING -> ""
+                        }
+                        if (notice.isNotEmpty()) {
                             Text(
-                                text = formatDate(tx.createdAt),
-                                style = MaterialTheme.typography.labelMedium,
+                                text = notice,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        TransactionStatusChip(status = tx.status)
                     }
-
-                    HorizontalDivider()
-
-                    // Read-only meta block
-                    InfoRow(label = "Divisi", value = divisionName ?: tx.divisionId)
-                    if (tx.eventId != null) {
-                        val eventTitle = state.divisionEvents
-                            .firstOrNull { it.event.id == tx.eventId }
-                            ?.event?.title
-                        InfoRow(label = "Acara", value = eventTitle ?: tx.eventId)
-                    }
-                    InfoRow(label = "Mata Uang", value = tx.currency)
-
-                    HorizontalDivider()
-
-                    if (!canEdit) {
-                        Text(
-                            text = when (tx.status) {
-                                TransactionStatus.APPROVED ->
-                                    "Transaksi sudah disetujui dan tidak bisa diedit lagi."
-                                TransactionStatus.REJECTED ->
-                                    "Transaksi sudah ditolak dan tidak bisa diedit lagi."
-                                TransactionStatus.PENDING -> ""
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    TransactionTypeSelector(
-                        selected = editType,
-                        onSelect = { if (canEdit) editType = it },
-                    )
-
-                    OutlinedTextField(
-                        modifier = Modifier.fillMaxWidth(),
-                        value = editAmountInput,
-                        onValueChange = { input ->
-                            if (canEdit) editAmountInput = input.filter { it.isDigit() }
-                        },
-                        readOnly = !canEdit,
-                        label = { Text("Jumlah (Rp) *") },
-                        prefix = { Text("Rp ") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        supportingText = {
-                            val rupiah = editAmountInput.toLongOrNull() ?: 0L
-                            Text(
-                                "Akan disimpan sebagai Rp ${addThousandSeparators(rupiah)}",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                    )
-
-                    OutlinedTextField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 100.dp),
-                        value = editDescription,
-                        onValueChange = { if (canEdit) editDescription = it },
-                        readOnly = !canEdit,
-                        label = { Text("Deskripsi *") },
-                        shape = RoundedCornerShape(12.dp),
-                        maxLines = 5,
-                    )
-
-                    OutlinedTextField(
-                        modifier = Modifier.fillMaxWidth(),
-                        value = editReceiptUrl,
-                        onValueChange = { if (canEdit) editReceiptUrl = it },
-                        readOnly = !canEdit,
-                        label = { Text("URL Bukti (opsional)") },
-                        placeholder = { Text("https://...") },
-                        shape = RoundedCornerShape(12.dp),
-                    )
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (canEdit) {
-                        Button(
-                            onClick = {
-                                val cents = parsedCents ?: return@Button
-                                onEvent(
-                                    FinanceEvent.SubmitEdit(
-                                        id = tx.id,
-                                        type = editType,
-                                        amountCents = cents,
-                                        description = editDescription,
-                                        receiptUrl = editReceiptUrl.ifBlank { null },
-                                    ),
-                                )
-                                onBack()
-                            },
-                            enabled = isValid,
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Text("Simpan Perubahan", fontWeight = FontWeight.Bold)
+                if (canEdit || canDelete) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (canEdit) {
+                            Button(
+                                onClick = { onOpenEdit(tx.id) },
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Text("Edit Transaksi", fontWeight = FontWeight.Bold)
+                            }
                         }
-                    }
 
-                    if (canDelete) {
-                        OutlinedButton(
-                            onClick = { showDeleteConfirm = true },
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error,
-                            ),
-                        ) {
-                            Text("Hapus Transaksi", fontWeight = FontWeight.Bold)
+                        if (canDelete) {
+                            OutlinedButton(
+                                onClick = { showDeleteConfirm = true },
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error,
+                                ),
+                            ) {
+                                Text("Hapus Transaksi", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -282,11 +220,94 @@ fun FinanceDetailScreen(
 }
 
 @Composable
-private fun InfoRow(label: String, value: String) {
-    Row(
+private fun HeaderCard(
+    amountText: String,
+    amountColor: androidx.compose.ui.graphics.Color,
+    createdAt: String,
+    status: TransactionStatus,
+) {
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Jumlah",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TransactionStatusChip(status = status)
+            }
+            Text(
+                text = amountText,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = amountColor,
+            )
+            Text(
+                text = "Dibuat $createdAt",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private data class InfoItem(val label: String, val value: String)
+
+@Composable
+private fun InfoCard(items: List<InfoItem>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+        ) {
+            items.forEachIndexed { index, item ->
+                StackedInfoRow(label = item.label, value = item.value)
+                if (index != items.lastIndex) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Vertical label/value pair. Avoids horizontal SpaceBetween so long values
+ * (event title, description, URL) wrap onto multiple lines instead of
+ * crashing into the label or being cut off.
+ */
+@Composable
+private fun StackedInfoRow(label: String, value: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
             text = label,

@@ -11,6 +11,7 @@ import org.sekre_mobile.com.data.remote.dto.request.CreateEventRequest
 import org.sekre_mobile.com.data.remote.dto.response.ApiResponse
 import org.sekre_mobile.com.data.remote.dto.response.EventListPayloadDto
 import org.sekre_mobile.com.data.remote.dto.response.EventWithDivisionDto
+import org.sekre_mobile.com.data.remote.exception.ApiException
 import org.sekre_mobile.com.domain.entity.EventWithDivision
 import org.sekre_mobile.com.domain.model.PaginatedResult
 import org.sekre_mobile.com.domain.model.PaginationParams
@@ -34,6 +35,12 @@ class EventRepositoryImpl(
         }
         println("[DEBUG][EventRepository][$tag][STACKTRACE]\n${e.stackTraceToString()}")
     }
+
+    private fun apiFailure(response: ApiResponse<*>): ApiException = ApiException(
+        code = response.code,
+        httpStatus = null,
+        serverMessage = response.error ?: response.message,
+    )
 
     override suspend fun createEvent(
         divisionId: String,
@@ -65,7 +72,7 @@ class EventRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 log("createEvent", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to create event"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("createEvent", e)
@@ -85,7 +92,7 @@ class EventRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 log("getEventById", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to get event"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("getEventById", e)
@@ -123,7 +130,7 @@ class EventRepositoryImpl(
                 )
             } else {
                 log("listEvents", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to list events"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("listEvents", e)
@@ -162,7 +169,7 @@ class EventRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 log("updateEvent", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to update event"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("updateEvent", e)
@@ -182,7 +189,7 @@ class EventRepositoryImpl(
                 Result.Success(Unit)
             } else {
                 log("deleteEvent", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to delete event"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("deleteEvent", e)

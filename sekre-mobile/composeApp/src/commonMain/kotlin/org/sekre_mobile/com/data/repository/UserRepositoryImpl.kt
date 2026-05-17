@@ -15,6 +15,7 @@ import org.sekre_mobile.com.data.remote.dto.request.ChangePasswordRequest
 import org.sekre_mobile.com.data.remote.dto.request.CreateMemberRequest
 import org.sekre_mobile.com.data.remote.dto.request.UpdateProfileRequest
 import org.sekre_mobile.com.data.remote.dto.response.ApiResponse
+import org.sekre_mobile.com.data.remote.exception.ApiException
 import org.sekre_mobile.com.domain.entity.Profile
 import org.sekre_mobile.com.domain.model.Result
 import org.sekre_mobile.com.domain.repository.UserRepository
@@ -33,6 +34,12 @@ class UserRepositoryImpl(
         println("[DEBUG][UserRepository][$tag][STACKTRACE]\n${e.stackTraceToString()}")
     }
 
+    private fun apiFailure(response: ApiResponse<*>): ApiException = ApiException(
+        code = response.code,
+        httpStatus = null,
+        serverMessage = response.error ?: response.message,
+    )
+
     override suspend fun updateProfile(fullName: String?, email: String?): Result<Profile> {
         log("updateProfile", "start fullName=$fullName email=$email")
         return try {
@@ -47,7 +54,7 @@ class UserRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 log("updateProfile", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to update profile"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("updateProfile", e)
@@ -64,7 +71,7 @@ class UserRepositoryImpl(
             }.body<ApiResponse<Unit>>()
             log("changePassword", "response success=${response.success} error=${response.error}")
             if (response.success) Result.Success(Unit)
-            else Result.Error(Exception(response.error ?: "Failed to change password"))
+            else Result.Error(apiFailure(response))
         } catch (e: Exception) {
             logErr("changePassword", e)
             Result.Error(e)
@@ -81,7 +88,7 @@ class UserRepositoryImpl(
                 Result.Success(response.data.data.map { it.toDomain() })
             } else {
                 log("listMembers", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to list members"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("listMembers", e)
@@ -107,7 +114,7 @@ class UserRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 log("createMember", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to create member"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("createMember", e)

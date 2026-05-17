@@ -14,6 +14,7 @@ import org.sekre_mobile.com.data.remote.dto.response.FinanceSummaryDto
 import org.sekre_mobile.com.data.remote.dto.response.TransactionDto
 import org.sekre_mobile.com.data.remote.dto.response.TransactionListPayloadDto
 import org.sekre_mobile.com.data.remote.dto.response.TransactionWithDetailsDto
+import org.sekre_mobile.com.data.remote.exception.ApiException
 import org.sekre_mobile.com.domain.entity.FinanceSummary
 import org.sekre_mobile.com.domain.entity.TransactionType
 import org.sekre_mobile.com.domain.entity.TransactionWithDetails
@@ -40,6 +41,12 @@ class TransactionRepositoryImpl(
         }
         println("[DEBUG][TransactionRepository][$tag][STACKTRACE]\n${e.stackTraceToString()}")
     }
+
+    private fun apiFailure(response: ApiResponse<*>): ApiException = ApiException(
+        code = response.code,
+        httpStatus = null,
+        serverMessage = response.error ?: response.message,
+    )
 
     override suspend fun createTransaction(
         divisionId: String,
@@ -84,7 +91,7 @@ class TransactionRepositoryImpl(
                     "create",
                     "fail error=${response.error} message=${response.message} code=${response.code}"
                 )
-                Result.Error(Exception(response.error ?: "Failed to create transaction"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("create", e)
@@ -112,7 +119,7 @@ class TransactionRepositoryImpl(
                     "getById",
                     "fail error=${response.error} message=${response.message} code=${response.code}"
                 )
-                Result.Error(Exception(response.error ?: "Failed to get transaction"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("getById", e)
@@ -167,7 +174,7 @@ class TransactionRepositoryImpl(
                     "list",
                     "fail error=${response.error} message=${response.message} code=${response.code}"
                 )
-                Result.Error(Exception(response.error ?: "Failed to list transactions"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("list", e)
@@ -212,7 +219,7 @@ class TransactionRepositoryImpl(
                     "update",
                     "fail error=${response.error} message=${response.message} code=${response.code}"
                 )
-                Result.Error(Exception(response.error ?: "Failed to update transaction"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("update", e)
@@ -234,7 +241,7 @@ class TransactionRepositoryImpl(
                     "delete",
                     "fail error=${response.error} message=${response.message} code=${response.code}"
                 )
-                Result.Error(Exception(response.error ?: "Failed to delete transaction"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("delete", e)
@@ -263,7 +270,7 @@ class TransactionRepositoryImpl(
                     "summary",
                     "fail error=${response.error} message=${response.message} code=${response.code}"
                 )
-                Result.Error(Exception(response.error ?: "Failed to get finance summary"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("summary", e)

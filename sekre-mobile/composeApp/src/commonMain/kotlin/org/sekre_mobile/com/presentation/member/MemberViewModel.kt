@@ -8,6 +8,7 @@ import org.sekre_mobile.com.domain.model.Result
 import org.sekre_mobile.com.domain.usecase.division.ListDivisionMembersUseCase
 import org.sekre_mobile.com.domain.usecase.division.ListDivisionsUseCase
 import org.sekre_mobile.com.domain.usecase.member.ListMembersUseCase
+import org.sekre_mobile.com.domain.util.ErrorMapper
 import org.sekre_mobile.com.presentation.base.BaseViewModel
 
 class MemberViewModel(
@@ -37,11 +38,14 @@ class MemberViewModel(
         val membersResult = membersDeferred.await()
         val divisionsResult = divisionsDeferred.await()
 
-        val members = (membersResult as? Result.Success)?.data.orEmpty()
-        val divisions = (divisionsResult as? Result.Success)?.data.orEmpty()
-        val membersError = (membersResult as? Result.Error)?.exception?.message
-        val divisionsError = (divisionsResult as? Result.Error)?.exception?.message
-        val error = membersError ?: divisionsError
+            val members = (membersResult as? Result.Success)?.data.orEmpty()
+            val divisions = (divisionsResult as? Result.Success)?.data.orEmpty()
+            val membersError = (membersResult as? Result.Error)?.exception
+            val divisionsError = (divisionsResult as? Result.Error)?.exception
+            val errorThrowable = membersError ?: divisionsError
+            val error = errorThrowable?.let {
+                ErrorMapper.toDisplayMessage("Gagal memuat anggota", it)
+            }
 
         log(
             "load",
@@ -88,14 +92,14 @@ class MemberViewModel(
             }
 
             is Result.Error -> {
-                log("applyFilter", "FAIL message=${result.exception.message}")
-                setState { it.copy(isLoading = false) }
-                sendEffect(
-                    MemberEffect.ShowError(
-                        result.exception.message ?: "Gagal memuat anggota divisi",
-                    ),
-                )
-            }
+                    log("applyFilter", "FAIL message=${result.exception.message}")
+                    setState { it.copy(isLoading = false) }
+                    sendEffect(
+                        MemberEffect.ShowError(
+                            ErrorMapper.toDisplayMessage("Gagal memuat anggota divisi", result.exception),
+                        ),
+                    )
+                }
         }
     }
 }

@@ -8,6 +8,7 @@ import org.sekre_mobile.com.domain.usecase.auth.GetCurrentUserUseCase
 import org.sekre_mobile.com.domain.usecase.auth.LogoutUseCase
 import org.sekre_mobile.com.domain.usecase.user.ChangePasswordUseCase
 import org.sekre_mobile.com.domain.usecase.user.UpdateProfileUseCase
+import org.sekre_mobile.com.domain.util.ErrorMapper
 import org.sekre_mobile.com.presentation.base.BaseViewModel
 
 class MoreViewModel(
@@ -34,9 +35,12 @@ class MoreViewModel(
         log("loadProfile", "start")
         setState { it.copy(isLoading = true, errorMessage = null) }
 
-        val userResult = getCurrentUserUseCase()
-        val user = (userResult as? Result.Success)?.data
-        val userError = (userResult as? Result.Error)?.exception?.message
+            val userResult = getCurrentUserUseCase()
+            val user = (userResult as? Result.Success)?.data
+            val userException = (userResult as? Result.Error)?.exception
+            val userError = userException?.let {
+                ErrorMapper.toDisplayMessage("Gagal memuat profil", it)
+            }
 
         val profile = user?.let {
             Profile(
@@ -73,13 +77,13 @@ class MoreViewModel(
                 sendEffect(MoreEffect.ProfileUpdated)
             }
 
-            is Result.Error -> {
-                log("submitProfile", "FAIL message=${result.exception.message}")
-                handleError(
-                    result.exception.message ?: "Gagal memperbarui profil",
-                    profileSubmit = true,
-                )
-            }
+                is Result.Error -> {
+                    log("submitProfile", "FAIL message=${result.exception.message}")
+                    handleError(
+                        ErrorMapper.toDisplayMessage("Gagal memperbarui profil", result.exception),
+                        profileSubmit = true,
+                    )
+                }
         }
     }
 
@@ -97,7 +101,7 @@ class MoreViewModel(
                 is Result.Error -> {
                     log("submitPassword", "FAIL message=${result.exception.message}")
                     handleError(
-                        result.exception.message ?: "Gagal mengubah password",
+                        ErrorMapper.toDisplayMessage("Gagal mengubah password", result.exception),
                         passwordSubmit = true,
                     )
                 }

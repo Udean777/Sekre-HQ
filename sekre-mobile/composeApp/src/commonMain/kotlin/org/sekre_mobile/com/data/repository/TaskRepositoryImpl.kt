@@ -14,6 +14,7 @@ import org.sekre_mobile.com.data.remote.dto.request.UpdateTaskStatusRequest
 import org.sekre_mobile.com.data.remote.dto.response.ApiResponse
 import org.sekre_mobile.com.data.remote.dto.response.TaskListPayloadDto
 import org.sekre_mobile.com.data.remote.dto.response.TaskWithAssigneeDto
+import org.sekre_mobile.com.data.remote.exception.ApiException
 import org.sekre_mobile.com.domain.entity.TaskStatus
 import org.sekre_mobile.com.domain.entity.TaskWithAssignee
 import org.sekre_mobile.com.domain.model.Result
@@ -36,6 +37,12 @@ class TaskRepositoryImpl(
         }
         println("[DEBUG][TaskRepository][$tag][STACKTRACE]\n${e.stackTraceToString()}")
     }
+
+    private fun apiFailure(response: ApiResponse<*>): ApiException = ApiException(
+        code = response.code,
+        httpStatus = null,
+        serverMessage = response.error ?: response.message,
+    )
 
 
     override suspend fun createTask(
@@ -66,7 +73,7 @@ class TaskRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 log("createTask", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to create task"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("createTask", e)
@@ -86,7 +93,7 @@ class TaskRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 log("getTaskById", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to get task"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("getTaskById", e)
@@ -113,7 +120,7 @@ class TaskRepositoryImpl(
                 Result.Success(response.data.data.map { it.toDomain() })
             } else {
                 log("listTasks", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to list tasks"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("listTasks", e)
@@ -150,7 +157,7 @@ class TaskRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 log("updateTask", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to update task"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("updateTask", e)
@@ -172,7 +179,7 @@ class TaskRepositoryImpl(
                 Result.Success(Unit)
             } else {
                 log("updateTaskStatus", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to update task status"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("updateTaskStatus", e)
@@ -192,7 +199,7 @@ class TaskRepositoryImpl(
                 Result.Success(Unit)
             } else {
                 log("deleteTask", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to delete task"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("deleteTask", e)

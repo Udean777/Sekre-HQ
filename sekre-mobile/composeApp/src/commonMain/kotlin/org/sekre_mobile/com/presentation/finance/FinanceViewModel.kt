@@ -12,6 +12,7 @@ import org.sekre_mobile.com.domain.usecase.transaction.GetFinanceSummaryUseCase
 import org.sekre_mobile.com.domain.usecase.transaction.GetTransactionByIdUseCase
 import org.sekre_mobile.com.domain.usecase.transaction.ListTransactionsUseCase
 import org.sekre_mobile.com.domain.usecase.transaction.UpdateTransactionUseCase
+import org.sekre_mobile.com.domain.util.ErrorMapper
 import org.sekre_mobile.com.presentation.base.BaseViewModel
 
 class FinanceViewModel(
@@ -53,15 +54,15 @@ class FinanceViewModel(
                 log("loadDivisions", "OK count=${result.data.size}")
                 setState { it.copy(isLoadingDivisions = false, divisions = result.data) }
             }
-            is Result.Error -> {
-                log("loadDivisions", "FAIL message=${result.exception.message}")
-                setState { it.copy(isLoadingDivisions = false) }
-                sendEffect(
-                    FinanceEffect.ShowError(
-                        result.exception.message ?: "Failed to load divisions"
+                is Result.Error -> {
+                    log("loadDivisions", "FAIL message=${result.exception.message}")
+                    setState { it.copy(isLoadingDivisions = false) }
+                    sendEffect(
+                        FinanceEffect.ShowError(
+                            ErrorMapper.toDisplayMessage("Gagal memuat divisi", result.exception),
+                        ),
                     )
-                )
-            }
+                }
         }
     }
 
@@ -80,15 +81,15 @@ class FinanceViewModel(
                         )
                     }
                 }
-                is Result.Error -> {
-                    log("loadDivisionEvents", "FAIL message=${result.exception.message}")
-                    setState { it.copy(isLoadingDivisionEvents = false) }
-                    sendEffect(
-                        FinanceEffect.ShowError(
-                            result.exception.message ?: "Failed to load events"
+                    is Result.Error -> {
+                        log("loadDivisionEvents", "FAIL message=${result.exception.message}")
+                        setState { it.copy(isLoadingDivisionEvents = false) }
+                        sendEffect(
+                            FinanceEffect.ShowError(
+                                ErrorMapper.toDisplayMessage("Gagal memuat event", result.exception),
+                            ),
                         )
-                    )
-                }
+                    }
             }
         }
     }
@@ -115,13 +116,16 @@ class FinanceViewModel(
                     )
                 }
             }
-            else -> {
-                val message = (txResult as? Result.Error)?.exception?.message
-                    ?: (summaryResult as? Result.Error)?.exception?.message
-                    ?: "Failed to load finance data"
-                log("load", "FAIL message=$message")
-                handleError(message, append = false)
-            }
+                else -> {
+                    val firstError = (txResult as? Result.Error)?.exception
+                        ?: (summaryResult as? Result.Error)?.exception
+                    val message = ErrorMapper.toDisplayMessage(
+                        "Gagal memuat data keuangan",
+                        firstError,
+                    )
+                    log("load", "FAIL message=$message")
+                    handleError(message, append = false)
+                }
         }
     }
 
@@ -154,10 +158,13 @@ class FinanceViewModel(
                         )
                     }
                 }
-                is Result.Error -> {
-                    log("loadNextPage", "FAIL message=${result.exception.message}")
-                    handleError(result.exception.message ?: "Failed to load more", append = true)
-                }
+                    is Result.Error -> {
+                        log("loadNextPage", "FAIL message=${result.exception.message}")
+                        handleError(
+                            ErrorMapper.toDisplayMessage("Gagal memuat data lainnya", result.exception),
+                            append = true,
+                        )
+                    }
             }
         }
     }
@@ -169,13 +176,13 @@ class FinanceViewModel(
                 log("openDetail", "OK id=${result.data.transaction.id}")
                 setState { it.copy(selectedTransaction = result.data) }
             }
-            is Result.Error -> {
-                log("openDetail", "FAIL message=${result.exception.message}")
-                handleError(
-                    result.exception.message ?: "Failed to load transaction detail",
-                    append = false,
-                )
-            }
+                is Result.Error -> {
+                    log("openDetail", "FAIL message=${result.exception.message}")
+                    handleError(
+                        ErrorMapper.toDisplayMessage("Gagal memuat detail transaksi", result.exception),
+                        append = false,
+                    )
+                }
         }
     }
 
@@ -197,13 +204,13 @@ class FinanceViewModel(
                 // Reload from server to get the freshest summary + ordered list.
                 load()
             }
-            is Result.Error -> {
-                log("submitCreate", "FAIL message=${result.exception.message}")
-                handleError(
-                    result.exception.message ?: "Failed to create transaction",
-                    append = false,
-                )
-            }
+                is Result.Error -> {
+                    log("submitCreate", "FAIL message=${result.exception.message}")
+                    handleError(
+                        ErrorMapper.toDisplayMessage("Gagal membuat transaksi", result.exception),
+                        append = false,
+                    )
+                }
         }
     }
 
@@ -234,13 +241,13 @@ class FinanceViewModel(
                 // Refresh summary in background to reflect the edit.
                 refreshSummary()
             }
-            is Result.Error -> {
-                log("submitEdit", "FAIL message=${result.exception.message}")
-                handleError(
-                    result.exception.message ?: "Failed to update transaction",
-                    append = false,
-                )
-            }
+                is Result.Error -> {
+                    log("submitEdit", "FAIL message=${result.exception.message}")
+                    handleError(
+                        ErrorMapper.toDisplayMessage("Gagal memperbarui transaksi", result.exception),
+                        append = false,
+                    )
+                }
         }
     }
 
@@ -263,13 +270,13 @@ class FinanceViewModel(
                 refreshSummary()
                 sendEffect(FinanceEffect.DeletedSuccessfully)
             }
-            is Result.Error -> {
-                log("submitDelete", "FAIL message=${result.exception.message}")
-                handleError(
-                    result.exception.message ?: "Failed to delete transaction",
-                    append = false,
-                )
-            }
+                is Result.Error -> {
+                    log("submitDelete", "FAIL message=${result.exception.message}")
+                    handleError(
+                        ErrorMapper.toDisplayMessage("Gagal menghapus transaksi", result.exception),
+                        append = false,
+                    )
+                }
         }
     }
 

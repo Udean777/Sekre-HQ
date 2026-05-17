@@ -12,6 +12,7 @@ import org.sekre_mobile.com.domain.usecase.task.GetTaskByIdUseCase
 import org.sekre_mobile.com.domain.usecase.task.ListTasksUseCase
 import org.sekre_mobile.com.domain.usecase.task.UpdateTaskStatusUseCase
 import org.sekre_mobile.com.domain.usecase.task.UpdateTaskUseCase
+import org.sekre_mobile.com.domain.util.ErrorMapper
 import org.sekre_mobile.com.presentation.base.BaseViewModel
 
 class TaskViewModel(
@@ -85,13 +86,13 @@ class TaskViewModel(
                     }
                 }
 
-                is Result.Error -> {
-                    log("loadFirstPage", "FAIL message=${result.exception.message}")
-                    handleError(
-                        result.exception.message ?: "Failed to load tasks",
-                        false
-                    )
-                }
+                    is Result.Error -> {
+                        log("loadFirstPage", "FAIL message=${result.exception.message}")
+                        handleError(
+                            ErrorMapper.toDisplayMessage("Gagal memuat task", result.exception),
+                            false
+                        )
+                    }
             }
         }
     }
@@ -121,12 +122,13 @@ class TaskViewModel(
                     }
                 }
 
-                is Result.Error -> {
-                    log("loadNextPage", "FAIL message=${result.exception.message}")
-                    handleError(
-                        result.exception.message ?: "Failed to load more tasks", true
-                    )
-                }
+                    is Result.Error -> {
+                        log("loadNextPage", "FAIL message=${result.exception.message}")
+                        handleError(
+                            ErrorMapper.toDisplayMessage("Gagal memuat task lainnya", result.exception),
+                            true
+                        )
+                    }
             }
         }
     }
@@ -143,12 +145,13 @@ class TaskViewModel(
                     // can render the assignee picker correctly.
                     loadDivisionMembers(task.task.divisionId)
                 }
-                is Result.Error -> {
-                    log("openDetail", "FAIL message=${result.exception.message}")
-                    handleError(
-                        result.exception.message ?: "Failed to load task detail", false
-                    )
-                }
+                    is Result.Error -> {
+                        log("openDetail", "FAIL message=${result.exception.message}")
+                        handleError(
+                            ErrorMapper.toDisplayMessage("Gagal memuat detail task", result.exception),
+                            false
+                        )
+                    }
             }
         }
     }
@@ -164,15 +167,15 @@ class TaskViewModel(
                         it.copy(isLoadingDivisions = false, divisions = result.data)
                     }
                 }
-                is Result.Error -> {
-                    log("loadDivisions", "FAIL message=${result.exception.message}")
-                    setState { it.copy(isLoadingDivisions = false) }
-                    sendEffect(
-                        TaskEffect.ShowError(
-                            result.exception.message ?: "Failed to load divisions"
+                    is Result.Error -> {
+                        log("loadDivisions", "FAIL message=${result.exception.message}")
+                        setState { it.copy(isLoadingDivisions = false) }
+                        sendEffect(
+                            TaskEffect.ShowError(
+                                ErrorMapper.toDisplayMessage("Gagal memuat divisi", result.exception),
+                            ),
                         )
-                    )
-                }
+                    }
             }
         }
     }
@@ -189,15 +192,15 @@ class TaskViewModel(
                         it.copy(isLoadingMembers = false, divisionMembers = result.data)
                     }
                 }
-                is Result.Error -> {
-                    log("loadDivisionMembers", "FAIL message=${result.exception.message}")
-                    setState { it.copy(isLoadingMembers = false) }
-                    sendEffect(
-                        TaskEffect.ShowError(
-                            result.exception.message ?: "Failed to load division members"
+                    is Result.Error -> {
+                        log("loadDivisionMembers", "FAIL message=${result.exception.message}")
+                        setState { it.copy(isLoadingMembers = false) }
+                        sendEffect(
+                            TaskEffect.ShowError(
+                                ErrorMapper.toDisplayMessage("Gagal memuat anggota divisi", result.exception),
+                            ),
                         )
-                    )
-                }
+                    }
             }
         }
     }
@@ -218,13 +221,13 @@ class TaskViewModel(
                     setState { it.copy(isLoading = false, tasks = listOf(result.data) + it.tasks) }
                 }
 
-                is Result.Error -> {
-                    log("submitCreate", "FAIL message=${result.exception.message}")
-                    handleError(
-                        result.exception.message ?: "Failed to create task",
-                        false
-                    )
-                }
+                    is Result.Error -> {
+                        log("submitCreate", "FAIL message=${result.exception.message}")
+                        handleError(
+                            ErrorMapper.toDisplayMessage("Gagal membuat task", result.exception),
+                            false
+                        )
+                    }
             }
         }
     }
@@ -253,13 +256,13 @@ class TaskViewModel(
                     }
                 }
 
-                is Result.Error -> {
-                    log("submitEdit", "FAIL message=${result.exception.message}")
-                    handleError(
-                        result.exception.message ?: "Failed to edit task",
-                        false
-                    )
-                }
+                    is Result.Error -> {
+                        log("submitEdit", "FAIL message=${result.exception.message}")
+                        handleError(
+                            ErrorMapper.toDisplayMessage("Gagal memperbarui task", result.exception),
+                            false
+                        )
+                    }
             }
         }
     }
@@ -279,12 +282,13 @@ class TaskViewModel(
                     setState { it.copy(tasks = updatedTasks, selectedTask = updatedSelected) }
                 }
 
-                is Result.Error -> {
-                    log("submitStatus", "FAIL message=${result.exception.message}")
-                    handleError(
-                        result.exception.message ?: "Failed to update task status", false
-                    )
-                }
+                    is Result.Error -> {
+                        log("submitStatus", "FAIL message=${result.exception.message}")
+                        handleError(
+                            ErrorMapper.toDisplayMessage("Gagal memperbarui status task", result.exception),
+                            false
+                        )
+                    }
             }
         }
     }

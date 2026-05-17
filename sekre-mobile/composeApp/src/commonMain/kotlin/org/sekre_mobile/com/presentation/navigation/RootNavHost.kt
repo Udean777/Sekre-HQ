@@ -39,6 +39,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.savedstate.read
 import org.koin.compose.viewmodel.koinViewModel
 import org.sekre_mobile.com.presentation.auth.AuthEffect
 import org.sekre_mobile.com.presentation.auth.AuthEvent
@@ -63,6 +64,7 @@ import org.sekre_mobile.com.presentation.event.EventListScreen
 import org.sekre_mobile.com.presentation.event.EventViewModel
 import org.sekre_mobile.com.presentation.finance.FinanceCreateScreen
 import org.sekre_mobile.com.presentation.finance.FinanceDetailScreen
+import org.sekre_mobile.com.presentation.finance.FinanceEditScreen
 import org.sekre_mobile.com.presentation.finance.FinanceEffect
 import org.sekre_mobile.com.presentation.finance.FinanceEvent
 import org.sekre_mobile.com.presentation.finance.FinanceListScreen
@@ -467,13 +469,33 @@ private fun MainScaffold(
                     onEvent = financeViewModel::onEvent
                 )
             }
-            composable(Routes.FINANCE_DETAIL) {
-                FinanceDetailScreen(
-                    state = financeState,
-                    onBack = { mainNav.popBackStack() },
-                    onEvent = financeViewModel::onEvent
-                )
+        composable(Routes.FINANCE_DETAIL) {
+            FinanceDetailScreen(
+                state = financeState,
+                onBack = { mainNav.popBackStack() },
+                onOpenEdit = { id ->
+                    mainNav.navigate(Routes.financeEdit(id))
+                },
+                onEvent = financeViewModel::onEvent
+            )
+        }
+        composable(
+            route = Routes.FINANCE_EDIT,
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { backStack ->
+            val id = backStack.arguments?.read { getStringOrNull("id") }.orEmpty()
+            LaunchedEffect(id) {
+                if (id.isNotBlank() && financeState.selectedTransaction?.transaction?.id != id) {
+                    financeViewModel.onEvent(FinanceEvent.OpenDetail(id))
+                }
             }
+            FinanceEditScreen(
+                state = financeState,
+                transactionId = id,
+                onBack = { mainNav.popBackStack() },
+                onEvent = financeViewModel::onEvent,
+            )
+        }
             composable(Routes.MORE) {
                 LaunchedEffect(Unit) { moreViewModel.onEvent(MoreEvent.LoadProfile) }
                 MoreListScreen(
@@ -536,7 +558,7 @@ private fun MainScaffold(
                 route = Routes.DIVISION_EDIT,
                 arguments = listOf(navArgument("id") { type = NavType.StringType }),
             ) { backStack ->
-                val id = backStack.arguments?.getString("id").orEmpty()
+                val id = backStack.arguments?.read { getStringOrNull("id") }.orEmpty()
                 LaunchedEffect(id) {
                     if (id.isNotBlank() && divisionState.selectedDivision?.id != id) {
                         divisionViewModel.onEvent(DivisionEvent.OpenDivisionDetail(id))

@@ -14,6 +14,7 @@ import org.sekre_mobile.com.data.remote.dto.response.DivisionDetailPayloadDto
 import org.sekre_mobile.com.data.remote.dto.response.DivisionDto
 import org.sekre_mobile.com.data.remote.dto.response.DivisionListPayloadDto
 import org.sekre_mobile.com.data.remote.dto.response.DivisionMemberListPayloadDto
+import org.sekre_mobile.com.data.remote.exception.ApiException
 import org.sekre_mobile.com.domain.entity.Division
 import org.sekre_mobile.com.domain.entity.DivisionMemberUser
 import org.sekre_mobile.com.domain.model.Result
@@ -37,6 +38,12 @@ class DivisionRepositoryImpl(
         println("[DEBUG][DivisionRepository][$tag][STACKTRACE]\n${e.stackTraceToString()}")
     }
 
+    private fun apiFailure(response: ApiResponse<*>): ApiException = ApiException(
+        code = response.code,
+        httpStatus = null,
+        serverMessage = response.error ?: response.message,
+    )
+
     
     override suspend fun createDivision(name: String): Result<Division> {
         log("createDivision", "start name=$name")
@@ -52,7 +59,7 @@ class DivisionRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 log("createDivision", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to create division"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("createDivision", e)
@@ -72,7 +79,7 @@ class DivisionRepositoryImpl(
                 Result.Success(response.data.division.toDomain())
             } else {
                 log("getDivisionById", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to get division"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("getDivisionById", e)
@@ -92,7 +99,7 @@ class DivisionRepositoryImpl(
                 Result.Success(response.data.data.map { it.toDomain() })
             } else {
                 log("listDivisions", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to list divisions"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("listDivisions", e)
@@ -114,7 +121,7 @@ class DivisionRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 log("updateDivision", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to update division"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("updateDivision", e)
@@ -134,7 +141,7 @@ class DivisionRepositoryImpl(
                 Result.Success(Unit)
             } else {
                 log("deleteDivision", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to delete division"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("deleteDivision", e)
@@ -155,7 +162,7 @@ class DivisionRepositoryImpl(
                 Result.Success(items)
             } else {
                 log("listDivisionMembers", "FAIL error=${response.error}")
-                Result.Error(Exception(response.error ?: "Failed to list division members"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             logErr("listDivisionMembers", e)

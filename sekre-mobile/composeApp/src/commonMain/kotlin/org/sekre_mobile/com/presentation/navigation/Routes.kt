@@ -14,6 +14,7 @@ object Routes {
     const val FINANCE = "finance"
     const val FINANCE_CREATE = "finance_create"
     const val FINANCE_DETAIL = "finance_detail"
+    const val FINANCE_EDIT = "finance_edit/{id}"
     const val MORE = "more"
     const val PROFILE = "profile"
     const val CHANGE_PASSWORD = "change_password"
@@ -25,4 +26,5 @@ object Routes {
     const val ADD_MEMBER = "add_member"
 
     fun divisionEdit(id: String): String = "division_edit/$id"
+    fun financeEdit(id: String): String = "finance_edit/$id"
 }

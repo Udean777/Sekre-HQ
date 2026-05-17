@@ -7,7 +7,7 @@ import org.sekre_mobile.com.domain.usecase.auth.GetCurrentUserUseCase
 import org.sekre_mobile.com.domain.usecase.auth.LoginUseCase
 import org.sekre_mobile.com.domain.usecase.auth.RegisterUseCase
 import org.sekre_mobile.com.domain.util.AuthValidators
-import org.sekre_mobile.com.domain.util.BuildFlags
+import org.sekre_mobile.com.domain.util.ErrorMapper
 import org.sekre_mobile.com.presentation.base.BaseViewModel
 
 class AuthViewModel(
@@ -15,26 +15,6 @@ class AuthViewModel(
     private val registerUseCase: RegisterUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
 ) : BaseViewModel<AuthState, AuthEvent, AuthEffect>(AuthState()) {
-
-    /**
-     * Build pesan error untuk ditampilkan ke user.
-     *
-     * Di **debug** build kita keluarkan tipe exception dan cause chain
-     * supaya developer bisa diagnosa cepat. Di **release** build kita
-     * batasi ke kalimat ramah pengguna saja—mencegah info disclosure
-     * (stack trace, internal class name, hint database, dsb.) yang
-     * bisa dipakai attacker untuk fingerprint stack atau menebak
-     * struktur backend.
-     */
-    private fun debugErrorMessage(prefix: String, throwable: Throwable): String {
-        if (!BuildFlags.isDebug) {
-            return prefix
-        }
-        val cause = throwable.cause?.let {
-            " cause=${it::class.simpleName}: ${it.message}"
-        } ?: ""
-        return "$prefix type=${throwable::class.simpleName} message=${throwable.message}$cause"
-    }
 
     override fun onEvent(event: AuthEvent) {
         when (event) {
@@ -203,14 +183,15 @@ class AuthViewModel(
                     sendEffect(AuthEffect.OpenMain)
                 }
 
-                is Result.Error -> {
-                    val msg = debugErrorMessage(
-                        "Gagal masuk. Periksa kembali email dan password Anda.",
-                        result.exception,
-                    )
-                    setState { it.copy(isLoading = false, errorMessage = msg) }
-                    sendEffect(AuthEffect.ShowError(msg))
-                }
+                    is Result.Error -> {
+                        val msg = ErrorMapper.toDisplayMessage(
+                            "Email atau password salah. Silakan coba lagi.",
+                            result.exception,
+                            isAuthEntry = true,
+                        )
+                        setState { it.copy(isLoading = false, errorMessage = msg) }
+                        sendEffect(AuthEffect.ShowError(msg))
+                    }
             }
         }
     }
@@ -266,12 +247,13 @@ class AuthViewModel(
                     sendEffect(AuthEffect.OpenMain)
                 }
 
-                is Result.Error -> {
-                    val msg = debugErrorMessage(
-                        "Pendaftaran gagal. Silakan coba lagi atau hubungi admin.",
-                        result.exception,
-                    )
-                    setState { it.copy(isLoading = false, errorMessage = msg) }
+                    is Result.Error -> {
+                        val msg = ErrorMapper.toDisplayMessage(
+                            "Pendaftaran gagal. Silakan coba lagi atau hubungi admin.",
+                            result.exception,
+                            isAuthEntry = true,
+                        )
+                        setState { it.copy(isLoading = false, errorMessage = msg) }
                     sendEffect(AuthEffect.ShowError(msg))
                 }
             }

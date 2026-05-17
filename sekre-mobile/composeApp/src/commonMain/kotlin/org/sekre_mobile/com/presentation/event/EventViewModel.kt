@@ -10,6 +10,7 @@ import org.sekre_mobile.com.domain.usecase.event.DeleteEventUseCase
 import org.sekre_mobile.com.domain.usecase.event.GetEventByIdUseCase
 import org.sekre_mobile.com.domain.usecase.event.ListEventsUseCase
 import org.sekre_mobile.com.domain.usecase.event.UpdateEventUseCase
+import org.sekre_mobile.com.domain.util.ErrorMapper
 import org.sekre_mobile.com.presentation.base.BaseViewModel
 
 class EventViewModel(
@@ -49,13 +50,14 @@ class EventViewModel(
                 log("loadDivisions", "OK count=${result.data.size}")
                 setState { it.copy(isLoadingDivisions = false, divisions = result.data) }
             }
+
             is Result.Error -> {
                 log("loadDivisions", "FAIL message=${result.exception.message}")
                 setState { it.copy(isLoadingDivisions = false) }
                 sendEffect(
                     EventEffect.ShowError(
-                        result.exception.message ?: "Failed to load divisions"
-                    )
+                        ErrorMapper.toDisplayMessage("Gagal memuat divisi", result.exception),
+                    ),
                 )
             }
         }
@@ -68,7 +70,10 @@ class EventViewModel(
         when (val result = listEventsUseCase(pagination = params)) {
             is Result.Success -> {
                 val pr = result.data
-                log("loadFirstPage", "OK count=${pr.items.size} total=${pr.total} hasNext=${pr.hasNextPage}")
+                log(
+                    "loadFirstPage",
+                    "OK count=${pr.items.size} total=${pr.total} hasNext=${pr.hasNextPage}"
+                )
                 setState {
                     it.copy(
                         isLoading = false,
@@ -79,9 +84,13 @@ class EventViewModel(
                     )
                 }
             }
+
             is Result.Error -> {
                 log("loadFirstPage", "FAIL message=${result.exception.message}")
-                handleError(result.exception.message ?: "Failed to load events", append = false)
+                handleError(
+                    ErrorMapper.toDisplayMessage("Gagal memuat event", result.exception),
+                    append = false,
+                )
             }
         }
     }
@@ -89,7 +98,10 @@ class EventViewModel(
     private fun loadNextPage() {
         val current = state.value
         if (!current.hasMore || current.isLoadingMore || current.isLoading) {
-            log("loadNextPage", "skipped hasMore=${current.hasMore} isLoadingMore=${current.isLoadingMore} isLoading=${current.isLoading}")
+            log(
+                "loadNextPage",
+                "skipped hasMore=${current.hasMore} isLoadingMore=${current.isLoadingMore} isLoading=${current.isLoading}"
+            )
             return
         }
         log("loadNextPage", "start currentPage=${current.page}")
@@ -103,7 +115,10 @@ class EventViewModel(
                 is Result.Success -> {
                     val pr = result.data
                     val merged = (current.events + pr.items).distinctBy { it.event.id }
-                    log("loadNextPage", "OK newCount=${pr.items.size} merged=${merged.size} total=${pr.total} hasNext=${pr.hasNextPage}")
+                    log(
+                        "loadNextPage",
+                        "OK newCount=${pr.items.size} merged=${merged.size} total=${pr.total} hasNext=${pr.hasNextPage}"
+                    )
                     setState {
                         it.copy(
                             isLoadingMore = false,
@@ -114,9 +129,16 @@ class EventViewModel(
                         )
                     }
                 }
+
                 is Result.Error -> {
                     log("loadNextPage", "FAIL message=${result.exception.message}")
-                    handleError(result.exception.message ?: "Failed to load more events", append = true)
+                    handleError(
+                        ErrorMapper.toDisplayMessage(
+                            "Gagal memuat event lainnya",
+                            result.exception
+                        ),
+                        append = true,
+                    )
                 }
             }
         }
@@ -129,9 +151,13 @@ class EventViewModel(
                 log("openDetail", "OK id=${result.data.event.id}")
                 setState { it.copy(selectedEvent = result.data) }
             }
+
             is Result.Error -> {
                 log("openDetail", "FAIL message=${result.exception.message}")
-                handleError(result.exception.message ?: "Failed to load event detail", append = false)
+                handleError(
+                    ErrorMapper.toDisplayMessage("Gagal memuat detail event", result.exception),
+                    append = false,
+                )
             }
         }
     }
@@ -158,9 +184,13 @@ class EventViewModel(
                     )
                 }
             }
+
             is Result.Error -> {
                 log("submitCreate", "FAIL message=${result.exception.message}")
-                handleError(result.exception.message ?: "Failed to create event", append = false)
+                handleError(
+                    ErrorMapper.toDisplayMessage("Gagal membuat event", result.exception),
+                    append = false,
+                )
             }
         }
     }
@@ -192,9 +222,13 @@ class EventViewModel(
                     )
                 }
             }
+
             is Result.Error -> {
                 log("submitEdit", "FAIL message=${result.exception.message}")
-                handleError(result.exception.message ?: "Failed to update event", append = false)
+                handleError(
+                    ErrorMapper.toDisplayMessage("Gagal memperbarui event", result.exception),
+                    append = false,
+                )
             }
         }
     }
@@ -215,9 +249,13 @@ class EventViewModel(
                 }
                 sendEffect(EventEffect.DeletedSuccessfully)
             }
+
             is Result.Error -> {
                 log("submitDelete", "FAIL message=${result.exception.message}")
-                handleError(result.exception.message ?: "Failed to delete event", append = false)
+                handleError(
+                    ErrorMapper.toDisplayMessage("Gagal menghapus event", result.exception),
+                    append = false,
+                )
             }
         }
     }

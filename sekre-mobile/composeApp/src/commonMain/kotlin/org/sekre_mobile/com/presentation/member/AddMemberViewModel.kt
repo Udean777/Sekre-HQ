@@ -5,6 +5,7 @@ import kotlinx.coroutines.launch
 import org.sekre_mobile.com.domain.model.Result
 import org.sekre_mobile.com.domain.usecase.division.ListDivisionsUseCase
 import org.sekre_mobile.com.domain.usecase.member.CreateMemberUseCase
+import org.sekre_mobile.com.domain.util.ErrorMapper
 import org.sekre_mobile.com.presentation.base.BaseViewModel
 
 class AddMemberViewModel(
@@ -25,7 +26,11 @@ class AddMemberViewModel(
                 }
                 is Result.Error -> {
                     log("init", "FAIL message=${result.exception.message}")
-                    sendEffect(AddMemberEffect.ShowError(result.exception.message ?: "Failed to load divisions"))
+                    sendEffect(
+                        AddMemberEffect.ShowError(
+                            ErrorMapper.toDisplayMessage("Gagal memuat divisi", result.exception),
+                        ),
+                    )
                 }
             }
         }
@@ -56,12 +61,12 @@ class AddMemberViewModel(
                 setState { AddMemberState(availableDivisions = it.availableDivisions) }
                 sendEffect(AddMemberEffect.CreatedSuccessfully)
             }
-            is Result.Error -> {
-                val message = result.exception.message ?: "Failed to create member"
-                log("submit", "FAIL message=$message")
-                setState { it.copy(isLoading = false, errorMessage = message) }
-                sendEffect(AddMemberEffect.ShowError(message))
-            }
+                is Result.Error -> {
+                    val message = ErrorMapper.toDisplayMessage("Gagal menambahkan anggota", result.exception)
+                    log("submit", "FAIL message=$message")
+                    setState { it.copy(isLoading = false, errorMessage = message) }
+                    sendEffect(AddMemberEffect.ShowError(message))
+                }
         }
     }
 }
