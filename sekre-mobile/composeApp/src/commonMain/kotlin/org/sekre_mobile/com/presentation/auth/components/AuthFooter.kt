@@ -23,7 +23,8 @@ fun AuthFooter(
     switchModeActionText: String,
     onSwitchModeClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -34,7 +35,7 @@ fun AuthFooter(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            enabled = !isLoading,
+            enabled = enabled && !isLoading,
             shape = MaterialTheme.shapes.medium
         ) {
             if (isLoading) {

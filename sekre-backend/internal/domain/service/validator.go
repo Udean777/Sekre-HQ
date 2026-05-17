@@ -13,12 +13,13 @@ type RegistrationValidator interface {
 
 // Validation errors returned by the default validator.
 var (
-	ErrEmailEmpty        = errors.New("email is required")
-	ErrEmailInvalid      = errors.New("invalid email format")
-	ErrPasswordEmpty     = errors.New("password is required")
-	ErrPasswordTooShort  = errors.New("password must be at least 8 characters")
-	ErrSubdomainEmpty    = errors.New("subdomain is required")
-	ErrSubdomainInvalid  = errors.New("subdomain can only contain lowercase letters, numbers, and hyphens")
+	ErrEmailEmpty            = errors.New("email is required")
+	ErrEmailInvalid          = errors.New("invalid email format")
+	ErrPasswordEmpty         = errors.New("password is required")
+	ErrPasswordTooShort      = errors.New("password must be at least 8 characters")
+	ErrPasswordHasWhitespace = errors.New("password must not contain leading or trailing whitespace")
+	ErrSubdomainEmpty        = errors.New("subdomain is required")
+	ErrSubdomainInvalid      = errors.New("subdomain can only contain lowercase letters, numbers, and hyphens")
 )
 
 // MinPasswordLength is the minimum accepted password length.

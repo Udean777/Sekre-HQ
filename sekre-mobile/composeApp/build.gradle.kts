@@ -15,7 +15,7 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-    
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -25,27 +25,26 @@ kotlin {
             isStatic = true
         }
     }
-    
+
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
-            
-            // Ktor Client - Android
+
+            // Ktor Client Android
             implementation(libs.ktor.client.okhttp)
-            
-            // Coroutines - Android
+
+            // Coroutines Android
             implementation(libs.kotlinx.coroutines.android)
-            
-            // Koin - Android
+
+            // Koin Android
             implementation(libs.koin.android)
-            
-            // Security - Android (for encrypted token storage)
+
+            // Security Android (for encrypted token storage)
             implementation(libs.androidx.security.crypto)
 
             implementation(libs.compose.icons.extended)
         }
-
         commonMain.dependencies {
             // Compose
             implementation(libs.compose.runtime)
@@ -56,24 +55,24 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            
-            // Ktor Client - Core
+
+            // Ktor Client Core
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
-            
+
             // Kotlinx Serialization
             implementation(libs.kotlinx.serialization.json)
-            
+
             // Coroutines
             implementation(libs.kotlinx.coroutines.core)
-            
+
             // DateTime
             implementation(libs.kotlinx.datetime)
-            
-            // Koin DI
+
+            // Koin
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
@@ -82,13 +81,14 @@ kotlin {
             implementation(libs.androidx.navigation.compose)
 
             implementation(libs.compose.icons.extended)
+
+            // Validation (multiplatform)
+            implementation(libs.konform)
         }
-        
         iosMain.dependencies {
-            // Ktor Client - iOS
+            // Ktor Client iOS
             implementation(libs.ktor.client.darwin)
         }
-        
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
@@ -105,6 +105,11 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+    }
+    buildFeatures {
+        // Aktifkan BuildConfig agar `BuildFlags.android.kt` bisa
+        // membaca flag debug/release dari Android Gradle Plugin.
+        buildConfig = true
     }
     packaging {
         resources {

@@ -6,6 +6,8 @@ import org.sekre_mobile.com.domain.model.Result
 import org.sekre_mobile.com.domain.usecase.auth.GetCurrentUserUseCase
 import org.sekre_mobile.com.domain.usecase.auth.LoginUseCase
 import org.sekre_mobile.com.domain.usecase.auth.RegisterUseCase
+import org.sekre_mobile.com.domain.util.AuthValidators
+import org.sekre_mobile.com.domain.util.BuildFlags
 import org.sekre_mobile.com.presentation.base.BaseViewModel
 
 class AuthViewModel(
@@ -14,9 +16,24 @@ class AuthViewModel(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
 ) : BaseViewModel<AuthState, AuthEvent, AuthEffect>(AuthState()) {
 
+    /**
+     * Build pesan error untuk ditampilkan ke user.
+     *
+     * Di **debug** build kita keluarkan tipe exception dan cause chain
+     * supaya developer bisa diagnosa cepat. Di **release** build kita
+     * batasi ke kalimat ramah pengguna saja—mencegah info disclosure
+     * (stack trace, internal class name, hint database, dsb.) yang
+     * bisa dipakai attacker untuk fingerprint stack atau menebak
+     * struktur backend.
+     */
     private fun debugErrorMessage(prefix: String, throwable: Throwable): String {
-        val cause = throwable.cause?.let { " | cause=${it::class.simpleName}: ${it.message}" } ?: ""
-        return "$prefix | type=${throwable::class.simpleName} | message=${throwable.message}$cause"
+        if (!BuildFlags.isDebug) {
+            return prefix
+        }
+        val cause = throwable.cause?.let {
+            " cause=${it::class.simpleName}: ${it.message}"
+        } ?: ""
+        return "$prefix type=${throwable::class.simpleName} message=${throwable.message}$cause"
     }
 
     override fun onEvent(event: AuthEvent) {
@@ -25,35 +42,46 @@ class AuthViewModel(
             is AuthEvent.EmailChanged -> setState {
                 it.copy(
                     email = event.value,
-                    errorMessage = null
+                    emailTouched = true,
+                    emailError = AuthValidators.validateEmail(event.value),
+                    errorMessage = null,
                 )
             }
 
             is AuthEvent.PasswordChanged -> setState {
                 it.copy(
                     password = event.value,
-                    errorMessage = null
+                    passwordTouched = true,
+                    passwordError = AuthValidators.validatePassword(event.value),
+                    errorMessage = null,
                 )
             }
 
             is AuthEvent.OrganizationNameChanged -> setState {
                 it.copy(
                     organizationName = event.value,
-                    errorMessage = null
+                    organizationNameTouched = true,
+                    organizationNameError =
+                        AuthValidators.validateOrganizationName(event.value),
+                    errorMessage = null,
                 )
             }
 
             is AuthEvent.SubdomainChanged -> setState {
                 it.copy(
                     subdomain = event.value,
-                    errorMessage = null
+                    subdomainTouched = true,
+                    subdomainError = AuthValidators.validateSubdomain(event.value),
+                    errorMessage = null,
                 )
             }
 
             is AuthEvent.FullNameChanged -> setState {
                 it.copy(
                     fullName = event.value,
-                    errorMessage = null
+                    fullNameTouched = true,
+                    fullNameError = AuthValidators.validateFullName(event.value),
+                    errorMessage = null,
                 )
             }
 
@@ -82,10 +110,19 @@ class AuthViewModel(
     }
 
     private fun openLogin() {
+        // Pindah ke form login: bersihkan error dan touched flag yang
+        // hanya relevan untuk register supaya inline error tidak ikut
+        // terbawa lintas form.
         setState {
             it.copy(
                 currentRoute = AuthRoutes.LOGIN,
                 errorMessage = null,
+                organizationNameError = null,
+                subdomainError = null,
+                fullNameError = null,
+                organizationNameTouched = false,
+                subdomainTouched = false,
+                fullNameTouched = false,
             )
         }
         viewModelScope.launch {
@@ -135,6 +172,23 @@ class AuthViewModel(
 
     private fun submitLogin() {
         val current = state.value
+
+        // Final guard: re-validate semua field login dan tandai touched.
+        // Jika ada field invalid, abort sebelum panggil use case dan
+        // surface inline error di UI.
+        val errors = AuthValidators.validateLogin(current.email, current.password)
+        if (!errors.isValid) {
+            setState {
+                it.copy(
+                    emailTouched = true,
+                    passwordTouched = true,
+                    emailError = errors.email,
+                    passwordError = errors.password,
+                )
+            }
+            return
+        }
+
         viewModelScope.launch {
             setState { it.copy(isLoading = true, errorMessage = null) }
             when (val result = loginUseCase(current.email.trim(), current.password)) {
@@ -150,7 +204,10 @@ class AuthViewModel(
                 }
 
                 is Result.Error -> {
-                    val msg = debugErrorMessage("Login failed", result.exception)
+                    val msg = debugErrorMessage(
+                        "Gagal masuk. Periksa kembali email dan password Anda.",
+                        result.exception,
+                    )
                     setState { it.copy(isLoading = false, errorMessage = msg) }
                     sendEffect(AuthEffect.ShowError(msg))
                 }
@@ -160,6 +217,33 @@ class AuthViewModel(
 
     private fun submitRegister() {
         val current = state.value
+
+        // Final guard: re-validate semua field register sebelum panggil API.
+        val errors = AuthValidators.validateRegister(
+            organizationName = current.organizationName,
+            subdomain = current.subdomain,
+            fullName = current.fullName,
+            email = current.email,
+            password = current.password,
+        )
+        if (!errors.isValid) {
+            setState {
+                it.copy(
+                    organizationNameTouched = true,
+                    subdomainTouched = true,
+                    fullNameTouched = true,
+                    emailTouched = true,
+                    passwordTouched = true,
+                    organizationNameError = errors.organizationName,
+                    subdomainError = errors.subdomain,
+                    fullNameError = errors.fullName,
+                    emailError = errors.email,
+                    passwordError = errors.password,
+                )
+            }
+            return
+        }
+
         viewModelScope.launch {
             setState { it.copy(isLoading = true, errorMessage = null) }
             when (
@@ -183,7 +267,10 @@ class AuthViewModel(
                 }
 
                 is Result.Error -> {
-                    val msg = debugErrorMessage("Registration failed", result.exception)
+                    val msg = debugErrorMessage(
+                        "Pendaftaran gagal. Silakan coba lagi atau hubungi admin.",
+                        result.exception,
+                    )
                     setState { it.copy(isLoading = false, errorMessage = msg) }
                     sendEffect(AuthEffect.ShowError(msg))
                 }

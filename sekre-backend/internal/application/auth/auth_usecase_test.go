@@ -45,8 +45,7 @@ func TestRegister_TransactionRollback(t *testing.T) {
 			txRunner,
 			hasher,
 			tokenGen,
-			validator,
-		)
+			validator)
 
 		ctx := context.Background()
 
@@ -96,8 +95,7 @@ func TestRegister_Success(t *testing.T) {
 			txRunner,
 			hasher,
 			tokenGen,
-			validator,
-		)
+			validator)
 
 		ctx := context.Background()
 

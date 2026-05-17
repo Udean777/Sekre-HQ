@@ -28,6 +28,9 @@ koin = "4.1.0"
 androidx-security = "1.1.0-alpha06"
 materialIconsExtended = "1.7.3"
 
+# Validation
+konform = "0.11.0"
+
 [libraries]
 compose-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -76,6 +79,9 @@ androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navi
 
 # Security
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidx-security" }
+
+# Validation
+konform = { module = "io.konform:konform", version.ref = "konform" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
