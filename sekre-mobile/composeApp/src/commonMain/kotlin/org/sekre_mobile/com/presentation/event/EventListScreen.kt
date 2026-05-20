@@ -26,11 +26,13 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.presentation.event.components.EmptyEventState
 import org.sekre_mobile.com.presentation.event.components.EventItemCard
 import org.sekre_mobile.com.presentation.foundation.SafeArea
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,20 +59,20 @@ fun EventListScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
+                        containerColor = Color.Transparent,
                     ),
                 )
             },
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = onOpenCreate,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = SekreTheme.colors.accentPrimary,
+                    contentColor = SekreTheme.colors.backdropDeep,
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Buat Acara Baru")
                 }
             },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
         ) { paddingValues ->
             Box(
                 modifier = Modifier

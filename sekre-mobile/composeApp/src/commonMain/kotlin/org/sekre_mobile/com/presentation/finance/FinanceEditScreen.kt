@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,7 +17,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -31,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -38,6 +37,8 @@ import org.sekre_mobile.com.presentation.finance.components.TransactionTypeSelec
 import org.sekre_mobile.com.presentation.foundation.SafeArea
 import org.sekre_mobile.com.presentation.foundation.addThousandSeparators
 import org.sekre_mobile.com.presentation.foundation.parseRupiahInputToCents
+import org.sekre_mobile.com.presentation.ui.glass.glassTextFieldColors
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 /**
  * Edit form for an existing transaction. Lives behind a dedicated route so
@@ -73,11 +74,11 @@ fun FinanceEditScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
+                        containerColor = Color.Transparent,
                     ),
                 )
             },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
         ) { paddingValues ->
             if (tx == null) {
                 Box(
@@ -88,7 +89,7 @@ fun FinanceEditScreen(
                 ) {
                     Text(
                         "Transaksi tidak ditemukan.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = SekreTheme.colors.onGlassSecondary,
                     )
                 }
                 return@Scaffold
@@ -103,7 +104,7 @@ fun FinanceEditScreen(
                 ) {
                     Text(
                         "Transaksi ini tidak bisa diubah.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = SekreTheme.colors.onGlassSecondary,
                     )
                 }
                 return@Scaffold
@@ -152,10 +153,11 @@ fun FinanceEditScreen(
                             val rupiah = editAmountInput.toLongOrNull() ?: 0L
                             Text(
                                 "Akan disimpan sebagai ${addThousandSeparators(rupiah)}",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = SekreTheme.typography.bodySmall,
                             )
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                     )
 
                     OutlinedTextField(
@@ -165,7 +167,8 @@ fun FinanceEditScreen(
                         value = editDescription,
                         onValueChange = { editDescription = it },
                         label = { Text("Deskripsi *") },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                         maxLines = 5,
                     )
 
@@ -175,7 +178,8 @@ fun FinanceEditScreen(
                         onValueChange = { editReceiptUrl = it },
                         label = { Text("URL Bukti (opsional)") },
                         placeholder = { Text("https://...") },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                     )
                 }
 
@@ -197,7 +201,7 @@ fun FinanceEditScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = SekreTheme.shapes.medium,
                 ) {
                     Text(
                         text = if (state.isLoading) "Menyimpan..." else "Simpan Perubahan",

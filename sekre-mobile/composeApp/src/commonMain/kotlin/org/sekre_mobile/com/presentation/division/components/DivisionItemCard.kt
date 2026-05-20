@@ -4,17 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Domain
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,43 +21,44 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.domain.entity.Division
+import org.sekre_mobile.com.presentation.ui.glass.GlassCard
+import org.sekre_mobile.com.presentation.ui.glass.GlassIntensity
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
+import androidx.compose.foundation.layout.Column
 
 @Composable
 fun DivisionItemCard(
     division: Division,
     onClick: () -> Unit,
 ) {
-    ElevatedCard(
+    val colors = SekreTheme.colors
+
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        intensity = GlassIntensity.Medium,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .clip(SekreTheme.shapes.small)
+                    .background(colors.accentPrimary.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Domain,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = colors.accentPrimary,
                     modifier = Modifier.size(20.dp),
                 )
             }
+
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -71,20 +67,21 @@ fun DivisionItemCard(
                     text = division.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = colors.onGlassPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "Ketuk untuk melihat anggota",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.onGlassTertiary,
                 )
             }
+
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = colors.onGlassTertiary,
             )
         }
     }

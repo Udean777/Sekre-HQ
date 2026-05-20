@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,7 +21,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -34,11 +32,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.presentation.event.components.DateTimePickerDialog
 import org.sekre_mobile.com.presentation.foundation.SafeArea
 import org.sekre_mobile.com.presentation.foundation.formatDateTime
+import org.sekre_mobile.com.presentation.ui.glass.glassTextFieldColors
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 private const val ONE_HOUR_MS: Long = 60 * 60 * 1000
 
@@ -81,11 +82,11 @@ fun EventCreateScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
+                        containerColor = Color.Transparent,
                     ),
                 )
             },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -120,7 +121,8 @@ fun EventCreateScreen(
                             trailingIcon = {
                                 Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                             },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = SekreTheme.shapes.medium,
+                            colors = glassTextFieldColors(),
                         )
                         DropdownMenu(
                             expanded = divisionDropdownExpanded,
@@ -152,7 +154,8 @@ fun EventCreateScreen(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text("Judul Acara *") },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                     )
 
                     OutlinedTextField(
@@ -162,7 +165,8 @@ fun EventCreateScreen(
                         value = description,
                         onValueChange = { description = it },
                         label = { Text("Deskripsi") },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                         maxLines = 5,
                     )
 
@@ -171,7 +175,8 @@ fun EventCreateScreen(
                         value = location,
                         onValueChange = { location = it },
                         label = { Text("Lokasi") },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                     )
 
                     // Start time
@@ -190,7 +195,8 @@ fun EventCreateScreen(
                                 Icon(Icons.Default.Schedule, contentDescription = "Pilih waktu mulai")
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                     )
 
                     // End time
@@ -209,14 +215,15 @@ fun EventCreateScreen(
                                 Icon(Icons.Default.Schedule, contentDescription = "Pilih waktu selesai")
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                     )
 
                     if (startTime != null && endTime != null && (endTime ?: 0) <= (startTime ?: 0)) {
                         Text(
                             text = "Waktu selesai harus setelah waktu mulai.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
+                            style = SekreTheme.typography.bodySmall,
+                            color = SekreTheme.colors.accentDanger,
                         )
                     }
                 }
@@ -241,7 +248,7 @@ fun EventCreateScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = SekreTheme.shapes.medium,
                 ) {
                     Text("Simpan Acara", fontWeight = FontWeight.Bold)
                 }

@@ -7,7 +7,6 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +19,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import org.sekre_mobile.com.presentation.ui.glass.glassTextFieldColors
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 /**
  * Reusable text field untuk form auth.
@@ -30,9 +31,8 @@ import androidx.compose.ui.text.input.VisualTransformation
  * - `transformInput` untuk normalisasi (mis. lowercase + strip char
  *   non-allowed pada subdomain) sebelum diteruskan ke ViewModel
  *
- * Best practice: validasi tetap dilakukan di `AuthValidators` dan
- * ViewModel; field ini hanya menampilkan hasil dan mencegah input
- * yang sudah jelas tidak valid (panjang berlebihan, format format).
+ * Colors di-override ke glass theme tokens agar field terbaca di atas
+ * backdrop gelap tanpa background putih yang merusak efek glassmorphism.
  */
 @Composable
 fun AuthTextField(
@@ -50,7 +50,9 @@ fun AuthTextField(
     maxLength: Int? = null,
     transformInput: (String) -> String = { it },
 ) {
+    val colors = SekreTheme.colors
     val isError = errorMessage != null
+
     OutlinedTextField(
         value = value,
         onValueChange = { raw ->
@@ -73,7 +75,8 @@ fun AuthTextField(
         } else {
             null
         },
-        shape = MaterialTheme.shapes.medium,
+        shape = SekreTheme.shapes.medium,
+        colors = glassTextFieldColors(),
     )
 }
 
@@ -88,6 +91,7 @@ fun AuthPasswordTextField(
     imeAction: ImeAction = ImeAction.Done,
     maxLength: Int? = 128,
 ) {
+    val colors = SekreTheme.colors
     var passwordVisible by remember { mutableStateOf(false) }
     val isError = errorMessage != null
 
@@ -120,7 +124,8 @@ fun AuthPasswordTextField(
             keyboardType = KeyboardType.Password,
             imeAction = imeAction,
         ),
-        shape = MaterialTheme.shapes.medium,
+        shape = SekreTheme.shapes.medium,
+        colors = glassTextFieldColors(),
         trailingIcon = {
             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                 Icon(
@@ -133,12 +138,15 @@ fun AuthPasswordTextField(
                         "Sembunyikan password"
                     } else {
                         "Tampilkan password"
-                    }
+                    },
+                    tint = colors.onGlassSecondary,
                 )
             }
         }
     )
 }
+
+
 
 /**
  * Filter input untuk subdomain: paksa lowercase dan buang karakter

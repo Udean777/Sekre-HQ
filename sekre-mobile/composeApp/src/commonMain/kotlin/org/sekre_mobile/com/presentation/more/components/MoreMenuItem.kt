@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -23,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun MoreMenuItem(
@@ -31,9 +31,11 @@ fun MoreMenuItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     description: String? = null,
-    iconTint: Color = MaterialTheme.colorScheme.primary,
-    iconBackground: Color = MaterialTheme.colorScheme.primaryContainer,
+    iconTint: Color = SekreTheme.colors.accentPrimary,
+    iconBackground: Color = SekreTheme.colors.accentPrimary.copy(alpha = 0.16f),
 ) {
+    val colors = SekreTheme.colors
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -45,7 +47,7 @@ fun MoreMenuItem(
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(SekreTheme.shapes.small)
                 .background(iconBackground),
             contentAlignment = Alignment.Center,
         ) {
@@ -56,6 +58,7 @@ fun MoreMenuItem(
                 modifier = Modifier.size(20.dp),
             )
         }
+
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -64,20 +67,21 @@ fun MoreMenuItem(
                 text = label,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = colors.onGlassPrimary,
             )
             if (!description.isNullOrBlank()) {
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.onGlassSecondary,
                 )
             }
         }
+
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = colors.onGlassTertiary,
         )
     }
 }

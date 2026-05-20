@@ -1,14 +1,10 @@
 package org.sekre_mobile.com.presentation.dashboard.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,11 +12,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.domain.entity.FinanceSummary
 import org.sekre_mobile.com.domain.util.formatMoney
-
+import org.sekre_mobile.com.presentation.ui.glass.GlassCard
+import org.sekre_mobile.com.presentation.ui.glass.GlassIntensity
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun DashboardMetrics(
-    summary: FinanceSummary?, isWide: Boolean
+    summary: FinanceSummary?,
+    isWide: Boolean
 ) {
     if (summary == null) return
 
@@ -30,11 +29,12 @@ fun DashboardMetrics(
 
     if (isWide) {
         Row(
-            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            MetricCard("Pemasukan", incomeStr, Modifier.weight(1f))
-            MetricCard("Pengeluaran", expenseStr, Modifier.weight(1f))
-            MetricCard("Transaksi", txCountStr, Modifier.weight(1f))
+            MetricCard("Pemasukan", incomeStr, MetricTone.Success, Modifier.weight(1f))
+            MetricCard("Pengeluaran", expenseStr, MetricTone.Danger, Modifier.weight(1f))
+            MetricCard("Transaksi", txCountStr, MetricTone.Primary, Modifier.weight(1f))
         }
     } else {
         Column(
@@ -44,39 +44,59 @@ fun DashboardMetrics(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                MetricCard("Pemasukan", incomeStr, Modifier.weight(1f))
-                MetricCard("Pengeluaran", expenseStr, Modifier.weight(1f))
+                MetricCard("Pemasukan", incomeStr, MetricTone.Success, Modifier.weight(1f))
+                MetricCard("Pengeluaran", expenseStr, MetricTone.Danger, Modifier.weight(1f))
             }
-            MetricCard("Total Transaksi", txCountStr, Modifier.fillMaxWidth())
+            MetricCard("Total Transaksi", txCountStr, MetricTone.Primary, Modifier.fillMaxWidth())
         }
     }
 }
 
 @Composable
 fun MetricCard(
-    label: String, value: String, modifier: Modifier = Modifier
+    label: String,
+    value: String,
+    tone: MetricTone,
+    modifier: Modifier = Modifier
 ) {
-    Surface(
+    val colors = SekreTheme.colors
+    val accent = when (tone) {
+        MetricTone.Primary -> colors.accentPrimary
+        MetricTone.Success -> colors.accentSuccess
+        MetricTone.Danger  -> colors.accentDanger
+    }
+
+    GlassCard(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        intensity = GlassIntensity.Medium,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = colors.onGlassTertiary
             )
 
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = colors.onGlassPrimary,
                 fontWeight = FontWeight.Bold,
+            )
+
+            Text(
+                text = "●",
+                style = MaterialTheme.typography.labelSmall,
+                color = accent.copy(alpha = 0.9f),
             )
         }
     }
+}
+
+enum class MetricTone {
+    Primary,
+    Success,
+    Danger,
 }

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -18,11 +17,9 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +29,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Color
+import org.sekre_mobile.com.presentation.ui.glass.GlassCard
+import org.sekre_mobile.com.presentation.ui.glass.GlassIntensity
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,7 +93,7 @@ fun DivisionDetailScreen(
                                     text = {
                                         Text(
                                             "Hapus Divisi",
-                                            color = MaterialTheme.colorScheme.error,
+                                            color = SekreTheme.colors.accentDanger,
                                         )
                                     },
                                     onClick = {
@@ -103,7 +104,7 @@ fun DivisionDetailScreen(
                                         Icon(
                                             Icons.Default.Delete,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
+                                            tint = SekreTheme.colors.accentDanger,
                                         )
                                     },
                                 )
@@ -111,11 +112,14 @@ fun DivisionDetailScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
+                        containerColor = Color.Transparent,
+                        titleContentColor = SekreTheme.colors.onGlassPrimary,
+                        navigationIconContentColor = SekreTheme.colors.onGlassPrimary,
+                        actionIconContentColor = SekreTheme.colors.onGlassPrimary,
                     ),
                 )
             },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
         ) { paddingValues ->
             when {
                 state.isLoading && division == null -> {
@@ -135,8 +139,8 @@ fun DivisionDetailScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = state.errorMessage ?: "Detail divisi tidak tersedia",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = state.errorMessage ?: "Detail divisi tidak tersedia",
+                                            color = SekreTheme.colors.onGlassSecondary,
                         )
                     }
                 }
@@ -152,35 +156,29 @@ fun DivisionDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         item {
-                            ElevatedCard(
+                            GlassCard(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(20.dp),
-                                colors = CardDefaults.elevatedCardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                ),
-                                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+                                intensity = GlassIntensity.Medium,
                             ) {
                                 Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(20.dp),
+                                    modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     Text(
                                         text = "Nama Divisi",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = SekreTheme.colors.onGlassTertiary,
                                     )
                                     Text(
                                         text = division.name,
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface,
+                                        color = SekreTheme.colors.onGlassPrimary,
                                     )
                                     Text(
                                         text = "${state.divisionMembers.size} anggota",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = SekreTheme.colors.onGlassSecondary,
                                     )
                                 }
                             }
@@ -191,7 +189,7 @@ fun DivisionDetailScreen(
                                 text = "Anggota Divisi",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = SekreTheme.colors.onGlassPrimary,
                                 modifier = Modifier.padding(top = 4.dp, start = 4.dp),
                             )
                         }
@@ -212,41 +210,35 @@ fun DivisionDetailScreen(
                                 Text(
                                     text = "Belum ada anggota di divisi ini.",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = SekreTheme.colors.onGlassSecondary,
                                     modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                                 )
                             }
                         } else {
                             items(state.divisionMembers, key = { it.id }) { member ->
-                                ElevatedCard(
+                                GlassCard(
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.elevatedCardColors(
-                                        containerColor = MaterialTheme.colorScheme.surface,
-                                    ),
-                                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
+                                    intensity = GlassIntensity.Medium,
                                 ) {
                                     Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
+                                        modifier = Modifier.fillMaxWidth(),
                                         verticalArrangement = Arrangement.spacedBy(2.dp),
                                     ) {
                                         Text(
                                             text = member.fullName,
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface,
+                                            color = SekreTheme.colors.onGlassPrimary,
                                         )
                                         Text(
                                             text = member.email,
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            color = SekreTheme.colors.onGlassSecondary,
                                         )
                                         Text(
                                             text = "Peran: ${member.divisionRole.name}",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary,
+                                            color = SekreTheme.colors.accentPrimary,
                                         )
                                     }
                                 }
@@ -273,7 +265,8 @@ fun DivisionDetailScreen(
                     },
                     enabled = !state.isDeleting,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
+                        containerColor = SekreTheme.colors.accentDanger,
+                        contentColor   = SekreTheme.colors.backdropDeep,
                     ),
                 ) { Text(if (state.isDeleting) "Menghapus..." else "Hapus") }
             },

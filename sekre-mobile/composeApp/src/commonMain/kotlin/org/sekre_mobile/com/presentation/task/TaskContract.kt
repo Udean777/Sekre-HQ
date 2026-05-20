@@ -54,8 +54,11 @@ sealed interface TaskEvent : ViewEvent {
     ) : TaskEvent
 
     data class SubmitStatus(val id: String, val status: TaskStatus) : TaskEvent
+    data class SubmitDelete(val id: String) : TaskEvent
 }
 
 sealed interface TaskEffect : ViewEffect {
     data class ShowError(val message: String) : TaskEffect
+    data object UpdatedSuccessfully : TaskEffect
+    data object DeletedSuccessfully : TaskEffect
 }

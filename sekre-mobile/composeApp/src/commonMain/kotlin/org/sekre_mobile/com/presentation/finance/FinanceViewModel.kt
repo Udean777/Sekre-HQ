@@ -175,6 +175,9 @@ class FinanceViewModel(
             is Result.Success -> {
                 log("openDetail", "OK id=${result.data.transaction.id}")
                 setState { it.copy(selectedTransaction = result.data) }
+                // Load events for this transaction's division so the detail
+                // screen can resolve eventId → event title correctly.
+                loadDivisionEvents(result.data.transaction.divisionId)
             }
                 is Result.Error -> {
                     log("openDetail", "FAIL message=${result.exception.message}")

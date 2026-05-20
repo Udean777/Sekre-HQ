@@ -64,6 +64,7 @@ class TaskViewModel(
             )
 
             is TaskEvent.SubmitStatus -> submitStatus(event.id, event.status)
+            is TaskEvent.SubmitDelete -> submitDelete(event.id)
         }
     }
 
@@ -254,6 +255,7 @@ class TaskViewModel(
                             selectedTask = updated,
                         )
                     }
+                    sendEffect(TaskEffect.UpdatedSuccessfully)
                 }
 
                     is Result.Error -> {
@@ -289,6 +291,33 @@ class TaskViewModel(
                             false
                         )
                     }
+            }
+        }
+    }
+
+    private fun submitDelete(id: String) {
+        log("submitDelete", "start id=$id")
+        viewModelScope.launch {
+            setState { it.copy(isLoading = true, errorMessage = null) }
+            when (val result = deleteTaskUseCase(id)) {
+                is Result.Success -> {
+                    log("submitDelete", "OK id=$id")
+                    setState {
+                        it.copy(
+                            isLoading = false,
+                            selectedTask = null,
+                            tasks = it.tasks.filterNot { item -> item.task.id == id },
+                        )
+                    }
+                    sendEffect(TaskEffect.DeletedSuccessfully)
+                }
+                is Result.Error -> {
+                    log("submitDelete", "FAIL message=${result.exception.message}")
+                    handleError(
+                        ErrorMapper.toDisplayMessage("Gagal menghapus task", result.exception),
+                        false
+                    )
+                }
             }
         }
     }

@@ -1,16 +1,13 @@
 package org.sekre_mobile.com.presentation.event.components
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.domain.entity.Event
+import org.sekre_mobile.com.presentation.ui.glass.GlassPill
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 /** Visual derived state for an event, used to drive the chip. */
 enum class EventDisplayStatus { Ongoing, Today, Upcoming, Past }
@@ -24,43 +21,21 @@ fun Event.displayStatus(): EventDisplayStatus = when {
 
 @Composable
 fun EventStatusChip(status: EventDisplayStatus) {
-    val containerColor: Color
-    val contentColor: Color
-    val label: String
+    val colors = SekreTheme.colors
 
-    when (status) {
-        EventDisplayStatus.Ongoing -> {
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-            label = "Berlangsung"
-        }
-        EventDisplayStatus.Today -> {
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            label = "Hari Ini"
-        }
-        EventDisplayStatus.Upcoming -> {
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            label = "Akan Datang"
-        }
-        EventDisplayStatus.Past -> {
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            label = "Selesai"
-        }
+    val (accentColor: Color, label: String) = when (status) {
+        EventDisplayStatus.Ongoing  -> colors.accentSuccess  to "Berlangsung"
+        EventDisplayStatus.Today    -> colors.accentWarning  to "Hari Ini"
+        EventDisplayStatus.Upcoming -> colors.accentPrimary  to "Akan Datang"
+        EventDisplayStatus.Past     -> colors.onGlassTertiary to "Selesai"
     }
 
-    Surface(
-        color = containerColor,
-        shape = RoundedCornerShape(8.dp),
-    ) {
+    GlassPill {
         Text(
             text = label,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = contentColor,
+            color = accentColor,
         )
     }
 }

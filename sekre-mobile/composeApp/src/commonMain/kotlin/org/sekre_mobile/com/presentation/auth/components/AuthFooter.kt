@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun AuthFooter(
@@ -26,6 +28,8 @@ fun AuthFooter(
     isLoading: Boolean = false,
     enabled: Boolean = true,
 ) {
+    val colors = SekreTheme.colors
+
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -36,12 +40,18 @@ fun AuthFooter(
                 .fillMaxWidth()
                 .height(50.dp),
             enabled = enabled && !isLoading,
-            shape = MaterialTheme.shapes.medium
+            shape = SekreTheme.shapes.medium,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colors.accentPrimary,
+                contentColor   = colors.backdropDeep,
+                disabledContainerColor = colors.accentPrimary.copy(alpha = 0.38f),
+                disabledContentColor   = colors.backdropDeep.copy(alpha = 0.38f),
+            )
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = colors.backdropDeep,
                     strokeWidth = 2.5.dp
                 )
             } else {
@@ -53,19 +63,17 @@ fun AuthFooter(
             }
         }
 
-        TextButton(
-            onClick = onSwitchModeClick
-        ) {
+        TextButton(onClick = onSwitchModeClick) {
             Text(
                 text = "$switchModeText ",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = colors.onGlassSecondary,
             )
 
             Text(
                 text = switchModeActionText,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = colors.accentPrimary,
                 fontWeight = FontWeight.Bold
             )
         }

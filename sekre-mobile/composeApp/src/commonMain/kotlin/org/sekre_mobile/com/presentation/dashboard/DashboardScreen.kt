@@ -1,6 +1,5 @@
 package org.sekre_mobile.com.presentation.dashboard
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,8 +14,8 @@ import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.presentation.dashboard.components.DashboardErrorState
 import org.sekre_mobile.com.presentation.dashboard.components.DashboardHeader
 import org.sekre_mobile.com.presentation.dashboard.components.DashboardHeroCard
-import org.sekre_mobile.com.presentation.dashboard.components.DashboardInfoSection
 import org.sekre_mobile.com.presentation.dashboard.components.DashboardInlineError
+import org.sekre_mobile.com.presentation.dashboard.components.DashboardListsSection
 import org.sekre_mobile.com.presentation.dashboard.components.DashboardLoadingState
 import org.sekre_mobile.com.presentation.dashboard.components.DashboardMetrics
 import org.sekre_mobile.com.presentation.foundation.SafeArea
@@ -29,9 +27,7 @@ fun DashboardScreen(
 ) {
     SafeArea {
         BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+            modifier = Modifier.fillMaxSize()
         ) {
             val isWide = maxWidth >= 760.dp
             val horizontalPadding = if (isWide) 24.dp else 16.dp
@@ -78,10 +74,10 @@ fun DashboardScreen(
                                     isWide = isWide
                                 )
 
-                                DashboardInfoSection(
-                                    user = state.user,
-                                    summary = state.financeSummary,
-                                    isWide = isWide
+                                DashboardListsSection(
+                                    tasks = state.recentTasks,
+                                    events = state.upcomingEvents,
+                                    isWide = isWide,
                                 )
 
                                 state.errorMessage?.let { msg ->

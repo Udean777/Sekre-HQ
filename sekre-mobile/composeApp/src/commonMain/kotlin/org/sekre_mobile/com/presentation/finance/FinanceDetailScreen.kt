@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,7 +23,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -38,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.domain.entity.TransactionStatus
@@ -46,6 +45,7 @@ import org.sekre_mobile.com.presentation.finance.components.TransactionStatusChi
 import org.sekre_mobile.com.presentation.foundation.SafeArea
 import org.sekre_mobile.com.presentation.foundation.formatCurrency
 import org.sekre_mobile.com.presentation.foundation.formatDate
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 /**
  * Read-only detail view for a transaction. Shows the full record without
@@ -72,7 +72,7 @@ fun FinanceDetailScreen(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     "Tidak ada transaksi yang dipilih",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = SekreTheme.colors.onGlassSecondary,
                 )
             }
             return@SafeArea
@@ -101,11 +101,11 @@ fun FinanceDetailScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
+                        containerColor = Color.Transparent,
                     ),
                 )
             },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -122,9 +122,9 @@ fun FinanceDetailScreen(
                     HeaderCard(
                         amountText = formatCurrency(tx.amountCents, tx.currency),
                         amountColor = if (tx.type == TransactionType.INCOME)
-                            MaterialTheme.colorScheme.tertiary
+                            SekreTheme.colors.accentSuccess
                         else
-                            MaterialTheme.colorScheme.error,
+                            SekreTheme.colors.accentDanger,
                         createdAt = formatDate(tx.createdAt),
                         status = tx.status,
                     )
@@ -160,8 +160,8 @@ fun FinanceDetailScreen(
                         if (notice.isNotEmpty()) {
                             Text(
                                 text = notice,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = SekreTheme.typography.bodySmall,
+                                color = SekreTheme.colors.onGlassSecondary,
                             )
                         }
                     }
@@ -174,7 +174,7 @@ fun FinanceDetailScreen(
                             Button(
                                 onClick = { onOpenEdit(tx.id) },
                                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = SekreTheme.shapes.medium,
                             ) {
                                 Text("Edit Transaksi", fontWeight = FontWeight.Bold)
                             }
@@ -184,9 +184,9 @@ fun FinanceDetailScreen(
                             OutlinedButton(
                                 onClick = { showDeleteConfirm = true },
                                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = SekreTheme.shapes.medium,
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error,
+                                    contentColor = SekreTheme.colors.accentDanger,
                                 ),
                             ) {
                                 Text("Hapus Transaksi", fontWeight = FontWeight.Bold)
@@ -208,7 +208,7 @@ fun FinanceDetailScreen(
                         onEvent(FinanceEvent.SubmitDelete(tx.id))
                         onBack()
                     }) {
-                        Text("Hapus", color = MaterialTheme.colorScheme.error)
+                        Text("Hapus", color = SekreTheme.colors.accentDanger)
                     }
                 },
                 dismissButton = {
@@ -228,9 +228,9 @@ private fun HeaderCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = SekreTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = SekreTheme.colors.glassTint,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
@@ -247,21 +247,21 @@ private fun HeaderCard(
             ) {
                 Text(
                     text = "Jumlah",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = SekreTheme.typography.labelMedium,
+                    color = SekreTheme.colors.onGlassSecondary,
                 )
                 TransactionStatusChip(status = status)
             }
             Text(
                 text = amountText,
-                style = MaterialTheme.typography.headlineSmall,
+                style = SekreTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = amountColor,
             )
             Text(
                 text = "Dibuat $createdAt",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = SekreTheme.typography.labelMedium,
+                color = SekreTheme.colors.onGlassSecondary,
             )
         }
     }
@@ -273,9 +273,9 @@ private data class InfoItem(val label: String, val value: String)
 private fun InfoCard(items: List<InfoItem>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = SekreTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = SekreTheme.colors.glassTint,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
@@ -288,7 +288,7 @@ private fun InfoCard(items: List<InfoItem>) {
                 StackedInfoRow(label = item.label, value = item.value)
                 if (index != items.lastIndex) {
                     HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant,
+                        color = SekreTheme.colors.glassBorder,
                     )
                 }
             }
@@ -311,14 +311,14 @@ private fun StackedInfoRow(label: String, value: String) {
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = SekreTheme.typography.labelMedium,
+            color = SekreTheme.colors.onGlassSecondary,
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
+            style = SekreTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = SekreTheme.colors.onGlassPrimary,
         )
     }
 }

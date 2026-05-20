@@ -6,12 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,9 +18,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.domain.entity.Profile
+import org.sekre_mobile.com.presentation.ui.glass.GlassCard
+import org.sekre_mobile.com.presentation.ui.glass.GlassIntensity
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun MemberItemCard(member: Profile) {
+    val colors = SekreTheme.colors
     val initials = member.fullName
         .split(" ")
         .filter { it.isNotBlank() }
@@ -37,18 +37,12 @@ fun MemberItemCard(member: Profile) {
         }
         .uppercase()
 
-    ElevatedCard(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp),
+        intensity = GlassIntensity.Medium,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -56,13 +50,13 @@ fun MemberItemCard(member: Profile) {
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(colors.accentPrimary.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = initials,
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = colors.accentPrimary,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -74,14 +68,14 @@ fun MemberItemCard(member: Profile) {
                     text = member.fullName,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = colors.onGlassPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = member.email,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.onGlassSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

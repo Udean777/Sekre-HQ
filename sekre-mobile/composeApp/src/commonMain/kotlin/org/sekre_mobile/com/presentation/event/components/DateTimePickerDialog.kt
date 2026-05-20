@@ -3,7 +3,6 @@ package org.sekre_mobile.com.presentation.event.components
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -19,8 +18,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -28,6 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import org.sekre_mobile.com.presentation.foundation.combineDateAndTime
 import org.sekre_mobile.com.presentation.foundation.extractHourMinute
+import org.sekre_mobile.com.presentation.ui.glass.GlassIntensity
+import org.sekre_mobile.com.presentation.ui.glass.GlassPanel
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 /**
  * Sequenced date + time picker. Opens a DatePickerDialog first, then a
@@ -79,10 +79,8 @@ fun DateTimePickerDialog(
                 is24Hour = true,
             )
             Dialog(onDismissRequest = onDismiss) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 6.dp,
+                GlassPanel(
+                    intensity = GlassIntensity.High,
                 ) {
                     Column(
                         modifier = Modifier
@@ -93,8 +91,9 @@ fun DateTimePickerDialog(
                     ) {
                         Text(
                             text = "Pilih Jam",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = SekreTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
+                            color = SekreTheme.colors.onGlassPrimary,
                         )
 
                         TimePicker(state = timePickerState)

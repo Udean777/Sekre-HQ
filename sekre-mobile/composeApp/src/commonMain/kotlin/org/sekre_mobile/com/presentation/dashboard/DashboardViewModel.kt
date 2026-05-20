@@ -3,17 +3,24 @@ package org.sekre_mobile.com.presentation.dashboard
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import org.sekre_mobile.com.domain.model.PaginationParams
 import org.sekre_mobile.com.domain.model.Result
+import org.sekre_mobile.com.domain.util.currentTimeMillis
 import org.sekre_mobile.com.domain.usecase.auth.GetCurrentUserUseCase
 import org.sekre_mobile.com.domain.usecase.auth.LogoutUseCase
+import org.sekre_mobile.com.domain.usecase.event.ListEventsUseCase
+import org.sekre_mobile.com.domain.usecase.task.ListTasksUseCase
 import org.sekre_mobile.com.domain.usecase.transaction.GetFinanceSummaryUseCase
 import org.sekre_mobile.com.presentation.base.BaseViewModel
 
 class DashboardViewModel(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getFinanceSummaryUseCase: GetFinanceSummaryUseCase,
+    private val listTasksUseCase: ListTasksUseCase,
+    private val listEventsUseCase: ListEventsUseCase,
     private val logoutUseCase: LogoutUseCase,
 ) : BaseViewModel<DashboardState, DashboardEvent, DashboardEffect>(DashboardState()) {
+
     private fun log(tag: String, msg: String) {
         println("[DEBUG][DashboardViewModel][$tag] $msg")
     }
@@ -24,7 +31,6 @@ class DashboardViewModel(
             DashboardEvent.Load,
             DashboardEvent.Retry,
                 -> loadDashboard()
-
             DashboardEvent.Logout -> logout()
         }
     }
@@ -41,29 +47,54 @@ class DashboardViewModel(
         viewModelScope.launch {
             setState { it.copy(isLoading = true, errorMessage = null) }
 
-            val userDeferred = async { getCurrentUserUseCase() }
+            val userDeferred    = async { getCurrentUserUseCase() }
             val summaryDeferred = async { getFinanceSummaryUseCase() }
+            val tasksDeferred   = async { listTasksUseCase() }
+            val eventsDeferred  = async {
+                listEventsUseCase(pagination = PaginationParams(limit = 50, offset = 0))
+            }
 
-            val userResult = userDeferred.await()
+            val userResult    = userDeferred.await()
             val summaryResult = summaryDeferred.await()
+            val tasksResult   = tasksDeferred.await()
+            val eventsResult  = eventsDeferred.await()
 
-            val user = (userResult as? Result.Success)?.data
+            val user    = (userResult as? Result.Success)?.data
             val summary = (summaryResult as? Result.Success)?.data
-            val userError = (userResult as? Result.Error)?.exception?.message
+
+            // 3 tasks terbaru (sort createdAt DESC)
+            val recentTasks = (tasksResult as? Result.Success)?.data
+                ?.sortedByDescending { it.task.createdAt }
+                ?.take(3)
+                .orEmpty()
+
+            // 3 event yang akan datang (startTime > now, sort ASC)
+            val now = currentTimeMillis()
+            val upcomingEvents = (eventsResult as? Result.Success)?.data?.items
+                ?.filter { it.event.startTime > now }
+                ?.sortedBy { it.event.startTime }
+                ?.take(3)
+                .orEmpty()
+
+            val userError    = (userResult as? Result.Error)?.exception?.message
             val summaryError = (summaryResult as? Result.Error)?.exception?.message
-            val error = userError ?: summaryError
+            val error        = userError ?: summaryError
 
             log(
                 "loadDashboard",
-                "user=${user != null} summary=${summary != null} userError=$userError summaryError=$summaryError"
+                "user=${user != null} summary=${summary != null} " +
+                "tasks=${recentTasks.size} events=${upcomingEvents.size} " +
+                "userError=$userError summaryError=$summaryError"
             )
 
             setState {
                 it.copy(
-                    isLoading = false,
-                    user = user,
+                    isLoading      = false,
+                    user           = user,
                     financeSummary = summary,
-                    errorMessage = error,
+                    recentTasks    = recentTasks,
+                    upcomingEvents = upcomingEvents,
+                    errorMessage   = error,
                 )
             }
 

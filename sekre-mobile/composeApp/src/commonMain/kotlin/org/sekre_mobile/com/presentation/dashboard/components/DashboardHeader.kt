@@ -29,12 +29,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.domain.entity.AuthenticatedUser
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun DashboardHeader(
     user: AuthenticatedUser?,
     onLogoutClick: () -> Unit
 ) {
+    val colors = SekreTheme.colors
     val fullName = user?.user?.fullName.orEmpty()
     val initial = fullName.firstOrNull()?.uppercase() ?: "O"
 
@@ -47,19 +49,20 @@ fun DashboardHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
-            modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = if (fullName.isBlank()) "Dashboard" else "Halo, $fullName \uD83D\uDC4B",
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = colors.onGlassPrimary,
                 fontWeight = FontWeight.Bold,
             )
 
             Text(
                 text = "Pantau kondisi keuangan dari satu tempat.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.onGlassSecondary,
             )
         }
 
@@ -68,14 +71,14 @@ fun DashboardHeader(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .background(colors.accentPrimary.copy(alpha = 0.20f))
                     .clickable { expanded = true },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = initial,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = colors.onGlassPrimary,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -103,7 +106,7 @@ fun DashboardHeader(
                 HorizontalDivider()
 
                 DropdownMenuItem(
-                    text = { Text("Logout", color = MaterialTheme.colorScheme.error) },
+                    text = { Text("Logout", color = colors.accentDanger) },
                     onClick = {
                         expanded = false
                         showLogoutDialog = true
@@ -132,7 +135,8 @@ fun DashboardHeader(
                         onLogoutClick()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        containerColor = colors.accentDanger,
+                        contentColor   = colors.backdropDeep,
                     )
                 ) {
                     Text("Keluar")
@@ -140,7 +144,7 @@ fun DashboardHeader(
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Batal")
+                    Text("Batal", color = colors.accentPrimary)
                 }
             }
         )

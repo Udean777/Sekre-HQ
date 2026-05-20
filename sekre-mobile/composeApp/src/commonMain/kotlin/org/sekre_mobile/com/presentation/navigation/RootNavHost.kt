@@ -3,6 +3,7 @@ package org.sekre_mobile.com.presentation.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -12,14 +13,12 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
@@ -29,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -58,6 +58,7 @@ import org.sekre_mobile.com.presentation.division.DivisionListScreen
 import org.sekre_mobile.com.presentation.division.DivisionViewModel
 import org.sekre_mobile.com.presentation.event.EventCreateScreen
 import org.sekre_mobile.com.presentation.event.EventDetailScreen
+import org.sekre_mobile.com.presentation.event.EventEditScreen
 import org.sekre_mobile.com.presentation.event.EventEffect
 import org.sekre_mobile.com.presentation.event.EventEvent
 import org.sekre_mobile.com.presentation.event.EventListScreen
@@ -84,10 +85,14 @@ import org.sekre_mobile.com.presentation.more.MoreViewModel
 import org.sekre_mobile.com.presentation.more.ProfileScreen
 import org.sekre_mobile.com.presentation.task.TaskCreateScreen
 import org.sekre_mobile.com.presentation.task.TaskDetailScreen
+import org.sekre_mobile.com.presentation.task.TaskEditScreen
 import org.sekre_mobile.com.presentation.task.TaskEffect
 import org.sekre_mobile.com.presentation.task.TaskEvent
 import org.sekre_mobile.com.presentation.task.TaskListScreen
 import org.sekre_mobile.com.presentation.task.TaskViewModel
+import org.sekre_mobile.com.presentation.ui.glass.GlassSurface
+import org.sekre_mobile.com.presentation.ui.glass.GlassIntensity
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 private data class MainTabItem(
     val route: String,
@@ -164,16 +169,11 @@ fun RootNavHost() {
     }
 
     if (authState.isBootstrapping) {
-        Surface(
+        Box(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
-            }
+            CircularProgressIndicator(color = SekreTheme.colors.accentPrimary)
         }
         return
     }
@@ -264,12 +264,20 @@ private fun MainScaffold(
     }
     LaunchedEffect(Unit) {
         taskViewModel.effect.collect {
-            if (it is TaskEffect.ShowError) snackbarHostState.showSnackbar(it.message)
+            when (it) {
+                is TaskEffect.ShowError -> snackbarHostState.showSnackbar(it.message)
+                TaskEffect.UpdatedSuccessfully -> snackbarHostState.showSnackbar("Tugas berhasil diperbarui")
+                TaskEffect.DeletedSuccessfully -> snackbarHostState.showSnackbar("Tugas berhasil dihapus")
+            }
         }
     }
     LaunchedEffect(Unit) {
         eventViewModel.effect.collect {
-            if (it is EventEffect.ShowError) snackbarHostState.showSnackbar(it.message)
+            when (it) {
+                is EventEffect.ShowError -> snackbarHostState.showSnackbar(it.message)
+                EventEffect.DeletedSuccessfully -> snackbarHostState.showSnackbar("Acara berhasil dihapus")
+                EventEffect.UpdatedSuccessfully -> snackbarHostState.showSnackbar("Acara berhasil diperbarui")
+            }
         }
     }
     LaunchedEffect(Unit) {
@@ -340,13 +348,12 @@ private fun MainScaffold(
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                Surface(
-                    shadowElevation = 8.dp,
-                    tonalElevation = 0.dp,
-                    color = MaterialTheme.colorScheme.surface,
+                GlassSurface(
+                    intensity = GlassIntensity.High,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface,
+                        containerColor = Color.Transparent,
                         tonalElevation = 0.dp,
                     ) {
                         mainTabs.forEach { tab ->
@@ -371,15 +378,15 @@ private fun MainScaffold(
                                 label = {
                                     Text(
                                         text = tab.label,
-                                        style = MaterialTheme.typography.labelMedium,
+                                        style = SekreTheme.typography.labelMedium,
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedIconColor = SekreTheme.colors.accentPrimary,
+                                    selectedTextColor = SekreTheme.colors.accentPrimary,
+                                    unselectedIconColor = SekreTheme.colors.onGlassSecondary,
+                                    unselectedTextColor = SekreTheme.colors.onGlassSecondary,
+                                    indicatorColor = SekreTheme.colors.accentPrimary.copy(alpha = 0.15f),
                                 ),
                             )
                         }
@@ -423,7 +430,15 @@ private fun MainScaffold(
                 TaskDetailScreen(
                     state = taskState,
                     onBack = { mainNav.popBackStack() },
-                    onEvent = taskViewModel::onEvent
+                    onOpenEdit = { mainNav.navigate(Routes.TASK_EDIT) },
+                    onEvent = taskViewModel::onEvent,
+                )
+            }
+            composable(Routes.TASK_EDIT) {
+                TaskEditScreen(
+                    state = taskState,
+                    onBack = { mainNav.popBackStack() },
+                    onEvent = taskViewModel::onEvent,
                 )
             }
             composable(Routes.EVENTS) {
@@ -448,7 +463,15 @@ private fun MainScaffold(
                 EventDetailScreen(
                     state = eventState,
                     onBack = { mainNav.popBackStack() },
-                    onEvent = eventViewModel::onEvent
+                    onOpenEdit = { mainNav.navigate(Routes.EVENT_EDIT) },
+                    onEvent = eventViewModel::onEvent,
+                )
+            }
+            composable(Routes.EVENT_EDIT) {
+                EventEditScreen(
+                    state = eventState,
+                    onBack = { mainNav.popBackStack() },
+                    onEvent = eventViewModel::onEvent,
                 )
             }
             composable(Routes.FINANCE) {

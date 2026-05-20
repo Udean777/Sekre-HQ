@@ -52,4 +52,5 @@ sealed interface EventEvent : ViewEvent {
 sealed interface EventEffect : ViewEffect {
     data class ShowError(val message: String) : EventEffect
     data object DeletedSuccessfully : EventEffect
+    data object UpdatedSuccessfully : EventEffect
 }

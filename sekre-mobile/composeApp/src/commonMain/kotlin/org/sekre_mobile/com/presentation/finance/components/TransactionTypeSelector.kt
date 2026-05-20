@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -20,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.domain.entity.TransactionType
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun TransactionTypeSelector(
@@ -27,6 +27,8 @@ fun TransactionTypeSelector(
     onSelect: (TransactionType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = SekreTheme.colors
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -46,7 +48,7 @@ fun TransactionTypeSelector(
                         Icons.AutoMirrored.Filled.TrendingUp,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                        tint = IncomeGreen,
+                        tint = colors.accentSuccess,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -55,9 +57,9 @@ fun TransactionTypeSelector(
                     )
                 }
             },
-            shape = RoundedCornerShape(12.dp),
+            shape = SekreTheme.shapes.small,
             colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = IncomeGreen.copy(alpha = 0.12f),
+                selectedContainerColor = colors.accentSuccess.copy(alpha = 0.14f),
             ),
         )
         FilterChip(
@@ -75,7 +77,7 @@ fun TransactionTypeSelector(
                         Icons.AutoMirrored.Filled.TrendingDown,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                        tint = ExpenseRed,
+                        tint = colors.accentDanger,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -84,9 +86,9 @@ fun TransactionTypeSelector(
                     )
                 }
             },
-            shape = RoundedCornerShape(12.dp),
+            shape = SekreTheme.shapes.small,
             colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = ExpenseRed.copy(alpha = 0.12f),
+                selectedContainerColor = colors.accentDanger.copy(alpha = 0.14f),
             ),
         )
     }

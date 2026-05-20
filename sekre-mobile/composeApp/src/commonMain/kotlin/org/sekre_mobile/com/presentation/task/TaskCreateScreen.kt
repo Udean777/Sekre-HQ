@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -25,7 +24,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,10 +38,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.presentation.foundation.SafeArea
 import org.sekre_mobile.com.presentation.foundation.formatDate
+import org.sekre_mobile.com.presentation.ui.glass.glassTextFieldColors
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,11 +91,11 @@ fun TaskCreateScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
+                        containerColor = Color.Transparent
                     )
                 )
             },
-            containerColor = MaterialTheme.colorScheme.background
+            containerColor = Color.Transparent
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -129,7 +130,8 @@ fun TaskCreateScreen(
                             trailingIcon = {
                                 Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                             },
-                            shape = RoundedCornerShape(12.dp)
+                            shape = SekreTheme.shapes.medium,
+                            colors = glassTextFieldColors(),
                         )
                         DropdownMenu(
                             expanded = divisionDropdownExpanded,
@@ -191,7 +193,8 @@ fun TaskCreateScreen(
                                     Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                                 }
                             },
-                            shape = RoundedCornerShape(12.dp)
+                            shape = SekreTheme.shapes.medium,
+                            colors = glassTextFieldColors(),
                         )
                         DropdownMenu(
                             expanded = assigneeDropdownExpanded,
@@ -216,7 +219,8 @@ fun TaskCreateScreen(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text("Judul Tugas *") },
-                        shape = RoundedCornerShape(12.dp)
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                     )
 
                     OutlinedTextField(
@@ -226,7 +230,8 @@ fun TaskCreateScreen(
                         value = description,
                         onValueChange = { description = it },
                         label = { Text("Deskripsi") },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                         maxLines = 5
                     )
 
@@ -255,7 +260,8 @@ fun TaskCreateScreen(
                                 }
                             }
                         },
-                        shape = RoundedCornerShape(12.dp)
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                     )
                 }
 
@@ -276,7 +282,7 @@ fun TaskCreateScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = SekreTheme.shapes.medium,
                 ) {
                     Text("Simpan Tugas", fontWeight = FontWeight.Bold)
                 }

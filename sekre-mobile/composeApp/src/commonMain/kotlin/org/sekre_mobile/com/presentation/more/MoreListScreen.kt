@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Domain
@@ -69,11 +71,11 @@ fun MoreListScreen(
                         )
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
+                        containerColor = Color.Transparent,
                     ),
                 )
             },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
         ) { paddingValues ->
             LazyColumn(
                 modifier = Modifier
@@ -155,7 +157,7 @@ fun MoreListScreen(
                             .padding(top = 12.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
+                            contentColor = SekreTheme.colors.accentDanger,
                         ),
                     ) {
                         Icon(
@@ -185,12 +187,12 @@ fun MoreListScreen(
                                 text = "Sekre",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = SekreTheme.colors.onGlassSecondary,
                             )
                             Text(
                                 text = "v1.0.0",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = SekreTheme.colors.onGlassSecondary,
                             )
                         }
                     }
@@ -216,7 +218,7 @@ fun MoreListScreen(
                         onLogout()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
+                        containerColor = SekreTheme.colors.accentDanger,
                     ),
                 ) {
                     Text("Keluar")

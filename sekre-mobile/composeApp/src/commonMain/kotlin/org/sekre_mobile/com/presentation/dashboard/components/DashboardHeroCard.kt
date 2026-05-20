@@ -4,110 +4,97 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.sekre_mobile.com.domain.entity.AuthenticatedUser
 import org.sekre_mobile.com.domain.entity.FinanceSummary
 import org.sekre_mobile.com.domain.util.formatMoney
+import org.sekre_mobile.com.presentation.ui.glass.GlassPanel
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun DashboardHeroCard(
     user: AuthenticatedUser?,
-    summary: FinanceSummary?
+    summary: FinanceSummary?,
 ) {
-    val gradientBrush = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
-        ),
-        start = Offset(0f, 0f),
-        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-    )
+    val colors = SekreTheme.colors
+    val shapes = SekreTheme.shapes
+    val typography = SekreTheme.typography
+    val spacing = SekreTheme.spacing
 
-    Surface(
+    GlassPanel(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        shadowElevation = 8.dp,
-        color = Color.Transparent
     ) {
-        Box(
-            modifier = Modifier
-                .background(gradientBrush)
-                .padding(24.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(spacing.sm),
         ) {
-            Icon(
-                imageVector = Icons.Default.AccountBalanceWallet,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.15f),
-                modifier = Modifier
-                    .size(100.dp)
-                    .align(Alignment.TopEnd)
-                    .offset(x = 24.dp, y = (-24).dp)
-            )
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(28.dp)
+            // ── Top row: org name + role badge ──────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = user?.organization?.name ?: "Organisasi Anda",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 1.sp
+                    text = user?.organization?.name ?: "Organisasi",
+                    style = typography.titleSmall,
+                    color = colors.onSurfaceSecondary,
+                    modifier = Modifier.weight(1f),
                 )
 
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "Total Saldo",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-
-                    Text(
-                        text = summary?.let { formatMoney(it.balanceCents, it.currency) } ?: "Rp 0",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = Color.White,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-1).sp
-                    )
-                }
-
-                user?.role?.let { role ->
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.White.copy(alpha = 0.2f)
+                if (user != null) {
+                    Box(
+                        modifier = Modifier
+                            .clip(shapes.small)
+                            .background(colors.accentPrimary.copy(alpha = 0.10f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
                     ) {
                         Text(
-                            text = role.toString().uppercase(),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
+                            text = user.role.name,
+                            style = typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
+                            color = colors.accentPrimary,
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(spacing.lg))
+
+            // ── Balance label ────────────────────────────────────────────────
+            Text(
+                text = "TOTAL SALDO",
+                style = typography.labelMedium.copy(
+                    letterSpacing = 1.sp,
+                ),
+                color = colors.onSurfaceTertiary,
+            )
+
+            // ── Balance value ────────────────────────────────────────────────
+            val balanceText = if (summary != null) {
+                val netCents = summary.totalIncomeCents - summary.totalExpenseCents
+                formatMoney(netCents, summary.currency)
+            } else {
+                "—"
+            }
+
+            Text(
+                text = balanceText,
+                style = typography.displayMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.onSurfacePrimary,
+            )
         }
     }
 }

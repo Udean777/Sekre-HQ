@@ -221,6 +221,7 @@ class EventViewModel(
                         },
                     )
                 }
+                sendEffect(EventEffect.UpdatedSuccessfully)
             }
 
             is Result.Error -> {

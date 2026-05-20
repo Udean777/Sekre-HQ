@@ -1,6 +1,5 @@
 package org.sekre_mobile.com.presentation.auth
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +24,9 @@ import org.sekre_mobile.com.presentation.auth.components.AuthPasswordTextField
 import org.sekre_mobile.com.presentation.auth.components.AuthTextField
 import org.sekre_mobile.com.presentation.auth.components.sanitizeSubdomainInput
 import org.sekre_mobile.com.presentation.foundation.SafeArea
+import org.sekre_mobile.com.presentation.ui.glass.GlassIntensity
+import org.sekre_mobile.com.presentation.ui.glass.GlassPanel
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun LoginScreen(
@@ -32,56 +34,62 @@ fun LoginScreen(
     onEvent: (AuthEvent) -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
+    val colors = SekreTheme.colors
+    val spacing = SekreTheme.spacing
+
     SafeArea(applyImePadding = true) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 32.dp),
+                .padding(horizontal = spacing.lg, vertical = spacing.xxl),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
                 modifier = Modifier.widthIn(max = 450.dp),
-                verticalArrangement = Arrangement.spacedBy(32.dp)
+                verticalArrangement = Arrangement.spacedBy(spacing.xxl)
             ) {
                 AuthHeader(
                     title = "Selamat Datang",
                     subtitle = "Silakan masuk akun organisasi Anda untuk melanjutkan pemantauan."
                 )
 
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                GlassPanel(
+                    intensity = GlassIntensity.Medium,
                 ) {
-                    AuthTextField(
-                        value = state.email,
-                        onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
-                        label = "Email Organisasi",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next,
-                        ),
-                        enabled = !state.isLoading,
-                        errorMessage = state.emailError.takeIf { state.emailTouched },
-                        maxLength = 254,
-                    )
-
-                    AuthPasswordTextField(
-                        value = state.password,
-                        onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
-                        label = "Kata Sandi",
-                        enabled = !state.isLoading,
-                        errorMessage = state.passwordError.takeIf { state.passwordTouched },
-                        imeAction = ImeAction.Done,
-                    )
-
-                    state.errorMessage?.let { msg ->
-                        Text(
-                            text = msg,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(spacing.lg)
+                    ) {
+                        AuthTextField(
+                            value = state.email,
+                            onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
+                            label = "Email Organisasi",
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next,
+                            ),
+                            enabled = !state.isLoading,
+                            errorMessage = state.emailError.takeIf { state.emailTouched },
+                            maxLength = 254,
                         )
+
+                        AuthPasswordTextField(
+                            value = state.password,
+                            onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
+                            label = "Kata Sandi",
+                            enabled = !state.isLoading,
+                            errorMessage = state.passwordError.takeIf { state.passwordTouched },
+                            imeAction = ImeAction.Done,
+                        )
+
+                        state.errorMessage?.let { msg ->
+                            Text(
+                                text = msg,
+                                color = colors.accentDanger,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
             }
@@ -94,7 +102,9 @@ fun LoginScreen(
                 onSwitchModeClick = onNavigateToRegister,
                 isLoading = state.isLoading,
                 enabled = state.canSubmitLogin,
-                modifier = Modifier.widthIn(max = 450.dp).padding(top = 24.dp)
+                modifier = Modifier
+                    .widthIn(max = 450.dp)
+                    .padding(top = spacing.xl)
             )
         }
     }
@@ -106,101 +116,104 @@ fun RegisterScreen(
     onEvent: (AuthEvent) -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
+    val colors = SekreTheme.colors
+    val spacing = SekreTheme.spacing
+
     SafeArea(applyImePadding = true) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 32.dp),
+                .padding(horizontal = spacing.lg, vertical = spacing.xxl),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
                 modifier = Modifier.widthIn(max = 450.dp),
-                verticalArrangement = Arrangement.spacedBy(32.dp)
+                verticalArrangement = Arrangement.spacedBy(spacing.xxl)
             ) {
                 AuthHeader(
                     title = "Buat Akun",
                     subtitle = "Daftarkan organisasi Anda untuk memulai manajemen administrasi yang rapi."
                 )
 
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    AuthTextField(
-                        value = state.organizationName,
-                        onValueChange = {
-                            onEvent(AuthEvent.OrganizationNameChanged(it))
-                        },
-                        label = "Nama Organisasi",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            capitalization = KeyboardCapitalization.Words,
-                            imeAction = ImeAction.Next,
-                        ),
-                        enabled = !state.isLoading,
-                        errorMessage =
-                            state.organizationNameError.takeIf { state.organizationNameTouched },
-                        maxLength = AuthValidators.MAX_NAME_LENGTH,
-                    )
-
-                    AuthTextField(
-                        value = state.subdomain,
-                        onValueChange = { onEvent(AuthEvent.SubdomainChanged(it)) },
-                        label = "Subdomain Organisasi",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Ascii,
-                            imeAction = ImeAction.Next,
-                        ),
-                        enabled = !state.isLoading,
-                        errorMessage =
-                            state.subdomainError.takeIf { state.subdomainTouched },
-                        maxLength = AuthValidators.MAX_SUBDOMAIN_LENGTH,
-                        transformInput = ::sanitizeSubdomainInput,
-                    )
-
-                    AuthTextField(
-                        value = state.fullName,
-                        onValueChange = { onEvent(AuthEvent.FullNameChanged(it)) },
-                        label = "Nama Lengkap",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            capitalization = KeyboardCapitalization.Words,
-                            imeAction = ImeAction.Next,
-                        ),
-                        enabled = !state.isLoading,
-                        errorMessage =
-                            state.fullNameError.takeIf { state.fullNameTouched },
-                        maxLength = AuthValidators.MAX_NAME_LENGTH,
-                    )
-
-                    AuthTextField(
-                        value = state.email,
-                        onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
-                        label = "Email",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next,
-                        ),
-                        enabled = !state.isLoading,
-                        errorMessage = state.emailError.takeIf { state.emailTouched },
-                        maxLength = 254,
-                    )
-
-                    AuthPasswordTextField(
-                        value = state.password,
-                        onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
-                        label = "Kata Sandi",
-                        enabled = !state.isLoading,
-                        errorMessage = state.passwordError.takeIf { state.passwordTouched },
-                        imeAction = ImeAction.Done,
-                    )
-
-                    state.errorMessage?.let { msg ->
-                        Text(
-                            text = msg,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
+                GlassPanel(
+                    intensity = GlassIntensity.Medium,
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(spacing.lg)
+                    ) {
+                        AuthTextField(
+                            value = state.organizationName,
+                            onValueChange = { onEvent(AuthEvent.OrganizationNameChanged(it)) },
+                            label = "Nama Organisasi",
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                capitalization = KeyboardCapitalization.Words,
+                                imeAction = ImeAction.Next,
+                            ),
+                            enabled = !state.isLoading,
+                            errorMessage = state.organizationNameError.takeIf { state.organizationNameTouched },
+                            maxLength = AuthValidators.MAX_NAME_LENGTH,
                         )
+
+                        AuthTextField(
+                            value = state.subdomain,
+                            onValueChange = { onEvent(AuthEvent.SubdomainChanged(it)) },
+                            label = "Subdomain Organisasi",
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Ascii,
+                                imeAction = ImeAction.Next,
+                            ),
+                            enabled = !state.isLoading,
+                            errorMessage = state.subdomainError.takeIf { state.subdomainTouched },
+                            maxLength = AuthValidators.MAX_SUBDOMAIN_LENGTH,
+                            transformInput = ::sanitizeSubdomainInput,
+                        )
+
+                        AuthTextField(
+                            value = state.fullName,
+                            onValueChange = { onEvent(AuthEvent.FullNameChanged(it)) },
+                            label = "Nama Lengkap",
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                capitalization = KeyboardCapitalization.Words,
+                                imeAction = ImeAction.Next,
+                            ),
+                            enabled = !state.isLoading,
+                            errorMessage = state.fullNameError.takeIf { state.fullNameTouched },
+                            maxLength = AuthValidators.MAX_NAME_LENGTH,
+                        )
+
+                        AuthTextField(
+                            value = state.email,
+                            onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
+                            label = "Email",
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next,
+                            ),
+                            enabled = !state.isLoading,
+                            errorMessage = state.emailError.takeIf { state.emailTouched },
+                            maxLength = 254,
+                        )
+
+                        AuthPasswordTextField(
+                            value = state.password,
+                            onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
+                            label = "Kata Sandi",
+                            enabled = !state.isLoading,
+                            errorMessage = state.passwordError.takeIf { state.passwordTouched },
+                            imeAction = ImeAction.Done,
+                        )
+
+                        state.errorMessage?.let { msg ->
+                            Text(
+                                text = msg,
+                                color = colors.accentDanger,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
             }
@@ -213,7 +226,9 @@ fun RegisterScreen(
                 onSwitchModeClick = onNavigateToLogin,
                 isLoading = state.isLoading,
                 enabled = state.canSubmitRegister,
-                modifier = Modifier.widthIn(max = 450.dp).padding(top = 24.dp)
+                modifier = Modifier
+                    .widthIn(max = 450.dp)
+                    .padding(top = spacing.xl)
             )
         }
     }

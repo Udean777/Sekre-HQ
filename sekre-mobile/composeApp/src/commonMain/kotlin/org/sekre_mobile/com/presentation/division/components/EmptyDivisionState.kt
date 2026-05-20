@@ -2,7 +2,6 @@ package org.sekre_mobile.com.presentation.division.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DomainDisabled
@@ -15,31 +14,40 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import org.sekre_mobile.com.presentation.ui.glass.GlassIntensity
+import org.sekre_mobile.com.presentation.ui.glass.GlassPanel
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun EmptyDivisionState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    val colors = SekreTheme.colors
+
+    GlassPanel(
+        modifier = modifier,
+        intensity = GlassIntensity.Low,
     ) {
-        Icon(
-            imageVector = Icons.Default.DomainDisabled,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = "Belum ada divisi",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = "Buat divisi pertama untuk mulai mengatur anggota.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.DomainDisabled,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = colors.onGlassTertiary,
+            )
+            Text(
+                text = "Belum ada divisi",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.onGlassPrimary,
+            )
+            Text(
+                text = "Buat divisi pertama untuk mulai mengatur anggota.",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onGlassSecondary,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }

@@ -7,17 +7,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -29,10 +30,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.presentation.foundation.SafeArea
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 import org.sekre_mobile.com.presentation.more.components.ProfileHeaderCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,11 +78,11 @@ fun ProfileScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
+                        containerColor = Color.Transparent,
                     ),
                 )
             },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -104,7 +107,7 @@ fun ProfileScreen(
                         value = fullName,
                         onValueChange = { fullName = it },
                         label = { Text("Nama Lengkap *") },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
                         singleLine = true,
                     )
 
@@ -113,7 +116,7 @@ fun ProfileScreen(
                         value = email,
                         onValueChange = { email = it },
                         label = { Text("Email *") },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
                         singleLine = true,
                         isError = !emailValid,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -122,7 +125,7 @@ fun ProfileScreen(
                                 Text(
                                     "Format email tidak valid",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error,
+                                    color = SekreTheme.colors.accentDanger,
                                 )
                             }
                         },
@@ -142,7 +145,7 @@ fun ProfileScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = SekreTheme.shapes.medium,
                 ) {
                     Text(
                         text = if (state.isSubmittingProfile) "Menyimpan..." else "Simpan Perubahan",

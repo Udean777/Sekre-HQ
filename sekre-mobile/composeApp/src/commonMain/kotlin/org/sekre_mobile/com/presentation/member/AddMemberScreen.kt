@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -25,7 +24,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -37,11 +35,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.domain.entity.UserRole
 import org.sekre_mobile.com.presentation.foundation.SafeArea
+import org.sekre_mobile.com.presentation.ui.glass.glassTextFieldColors
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,11 +74,11 @@ fun AddMemberScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
+                        containerColor = Color.Transparent,
                     ),
                 )
             },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -97,7 +98,8 @@ fun AddMemberScreen(
                         value = state.fullName,
                         onValueChange = { onEvent(AddMemberEvent.SetFullName(it)) },
                         label = { Text("Nama Lengkap *") },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                         singleLine = true,
                     )
 
@@ -106,7 +108,8 @@ fun AddMemberScreen(
                         value = state.email,
                         onValueChange = { onEvent(AddMemberEvent.SetEmail(it)) },
                         label = { Text("Email *") },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = SekreTheme.shapes.medium,
+                        colors = glassTextFieldColors(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         isError = !emailValid,
@@ -114,8 +117,8 @@ fun AddMemberScreen(
                             if (!emailValid) {
                                 Text(
                                     "Format email tidak valid",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error,
+                                    style = SekreTheme.typography.bodySmall,
+                                    color = SekreTheme.colors.accentDanger,
                                 )
                             }
                         },
@@ -135,7 +138,8 @@ fun AddMemberScreen(
                             trailingIcon = {
                                 Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                             },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = SekreTheme.shapes.medium,
+                            colors = glassTextFieldColors(),
                         )
                         DropdownMenu(
                             expanded = roleDropdownExpanded,
@@ -157,15 +161,15 @@ fun AddMemberScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             text = "Divisi",
-                            style = MaterialTheme.typography.labelLarge,
+                            style = SekreTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = SekreTheme.colors.onGlassPrimary,
                         )
                         if (state.availableDivisions.isEmpty()) {
                             Text(
                                 text = "Belum ada divisi. Buat divisi terlebih dahulu.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = SekreTheme.typography.bodySmall,
+                                color = SekreTheme.colors.onGlassSecondary,
                             )
                         } else {
                             Row(
@@ -189,8 +193,8 @@ fun AddMemberScreen(
                             }
                             Text(
                                 text = "${state.selectedDivisionIds.size} divisi dipilih",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = SekreTheme.typography.bodySmall,
+                                color = SekreTheme.colors.onGlassSecondary,
                             )
                         }
                     }
@@ -202,7 +206,7 @@ fun AddMemberScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = SekreTheme.shapes.medium,
                 ) {
                     Text(
                         text = if (state.isLoading) "Menambahkan..." else "Tambahkan Anggota",

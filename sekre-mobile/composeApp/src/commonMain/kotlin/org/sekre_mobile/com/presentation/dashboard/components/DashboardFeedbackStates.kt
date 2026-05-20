@@ -1,17 +1,14 @@
 package org.sekre_mobile.com.presentation.dashboard.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,7 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import org.sekre_mobile.com.presentation.ui.glass.GlassIntensity
+import org.sekre_mobile.com.presentation.ui.glass.GlassPanel
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun DashboardLoadingState() {
@@ -27,9 +26,7 @@ fun DashboardLoadingState() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        Column {
-
-        }
+        Column {}
     }
 }
 
@@ -38,26 +35,25 @@ fun DashboardErrorState(
     message: String,
     onRetry: () -> Unit,
 ) {
+    val colors = SekreTheme.colors
+    val spacing = SekreTheme.spacing
+
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+            .fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        GlassPanel(
+            intensity = GlassIntensity.Medium,
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(spacing.lg)
             ) {
                 Text(
                     text = "Gagal memuat dashboard",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = colors.onGlassPrimary,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
                 )
@@ -65,11 +61,17 @@ fun DashboardErrorState(
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.onGlassSecondary,
                     textAlign = TextAlign.Center,
                 )
 
-                Button(onClick = onRetry) {
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.accentPrimary,
+                        contentColor   = colors.backdropDeep,
+                    )
+                ) {
                     Text("Coba Lagi")
                 }
             }
@@ -82,36 +84,40 @@ fun DashboardInlineError(
     message: String,
     onRetry: () -> Unit,
 ) {
-    Surface(
+    val colors = SekreTheme.colors
+    val spacing = SekreTheme.spacing
+
+    GlassPanel(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
+        intensity = GlassIntensity.Low,
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(spacing.xs)
             ) {
                 Text(
                     text = "Masalah koneksi",
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    color = colors.accentDanger,
                     fontWeight = FontWeight.Bold,
                 )
 
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    color = colors.onGlassSecondary,
                 )
             }
 
             TextButton(onClick = onRetry) {
-                Text("Refresh", color = MaterialTheme.colorScheme.onErrorContainer)
+                Text(
+                    text = "Refresh",
+                    color = colors.accentPrimary,
+                )
             }
         }
     }

@@ -6,43 +6,38 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.sekre_mobile.com.domain.entity.EventWithDivision
 import org.sekre_mobile.com.presentation.foundation.formatTimeRange
+import org.sekre_mobile.com.presentation.ui.glass.GlassCard
+import org.sekre_mobile.com.presentation.ui.glass.GlassIntensity
+import org.sekre_mobile.com.presentation.ui.theme.SekreTheme
 
 @Composable
 fun EventItemCard(item: EventWithDivision, onClick: () -> Unit) {
     val event = item.event
-    ElevatedCard(
+    val colors = SekreTheme.colors
+
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        intensity = GlassIntensity.Medium,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
@@ -58,7 +53,7 @@ fun EventItemCard(item: EventWithDivision, onClick: () -> Unit) {
                         text = event.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = colors.onGlassPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -66,7 +61,7 @@ fun EventItemCard(item: EventWithDivision, onClick: () -> Unit) {
                         Text(
                             text = it.name,
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = colors.accentPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -83,13 +78,13 @@ fun EventItemCard(item: EventWithDivision, onClick: () -> Unit) {
                     imageVector = Icons.Default.Schedule,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = colors.onGlassTertiary,
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = formatTimeRange(event.startTime, event.endTime),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.onGlassSecondary,
                 )
             }
 
@@ -99,13 +94,13 @@ fun EventItemCard(item: EventWithDivision, onClick: () -> Unit) {
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = colors.onGlassTertiary,
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = loc,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = colors.onGlassSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -116,7 +111,7 @@ fun EventItemCard(item: EventWithDivision, onClick: () -> Unit) {
                 Text(
                     text = event.description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.onGlassSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
