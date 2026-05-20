@@ -26,9 +26,8 @@ object ApiEndpoints {
 
     // Transaction endpoints
     object Transactions {
-        const val BASE = "finance/transactions"
-        fun byId(id: String) = "finance/transactions/$id"
-        fun approve(id: String) = "finance/transactions/$id/approve"
+        const val BASE = "transactions"
+        fun byId(id: String) = "transactions/$id"
         const val SUMMARY = "finance/summary"
     }
 

@@ -12,6 +12,7 @@ import org.sekre_mobile.com.data.remote.dto.request.LoginRequest
 import org.sekre_mobile.com.data.remote.dto.request.RegisterRequest
 import org.sekre_mobile.com.data.remote.dto.response.ApiResponse
 import org.sekre_mobile.com.data.remote.dto.response.AuthResponseDto
+import org.sekre_mobile.com.data.remote.exception.ApiException
 import org.sekre_mobile.com.domain.entity.AuthenticatedUser
 import org.sekre_mobile.com.domain.model.Result
 import org.sekre_mobile.com.domain.repository.AuthRepository
@@ -26,15 +27,30 @@ class AuthRepositoryImpl(
     private val tokenManager: TokenManager
 ) : AuthRepository {
 
-    private fun debugLog(tag: String, message: String) { /* debug disabled */ }
+    private fun debugLog(tag: String, message: String) {
+        println("[DEBUG][AuthRepository][$tag] $message")
+    }
 
     private fun debugError(tag: String, e: Exception) {
-        debugLog(tag, "type=${e::class.simpleName} message=${e.message}")
+        println("[DEBUG][AuthRepository][$tag][ERROR] type=${e::class.simpleName} message=${e.message}")
         e.cause?.let { cause ->
-            debugLog(tag, "causeType=${cause::class.simpleName} causeMessage=${cause.message}")
+            println("[DEBUG][AuthRepository][$tag][ERROR] causeType=${cause::class.simpleName} causeMessage=${cause.message}")
         }
-        debugLog(tag, "stacktrace=${e.stackTraceToString()}")
+        println("[DEBUG][AuthRepository][$tag][STACKTRACE]\n${e.stackTraceToString()}")
     }
+
+    /**
+     * Wrap a backend `success=false` envelope into a typed [ApiException].
+     *
+     * The raw server `message` is preserved as the exception cause's text only
+     * for logging; presentation layer must NOT display it directly. The
+     * structured `code` is what callers branch on.
+     */
+    private fun apiFailure(response: ApiResponse<*>): ApiException = ApiException(
+        code = response.code,
+        httpStatus = null,
+        serverMessage = response.error ?: response.message,
+    )
 
     override suspend fun login(email: String, password: String): Result<AuthenticatedUser> {
         debugLog("login", "request start email=$email")
@@ -47,7 +63,7 @@ class AuthRepositoryImpl(
             if (response.success && response.data != null) {
                 if (response.data.tokens == null) {
                     debugLog("login", "response invalid: tokens missing")
-                    return Result.Error(Exception("Login response missing tokens"))
+                    return Result.Error(ApiException(serverMessage = "Login response missing tokens"))
                 }
                 debugLog("login", "response success userId=${response.data.user.id}")
                 // Save tokens
@@ -58,7 +74,7 @@ class AuthRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 debugLog("login", "response fail error=${response.error} message=${response.message}")
-                Result.Error(Exception(response.error ?: "Login failed"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             debugError("login", e)
@@ -91,7 +107,7 @@ class AuthRepositoryImpl(
             if (response.success && response.data != null) {
                 if (response.data.tokens == null) {
                     debugLog("register", "response invalid: tokens missing")
-                    return Result.Error(Exception("Register response missing tokens"))
+                    return Result.Error(ApiException(serverMessage = "Register response missing tokens"))
                 }
                 debugLog("register", "response success userId=${response.data.user.id}")
                 // Save tokens
@@ -102,7 +118,7 @@ class AuthRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 debugLog("register", "response fail error=${response.error} message=${response.message}")
-                Result.Error(Exception(response.error ?: "Registration failed"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             debugError("register", e)
@@ -111,6 +127,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout(): Result<Unit> {
+        debugLog("logout", "request start")
         return try {
             // Call logout endpoint
             val response = httpClient.post(ApiEndpoints.Auth.LOGOUT).body<ApiResponse<Unit>>()
@@ -118,14 +135,16 @@ class AuthRepositoryImpl(
             // Clear tokens regardless of API response
             tokenManager.clearTokens()
 
+            debugLog("logout", "response success=${response.success} error=${response.error}")
             if (response.success) {
                 Result.Success(Unit)
             } else {
-                Result.Error(Exception(response.error ?: "Logout failed"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             // Clear tokens even if API call fails
             tokenManager.clearTokens()
+            debugError("logout", e)
             Result.Error(e)
         }
     }
@@ -140,7 +159,7 @@ class AuthRepositoryImpl(
                 Result.Success(response.data.toDomain())
             } else {
                 debugLog("me", "response fail error=${response.error} message=${response.message}")
-                Result.Error(Exception(response.error ?: "Failed to get current user"))
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
             debugError("me", e)

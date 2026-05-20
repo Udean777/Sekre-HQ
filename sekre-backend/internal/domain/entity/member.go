@@ -2,11 +2,15 @@ package entity
 
 // CreateMemberRequest represents request to create a new member
 type CreateMemberRequest struct {
-	Email        string  `json:"email"`
-	FullName     string  `json:"full_name"`
-	Role         string  `json:"role"`
-	DivisionID   *string `json:"division_id,omitempty"`
-	DivisionRole *string `json:"division_role,omitempty"`
+	Email        string   `json:"email"`
+	FullName     string   `json:"full_name"`
+	Role         string   `json:"role"`
+	DivisionID   *string  `json:"division_id,omitempty"`
+	DivisionRole *string  `json:"division_role,omitempty"`
+	// DivisionIDs allows assigning the new member to multiple divisions in a
+	// single request. When provided it takes precedence over DivisionID.
+	// Each division uses the provided DivisionRole (defaulting to STAFF).
+	DivisionIDs []string `json:"division_ids,omitempty"`
 }
 
 // BulkImportMemberRequest represents a single member in bulk import

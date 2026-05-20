@@ -4,13 +4,19 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import org.sekre_mobile.com.data.mapper.DivisionMapper
 import org.sekre_mobile.com.data.mapper.DivisionMapper.toDomain
 import org.sekre_mobile.com.data.remote.api.ApiEndpoints
 import org.sekre_mobile.com.data.remote.dto.request.CreateDivisionRequest
 import org.sekre_mobile.com.data.remote.dto.request.UpdateDivisionRequest
 import org.sekre_mobile.com.data.remote.dto.response.ApiResponse
+import org.sekre_mobile.com.data.remote.dto.response.DivisionDetailPayloadDto
 import org.sekre_mobile.com.data.remote.dto.response.DivisionDto
+import org.sekre_mobile.com.data.remote.dto.response.DivisionListPayloadDto
+import org.sekre_mobile.com.data.remote.dto.response.DivisionMemberListPayloadDto
+import org.sekre_mobile.com.data.remote.exception.ApiException
 import org.sekre_mobile.com.domain.entity.Division
+import org.sekre_mobile.com.domain.entity.DivisionMemberUser
 import org.sekre_mobile.com.domain.model.Result
 import org.sekre_mobile.com.domain.repository.DivisionRepository
 
@@ -21,99 +27,145 @@ import org.sekre_mobile.com.domain.repository.DivisionRepository
 class DivisionRepositoryImpl(
     private val httpClient: HttpClient
 ) : DivisionRepository {
-    private fun log(tag: String, msg: String) { /* debug disabled */ }
-    private fun logErr(tag: String, e: Exception) {
-        log(tag, "type=${e::class.simpleName} message=${e.message}")
-        e.cause?.let { log(tag, "causeType=${it::class.simpleName} causeMessage=${it.message}") }
-        log(tag, "stacktrace=${e.stackTraceToString()}")
+    private fun log(tag: String, msg: String) {
+        println("[DEBUG][DivisionRepository][$tag] $msg")
     }
+    private fun logErr(tag: String, e: Exception) {
+        println("[DEBUG][DivisionRepository][$tag][ERROR] type=${e::class.simpleName} message=${e.message}")
+        e.cause?.let {
+            println("[DEBUG][DivisionRepository][$tag][ERROR] causeType=${it::class.simpleName} causeMessage=${it.message}")
+        }
+        println("[DEBUG][DivisionRepository][$tag][STACKTRACE]\n${e.stackTraceToString()}")
+    }
+
+    private fun apiFailure(response: ApiResponse<*>): ApiException = ApiException(
+        code = response.code,
+        httpStatus = null,
+        serverMessage = response.error ?: response.message,
+    )
 
     
     override suspend fun createDivision(name: String): Result<Division> {
-        log("call", "start")
+        log("createDivision", "start name=$name")
         return try {
             val response = httpClient.post(ApiEndpoints.Divisions.BASE) {
                 contentType(ContentType.Application.Json)
                 setBody(CreateDivisionRequest(name = name))
             }.body<ApiResponse<DivisionDto>>()
             
+            log("createDivision", "response success=${response.success} hasData=${response.data != null} error=${response.error} message=${response.message}")
             if (response.success && response.data != null) {
+                log("createDivision", "OK id=${response.data.id}")
                 Result.Success(response.data.toDomain())
             } else {
-                Result.Error(Exception(response.error ?: "Failed to create division"))
+                log("createDivision", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("createDivision", e)
             Result.Error(e)
         }
     }
     
     override suspend fun getDivisionById(id: String): Result<Division> {
-        log("call", "start")
+        log("getDivisionById", "start id=$id")
         return try {
             val response = httpClient.get(ApiEndpoints.Divisions.byId(id))
-                .body<ApiResponse<DivisionDto>>()
-            
+                .body<ApiResponse<DivisionDetailPayloadDto>>()
+
+            log("getDivisionById", "response success=${response.success} hasData=${response.data != null} error=${response.error}")
             if (response.success && response.data != null) {
-                Result.Success(response.data.toDomain())
+                log("getDivisionById", "OK id=${response.data.division.id}")
+                Result.Success(response.data.division.toDomain())
             } else {
-                Result.Error(Exception(response.error ?: "Failed to get division"))
+                log("getDivisionById", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("getDivisionById", e)
             Result.Error(e)
         }
     }
     
     override suspend fun listDivisions(): Result<List<Division>> {
-        log("call", "start")
+        log("listDivisions", "start")
         return try {
             val response = httpClient.get(ApiEndpoints.Divisions.BASE)
-                .body<ApiResponse<List<DivisionDto>>>()
+                .body<ApiResponse<DivisionListPayloadDto>>()
             
+            log("listDivisions", "response success=${response.success} hasData=${response.data != null} count=${response.data?.data?.size} error=${response.error}")
             if (response.success && response.data != null) {
-                Result.Success(response.data.map { it.toDomain() })
+                log("listDivisions", "OK count=${response.data.data.size}")
+                Result.Success(response.data.data.map { it.toDomain() })
             } else {
-                Result.Error(Exception(response.error ?: "Failed to list divisions"))
+                log("listDivisions", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("listDivisions", e)
             Result.Error(e)
         }
     }
     
     override suspend fun updateDivision(id: String, name: String): Result<Division> {
-        log("call", "start")
+        log("updateDivision", "start id=$id name=$name")
         return try {
             val response = httpClient.put(ApiEndpoints.Divisions.byId(id)) {
                 contentType(ContentType.Application.Json)
                 setBody(UpdateDivisionRequest(name = name))
             }.body<ApiResponse<DivisionDto>>()
             
+            log("updateDivision", "response success=${response.success} hasData=${response.data != null} error=${response.error}")
             if (response.success && response.data != null) {
+                log("updateDivision", "OK id=${response.data.id}")
                 Result.Success(response.data.toDomain())
             } else {
-                Result.Error(Exception(response.error ?: "Failed to update division"))
+                log("updateDivision", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("updateDivision", e)
             Result.Error(e)
         }
     }
     
     override suspend fun deleteDivision(id: String): Result<Unit> {
-        log("call", "start")
+        log("deleteDivision", "start id=$id")
         return try {
             val response = httpClient.delete(ApiEndpoints.Divisions.byId(id))
                 .body<ApiResponse<Unit>>()
             
+            log("deleteDivision", "response success=${response.success} error=${response.error}")
             if (response.success) {
+                log("deleteDivision", "OK id=$id")
                 Result.Success(Unit)
             } else {
-                Result.Error(Exception(response.error ?: "Failed to delete division"))
+                log("deleteDivision", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("deleteDivision", e)
+            Result.Error(e)
+        }
+    }
+
+    override suspend fun listDivisionMembers(divisionId: String): Result<List<DivisionMemberUser>> {
+        log("listDivisionMembers", "start divisionId=$divisionId")
+        return try {
+            val response = httpClient.get(ApiEndpoints.Divisions.members(divisionId))
+                .body<ApiResponse<DivisionMemberListPayloadDto>>()
+
+            log("listDivisionMembers", "response success=${response.success} hasData=${response.data != null} count=${response.data?.data?.size} error=${response.error}")
+            if (response.success && response.data != null) {
+                val items = response.data.data.map { with(DivisionMapper) { it.toDomain() } }
+                log("listDivisionMembers", "OK count=${items.size}")
+                Result.Success(items)
+            } else {
+                log("listDivisionMembers", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
+            }
+        } catch (e: Exception) {
+            logErr("listDivisionMembers", e)
             Result.Error(e)
         }
     }

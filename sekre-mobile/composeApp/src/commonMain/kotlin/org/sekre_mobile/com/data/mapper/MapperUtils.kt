@@ -7,7 +7,7 @@ import kotlinx.datetime.Instant
  * Shared functions for all mappers
  */
 object MapperUtils {
-    
+
     /** Parse ISO 8601 timestamp to Unix milliseconds */
     fun parseTimestamp(timestamp: String): Long {
         return try {
@@ -17,7 +17,7 @@ object MapperUtils {
             0L
         }
     }
-    
+
     /** Format Unix timestamp to ISO 8601 string for API */
     fun Long.toIso8601String(): String {
         return try {

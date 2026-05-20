@@ -14,12 +14,17 @@ object Routes {
     const val FINANCE = "finance"
     const val FINANCE_CREATE = "finance_create"
     const val FINANCE_DETAIL = "finance_detail"
+    const val FINANCE_EDIT = "finance_edit/{id}"
     const val MORE = "more"
     const val PROFILE = "profile"
     const val CHANGE_PASSWORD = "change_password"
     const val DIVISIONS = "divisions"
     const val DIVISION_DETAIL = "division_detail"
+    const val DIVISION_CREATE = "division_create"
+    const val DIVISION_EDIT = "division_edit/{id}"
     const val MEMBERS = "members"
     const val ADD_MEMBER = "add_member"
-    const val DUMMY = "dummy"
+
+    fun divisionEdit(id: String): String = "division_edit/$id"
+    fun financeEdit(id: String): String = "finance_edit/$id"
 }

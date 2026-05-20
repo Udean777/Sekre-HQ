@@ -5,7 +5,6 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import org.sekre_mobile.com.data.mapper.MapperUtils.toIso8601String
-import org.sekre_mobile.com.data.mapper.TaskMapper
 import org.sekre_mobile.com.data.mapper.TaskMapper.toApiString
 import org.sekre_mobile.com.data.mapper.TaskMapper.toDomain
 import org.sekre_mobile.com.data.remote.api.ApiEndpoints
@@ -15,6 +14,7 @@ import org.sekre_mobile.com.data.remote.dto.request.UpdateTaskStatusRequest
 import org.sekre_mobile.com.data.remote.dto.response.ApiResponse
 import org.sekre_mobile.com.data.remote.dto.response.TaskListPayloadDto
 import org.sekre_mobile.com.data.remote.dto.response.TaskWithAssigneeDto
+import org.sekre_mobile.com.data.remote.exception.ApiException
 import org.sekre_mobile.com.domain.entity.TaskStatus
 import org.sekre_mobile.com.domain.entity.TaskWithAssignee
 import org.sekre_mobile.com.domain.model.Result
@@ -27,12 +27,22 @@ import org.sekre_mobile.com.domain.repository.TaskRepository
 class TaskRepositoryImpl(
     private val httpClient: HttpClient
 ) : TaskRepository {
-    private fun log(tag: String, msg: String) { /* debug disabled */ }
-    private fun logErr(tag: String, e: Exception) {
-        log(tag, "type=${e::class.simpleName} message=${e.message}")
-        e.cause?.let { log(tag, "causeType=${it::class.simpleName} causeMessage=${it.message}") }
-        log(tag, "stacktrace=${e.stackTraceToString()}")
+    private fun log(tag: String, msg: String) {
+        println("[DEBUG][TaskRepository][$tag] $msg")
     }
+    private fun logErr(tag: String, e: Exception) {
+        println("[DEBUG][TaskRepository][$tag][ERROR] type=${e::class.simpleName} message=${e.message}")
+        e.cause?.let {
+            println("[DEBUG][TaskRepository][$tag][ERROR] causeType=${it::class.simpleName} causeMessage=${it.message}")
+        }
+        println("[DEBUG][TaskRepository][$tag][STACKTRACE]\n${e.stackTraceToString()}")
+    }
+
+    private fun apiFailure(response: ApiResponse<*>): ApiException = ApiException(
+        code = response.code,
+        httpStatus = null,
+        serverMessage = response.error ?: response.message,
+    )
 
 
     override suspend fun createTask(
@@ -40,9 +50,9 @@ class TaskRepositoryImpl(
         assigneeId: String?,
         title: String,
         description: String?,
-        dueDate: Long?
+        dueDate: Long?,
     ): Result<TaskWithAssignee> {
-        log("call", "start")
+        log("createTask", "start divisionId=$divisionId assigneeId=$assigneeId title=$title dueDate=$dueDate")
         return try {
             val response = httpClient.post(ApiEndpoints.Tasks.BASE) {
                 contentType(ContentType.Application.Json)
@@ -52,36 +62,41 @@ class TaskRepositoryImpl(
                         assigneeId = assigneeId,
                         title = title,
                         description = description,
-                        priority = null,
-                        dueDate = dueDate?.toIso8601String()
+                        dueDate = dueDate?.toIso8601String(),
                     )
                 )
             }.body<ApiResponse<TaskWithAssigneeDto>>()
 
+            log("createTask", "response success=${response.success} hasData=${response.data != null} error=${response.error} message=${response.message}")
             if (response.success && response.data != null) {
+                log("createTask", "OK id=${response.data.task.id}")
                 Result.Success(response.data.toDomain())
             } else {
-                Result.Error(Exception(response.error ?: "Failed to create task"))
+                log("createTask", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("createTask", e)
             Result.Error(e)
         }
     }
 
     override suspend fun getTaskById(id: String): Result<TaskWithAssignee> {
-        log("call", "start")
+        log("getTaskById", "start id=$id")
         return try {
             val response = httpClient.get(ApiEndpoints.Tasks.byId(id))
                 .body<ApiResponse<TaskWithAssigneeDto>>()
 
+            log("getTaskById", "response success=${response.success} hasData=${response.data != null} error=${response.error}")
             if (response.success && response.data != null) {
+                log("getTaskById", "OK id=${response.data.task.id}")
                 Result.Success(response.data.toDomain())
             } else {
-                Result.Error(Exception(response.error ?: "Failed to get task"))
+                log("getTaskById", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("getTaskById", e)
             Result.Error(e)
         }
     }
@@ -89,9 +104,9 @@ class TaskRepositoryImpl(
     override suspend fun listTasks(
         divisionId: String?,
         assigneeId: String?,
-        status: TaskStatus?
+        status: TaskStatus?,
     ): Result<List<TaskWithAssignee>> {
-        log("call", "start")
+        log("listTasks", "start divisionId=$divisionId assigneeId=$assigneeId status=$status")
         return try {
             val response = httpClient.get(ApiEndpoints.Tasks.BASE) {
                 divisionId?.let { parameter("division_id", it) }
@@ -99,84 +114,95 @@ class TaskRepositoryImpl(
                 status?.let { parameter("status", it.toApiString()) }
             }.body<ApiResponse<TaskListPayloadDto>>()
 
+            log("listTasks", "response success=${response.success} hasData=${response.data != null} count=${response.data?.data?.size} error=${response.error}")
             if (response.success && response.data != null) {
+                log("listTasks", "OK count=${response.data.data.size}")
                 Result.Success(response.data.data.map { it.toDomain() })
             } else {
-                Result.Error(Exception(response.error ?: "Failed to list tasks"))
+                log("listTasks", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("listTasks", e)
             Result.Error(e)
         }
     }
 
     override suspend fun updateTask(
         id: String,
-        title: String?,
+        title: String,
+        status: TaskStatus,
         description: String?,
         assigneeId: String?,
         dueDate: Long?,
-        status: TaskStatus?
     ): Result<TaskWithAssignee> {
-        log("call", "start")
+        log("updateTask", "start id=$id title=$title status=$status assigneeId=$assigneeId dueDate=$dueDate")
         return try {
             val response = httpClient.put(ApiEndpoints.Tasks.byId(id)) {
                 contentType(ContentType.Application.Json)
                 setBody(
                     UpdateTaskRequest(
                         title = title,
+                        status = status.toApiString(),
                         description = description,
                         assigneeId = assigneeId,
-                        priority = null,
                         dueDate = dueDate?.toIso8601String(),
-                        status = status?.toApiString()
                     )
                 )
             }.body<ApiResponse<TaskWithAssigneeDto>>()
 
+            log("updateTask", "response success=${response.success} hasData=${response.data != null} error=${response.error}")
             if (response.success && response.data != null) {
+                log("updateTask", "OK id=${response.data.task.id}")
                 Result.Success(response.data.toDomain())
             } else {
-                Result.Error(Exception(response.error ?: "Failed to update task"))
+                log("updateTask", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("updateTask", e)
             Result.Error(e)
         }
     }
 
     override suspend fun updateTaskStatus(id: String, status: TaskStatus): Result<Unit> {
-        log("call", "start")
+        log("updateTaskStatus", "start id=$id status=$status")
         return try {
             val response = httpClient.patch(ApiEndpoints.Tasks.updateStatus(id)) {
                 contentType(ContentType.Application.Json)
                 setBody(UpdateTaskStatusRequest(status = status.toApiString()))
             }.body<ApiResponse<TaskWithAssigneeDto>>()
 
+            log("updateTaskStatus", "response success=${response.success} error=${response.error}")
             if (response.success) {
+                log("updateTaskStatus", "OK id=$id")
                 Result.Success(Unit)
             } else {
-                Result.Error(Exception(response.error ?: "Failed to update task status"))
+                log("updateTaskStatus", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("updateTaskStatus", e)
             Result.Error(e)
         }
     }
 
     override suspend fun deleteTask(id: String): Result<Unit> {
-        log("call", "start")
+        log("deleteTask", "start id=$id")
         return try {
             val response = httpClient.delete(ApiEndpoints.Tasks.byId(id))
                 .body<ApiResponse<Unit>>()
 
+            log("deleteTask", "response success=${response.success} error=${response.error}")
             if (response.success) {
+                log("deleteTask", "OK id=$id")
                 Result.Success(Unit)
             } else {
-                Result.Error(Exception(response.error ?: "Failed to delete task"))
+                log("deleteTask", "FAIL error=${response.error}")
+                Result.Error(apiFailure(response))
             }
         } catch (e: Exception) {
-            logErr("call", e)
+            logErr("deleteTask", e)
             Result.Error(e)
         }
     }

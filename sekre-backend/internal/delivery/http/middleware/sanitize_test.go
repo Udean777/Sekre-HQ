@@ -409,3 +409,135 @@ func TestStringValidator(t *testing.T) {
 		})
 	}
 }
+
+// TestSanitizeInput_PreservesSensitiveFields verifies that the SanitizeInput
+// middleware leaves credential/token fields untouched, even when they contain
+// leading/trailing whitespace or characters that would otherwise be stripped.
+// This is critical: trimming a password silently changes the value used for
+// hashing/comparison and breaks authentication.
+func TestSanitizeInput_PreservesSensitiveFields(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          map[string]interface{}
+		expectedOutput map[string]interface{}
+	}{
+		{
+			name: "preserve password leading and trailing spaces",
+			input: map[string]interface{}{
+				"email":    "  user@example.com  ",
+				"password": "  my pass word  ",
+			},
+			expectedOutput: map[string]interface{}{
+				"email":    "user@example.com",
+				"password": "  my pass word  ",
+			},
+		},
+		{
+			name: "preserve password with HTML-like characters",
+			input: map[string]interface{}{
+				"email":    "user@example.com",
+				"password": "<b>p4ss</b>!",
+			},
+			expectedOutput: map[string]interface{}{
+				"email":    "user@example.com",
+				"password": "<b>p4ss</b>!",
+			},
+		},
+		{
+			name: "preserve refresh_token verbatim",
+			input: map[string]interface{}{
+				"refresh_token": "  eyJhbGciOiJIUzI1NiJ9.payload.sig  ",
+			},
+			expectedOutput: map[string]interface{}{
+				"refresh_token": "  eyJhbGciOiJIUzI1NiJ9.payload.sig  ",
+			},
+		},
+		{
+			name: "preserve current/new/confirm password fields",
+			input: map[string]interface{}{
+				"current_password": "  old pwd  ",
+				"new_password":     "  new pwd  ",
+				"confirm_password": "  new pwd  ",
+				"full_name":        "  John  ",
+			},
+			expectedOutput: map[string]interface{}{
+				"current_password": "  old pwd  ",
+				"new_password":     "  new pwd  ",
+				"confirm_password": "  new pwd  ",
+				"full_name":        "John",
+			},
+		},
+		{
+			name: "case-insensitive sensitive field matching",
+			input: map[string]interface{}{
+				"Password":      "  Secret 1  ",
+				"REFRESH_TOKEN": "  abc.def.ghi  ",
+				"name":          "  Jane  ",
+			},
+			expectedOutput: map[string]interface{}{
+				"Password":      "  Secret 1  ",
+				"REFRESH_TOKEN": "  abc.def.ghi  ",
+				"name":          "Jane",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, err := json.Marshal(tt.input)
+			if err != nil {
+				t.Fatalf("failed to marshal input: %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/test", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+
+			var receivedData map[string]interface{}
+			testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if err := json.NewDecoder(r.Body).Decode(&receivedData); err != nil {
+					t.Errorf("failed to decode sanitized body: %v", err)
+				}
+				w.WriteHeader(http.StatusOK)
+			})
+
+			handler := SanitizeInput()(testHandler)
+			handler.ServeHTTP(rr, req)
+
+			expectedJSON, _ := json.Marshal(tt.expectedOutput)
+			receivedJSON, _ := json.Marshal(receivedData)
+
+			if string(expectedJSON) != string(receivedJSON) {
+				t.Errorf("expected %s, got %s", string(expectedJSON), string(receivedJSON))
+			}
+		})
+	}
+}
+
+// TestIsSensitiveField verifies the case-insensitive lookup of credential keys.
+func TestIsSensitiveField(t *testing.T) {
+	sensitive := []string{
+		"password", "Password", "PASSWORD",
+		"current_password", "new_password", "old_password", "confirm_password",
+		"password_hash",
+		"refresh_token", "Refresh_Token",
+		"access_token", "token",
+	}
+	for _, k := range sensitive {
+		if !isSensitiveField(k) {
+			t.Errorf("expected %q to be sensitive", k)
+		}
+	}
+
+	notSensitive := []string{
+		"email", "name", "full_name", "subdomain",
+		"organization_name", "title", "description",
+		"", "passphrase", "tokens",
+	}
+	for _, k := range notSensitive {
+		if isSensitiveField(k) {
+			t.Errorf("expected %q NOT to be sensitive", k)
+		}
+	}
+}

@@ -6,6 +6,8 @@ import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
+import io.ktor.client.request.*
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
@@ -14,8 +16,8 @@ object KtorClientFactory {
 
     /** Create HTTP client with configuration */
     fun create(
-        tokenProvider: suspend () -> String?,
-        onTokenRefresh: suspend (String) -> Unit
+        tokenProvider: suspend () -> BearerTokens?,
+        onTokenRefresh: suspend (BearerTokens?) -> BearerTokens?
     ): HttpClient {
         return HttpClient {
             // JSON serialization
@@ -53,17 +55,16 @@ object KtorClientFactory {
             // Authentication
             install(Auth) {
                 bearer {
+                    sendWithoutRequest { request ->
+                        !request.url.encodedPath.endsWith(ApiEndpoints.Auth.REFRESH_TOKEN)
+                    }
+
                     loadTokens {
-                        val token = tokenProvider()
-                        token?.let { BearerTokens(accessToken = it, refreshToken = "") }
+                        tokenProvider()
                     }
 
                     refreshTokens {
-                        val token = tokenProvider()
-                        token?.let {
-                            onTokenRefresh(it)
-                            BearerTokens(accessToken = it, refreshToken = "")
-                        }
+                        onTokenRefresh(oldTokens)
                     }
                 }
             }

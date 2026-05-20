@@ -16,8 +16,10 @@ data class DashboardState(
 sealed interface DashboardEvent : ViewEvent {
     data object Load : DashboardEvent
     data object Retry : DashboardEvent
+    data object Logout : DashboardEvent
 }
 
 sealed interface DashboardEffect : ViewEffect {
     data class ShowError(val message: String) : DashboardEffect
+    data object NavigateToLogin : DashboardEffect
 }

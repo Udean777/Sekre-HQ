@@ -1,52 +1,63 @@
 package org.sekre_mobile.com.domain.repository
 
 import org.sekre_mobile.com.domain.entity.FinanceSummary
-import org.sekre_mobile.com.domain.entity.TransactionStatus
 import org.sekre_mobile.com.domain.entity.TransactionType
 import org.sekre_mobile.com.domain.entity.TransactionWithDetails
+import org.sekre_mobile.com.domain.model.PaginatedResult
+import org.sekre_mobile.com.domain.model.PaginationParams
 import org.sekre_mobile.com.domain.model.Result
 
-/** Transaction Repository Interface Domain layer - defines contract for data access */
+/** Transaction Repository Interface Domain layer - defines contract for data access. */
 interface TransactionRepository {
-    /** Create a new transaction */
+    /** Create a new transaction. Backend auto-approves the record on success. */
     suspend fun createTransaction(
         divisionId: String,
-        eventId: String?,
         type: TransactionType,
         amountCents: Long,
-        currency: String,
         description: String,
-        receiptUrl: String?
+        currency: String,
+        eventId: String?,
+        receiptUrl: String?,
     ): Result<TransactionWithDetails>
 
-    /** Get transaction by ID */
+    /** Get transaction by ID. */
     suspend fun getTransactionById(id: String): Result<TransactionWithDetails>
 
-    /** List transactions with optional filters */
+    /**
+     * List transactions with optional filters and pagination. `startDate` and
+     * `endDate` follow the backend's `YYYY-MM-DD` format (the server explicitly
+     * rejects other formats).
+     */
     suspend fun listTransactions(
         divisionId: String? = null,
         type: TransactionType? = null,
-        status: TransactionStatus? = null,
-        startDate: Long? = null,
-        endDate: Long? = null
-    ): Result<List<TransactionWithDetails>>
+        startDate: String? = null,
+        endDate: String? = null,
+        pagination: PaginationParams = PaginationParams(),
+    ): Result<PaginatedResult<TransactionWithDetails>>
 
-    /** Update transaction */
+    /**
+     * Update a transaction. Backend reuses CreateTransactionRequest so all of
+     * `type`, `amountCents`, and `description` are mandatory. The backend
+     * forbids updates while the record is in a terminal status (APPROVED /
+     * REJECTED) — this method may return an error in that case.
+     */
     suspend fun updateTransaction(
         id: String,
-        type: TransactionType?,
-        amountCents: Long?,
-        currency: String?,
-        description: String?,
-        receiptUrl: String?
+        type: TransactionType,
+        amountCents: Long,
+        description: String,
+        currency: String,
+        receiptUrl: String?,
     ): Result<TransactionWithDetails>
 
-    /** Approve or reject transaction */
-    suspend fun approveTransaction(id: String, status: TransactionStatus): Result<Unit>
-
-    /** Delete transaction */
+    /** Delete a transaction. */
     suspend fun deleteTransaction(id: String): Result<Unit>
 
-    /** Get finance summary */
-    suspend fun getFinanceSummary(divisionId: String? = null): Result<FinanceSummary>
+    /** Get finance summary. Optional date range uses `YYYY-MM-DD`. */
+    suspend fun getFinanceSummary(
+        divisionId: String? = null,
+        startDate: String? = null,
+        endDate: String? = null,
+    ): Result<FinanceSummary>
 }

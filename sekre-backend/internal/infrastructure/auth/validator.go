@@ -36,6 +36,12 @@ func (v *defaultRegistrationValidator) ValidatePassword(password string) error {
 	if password == "" {
 		return service.ErrPasswordEmpty
 	}
+	// Reject leading/trailing whitespace explicitly. Trimming would silently
+	// alter what users type and create login mismatches; rejecting forces
+	// callers to surface a clear validation error at registration time.
+	if strings.TrimSpace(password) != password {
+		return service.ErrPasswordHasWhitespace
+	}
 	if len(password) < service.MinPasswordLength {
 		return fmt.Errorf("%w: got %d", service.ErrPasswordTooShort, len(password))
 	}

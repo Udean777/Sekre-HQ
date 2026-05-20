@@ -23,12 +23,12 @@ type LogConfig struct {
 }
 
 type CORSConfig struct {
-	AllowedOrigins []string
-	AllowedMethods []string
-	AllowedHeaders []string
-	ExposedHeaders []string
+	AllowedOrigins   []string
+	AllowedMethods   []string
+	AllowedHeaders   []string
+	ExposedHeaders   []string
 	AllowCredentials bool
-	MaxAge         int
+	MaxAge           int
 }
 
 type ServerConfig struct {
@@ -52,9 +52,9 @@ type DatabaseConfig struct {
 }
 
 type JWTConfig struct {
-	Secret         string
-	AccessExpiry   time.Duration
-	RefreshExpiry  time.Duration
+	Secret        string
+	AccessExpiry  time.Duration
+	RefreshExpiry time.Duration
 }
 
 func Load() (*Config, error) {
@@ -128,23 +128,17 @@ func Load() (*Config, error) {
 	// Production-specific validations
 	if config.Server.Env == "production" {
 		if config.Database.SSLMode == "disable" {
-			return nil, fmt.Errorf("DB_SSLMODE=disable not allowed in production")
+			return nil, fmt.Errorf("DB_SSLMODE=disable is not allowed in production")
 		}
+
 		if config.Log.Level == "trace" || config.Log.Level == "debug" {
-			return nil, fmt.Errorf("LOG_LEVEL=%s not recommended in production", config.Log.Level)
+			return nil, fmt.Errorf("LOG_LEVEL=%s is not recommended in production", config.Log.Level)
 		}
-		// CORS: no wildcard with credentials in production
+		// CORS: wildcard with credentials in production
 		for _, origin := range config.CORS.AllowedOrigins {
 			if origin == "*" && config.CORS.AllowCredentials {
 				return nil, fmt.Errorf("CORS_ALLOWED_ORIGINS=* with CORS_ALLOW_CREDENTIALS=true is invalid per CORS spec")
 			}
-		}
-	}
-
-	// CORS validation: wildcard + credentials is invalid per spec
-	for _, origin := range config.CORS.AllowedOrigins {
-		if origin == "*" && config.CORS.AllowCredentials {
-			return nil, fmt.Errorf("CORS_ALLOWED_ORIGINS=* cannot be used with CORS_ALLOW_CREDENTIALS=true")
 		}
 	}
 

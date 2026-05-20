@@ -296,7 +296,7 @@ func TestAuthUsecase_Login_Success(t *testing.T) {
 	hasher := mocks.NewPasswordHasher(t)
 	tokenGen := mocks.NewTokenGenerator(t)
 
-	uc := NewAuthUsecase(userRepo, orgRepo, userOrgRepo, nil, hasher, tokenGen, nil)
+	uc := NewAuthUsecase(userRepo, orgRepo, userOrgRepo, nil, hasher, tokenGen, nil, nil)
 
 	// Test data
 	req := &LoginRequest{
@@ -362,9 +362,12 @@ func TestAuthUsecase_Login_Success(t *testing.T) {
 func TestAuthUsecase_Login_UserNotFound(t *testing.T) {
 	t.Parallel()
 
-	// Setup mocks
+	// Setup mocks. The hasher is required because Login now burns a dummy
+	// bcrypt comparison on the user-not-found path to equalize timing with
+	// the password-mismatch path.
 	userRepo := mocks.NewUserRepository(t)
-	uc := NewAuthUsecase(userRepo, nil, nil, nil, nil, nil, nil)
+	hasher := mocks.NewPasswordHasher(t)
+	uc := NewAuthUsecase(userRepo, nil, nil, nil, hasher, nil, nil, nil)
 
 	req := &LoginRequest{
 		Email:    "notfound@example.com",
@@ -378,14 +381,124 @@ func TestAuthUsecase_Login_UserNotFound(t *testing.T) {
 		Return(nil, domainerrors.ErrUserNotFound).
 		Once()
 
+	// The dummy comparison runs against a fixed hash; we don't constrain
+	// the hash value here because it is an internal implementation detail.
+	hasher.EXPECT().
+		Compare(mock.AnythingOfType("string"), req.Password).
+		Return(service.ErrPasswordMismatch).
+		Once()
+
 	// Execute
 	result, err := uc.Login(ctx, req)
 
-	// Assert
+	// Assert: the user-not-found case must be flattened into a generic
+	// invalid-credentials error to prevent email enumeration.
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	// Login propagates ErrUserNotFound as-is
-	assert.ErrorIs(t, err, domainerrors.ErrUserNotFound)
+	assert.ErrorIs(t, err, domainerrors.ErrInvalidCredentials)
+	assert.NotErrorIs(t, err, domainerrors.ErrUserNotFound)
+}
+
+// TestAuthUsecase_Login_RepoNotFoundDomainError verifies that a generic
+// CodeNotFound DomainError from the repository (e.g. NotFound("user", id))
+// is also flattened into the credential error and triggers the dummy
+// comparison, not just the ErrUserNotFound sentinel.
+func TestAuthUsecase_Login_RepoNotFoundDomainError(t *testing.T) {
+	t.Parallel()
+
+	userRepo := mocks.NewUserRepository(t)
+	hasher := mocks.NewPasswordHasher(t)
+	uc := NewAuthUsecase(userRepo, nil, nil, nil, hasher, nil, nil, nil)
+
+	req := &LoginRequest{
+		Email:    "missing@example.com",
+		Password: "anything",
+	}
+
+	ctx := context.Background()
+
+	userRepo.EXPECT().
+		GetByEmail(ctx, req.Email).
+		Return(nil, domainerrors.NotFound("user", req.Email)).
+		Once()
+
+	hasher.EXPECT().
+		Compare(mock.AnythingOfType("string"), req.Password).
+		Return(service.ErrPasswordMismatch).
+		Once()
+
+	result, err := uc.Login(ctx, req)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, domainerrors.ErrInvalidCredentials)
+}
+
+// TestAuthUsecase_Login_InvalidCredentialsFromRepo covers the current
+// repository contract where GetByEmail already returns
+// ErrInvalidCredentials when the row is missing. The use case must still
+// invoke the dummy comparison so user-not-found and password-mismatch
+// take roughly the same wall time.
+func TestAuthUsecase_Login_InvalidCredentialsFromRepo(t *testing.T) {
+	t.Parallel()
+
+	userRepo := mocks.NewUserRepository(t)
+	hasher := mocks.NewPasswordHasher(t)
+	uc := NewAuthUsecase(userRepo, nil, nil, nil, hasher, nil, nil, nil)
+
+	req := &LoginRequest{
+		Email:    "missing@example.com",
+		Password: "anything",
+	}
+
+	ctx := context.Background()
+
+	userRepo.EXPECT().
+		GetByEmail(ctx, req.Email).
+		Return(nil, domainerrors.ErrInvalidCredentials).
+		Once()
+
+	hasher.EXPECT().
+		Compare(mock.AnythingOfType("string"), req.Password).
+		Return(service.ErrPasswordMismatch).
+		Once()
+
+	result, err := uc.Login(ctx, req)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, domainerrors.ErrInvalidCredentials)
+}
+
+// TestAuthUsecase_Login_RepoInternalErrorPropagates ensures non-credential
+// failures (DB outage, etc.) are NOT masked as ErrInvalidCredentials.
+// Operators must still see real backend errors.
+func TestAuthUsecase_Login_RepoInternalErrorPropagates(t *testing.T) {
+	t.Parallel()
+
+	userRepo := mocks.NewUserRepository(t)
+	uc := NewAuthUsecase(userRepo, nil, nil, nil, nil, nil, nil, nil)
+
+	req := &LoginRequest{
+		Email:    "user@example.com",
+		Password: "anything",
+	}
+
+	ctx := context.Background()
+
+	internalErr := domainerrors.Internal("get user by email", errors.New("connection refused"))
+
+	userRepo.EXPECT().
+		GetByEmail(ctx, req.Email).
+		Return(nil, internalErr).
+		Once()
+
+	result, err := uc.Login(ctx, req)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.NotErrorIs(t, err, domainerrors.ErrInvalidCredentials)
+	assert.True(t, domainerrors.Is(err, domainerrors.CodeInternal))
 }
 
 func TestAuthUsecase_Login_InvalidPassword(t *testing.T) {
@@ -394,7 +507,7 @@ func TestAuthUsecase_Login_InvalidPassword(t *testing.T) {
 	// Setup mocks
 	userRepo := mocks.NewUserRepository(t)
 	hasher := mocks.NewPasswordHasher(t)
-	uc := NewAuthUsecase(userRepo, nil, nil, nil, hasher, nil, nil)
+	uc := NewAuthUsecase(userRepo, nil, nil, nil, hasher, nil, nil, nil)
 
 	req := &LoginRequest{
 		Email:    "john@example.com",
@@ -429,12 +542,124 @@ func TestAuthUsecase_Login_InvalidPassword(t *testing.T) {
 	assert.ErrorIs(t, err, domainerrors.ErrInvalidCredentials)
 }
 
+// TestAuthUsecase_Login_NormalizesEmail verifies that Login canonicalizes the
+// email by trimming surrounding whitespace and lowercasing it before any
+// downstream lookup. This keeps audit logs, repository queries, and password
+// comparison anchored to the same value regardless of how the client typed it.
+func TestAuthUsecase_Login_NormalizesEmail(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		rawEmail string
+	}{
+		{name: "uppercase", rawEmail: "JOHN@EXAMPLE.COM"},
+		{name: "mixed case", rawEmail: "John@Example.Com"},
+		{name: "leading whitespace", rawEmail: "  john@example.com"},
+		{name: "trailing whitespace", rawEmail: "john@example.com  "},
+		{name: "leading and trailing whitespace", rawEmail: "  john@example.com  "},
+		{name: "uppercase with whitespace", rawEmail: "  JOHN@EXAMPLE.COM  "},
+	}
+
+	const canonicalEmail = "john@example.com"
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			userRepo := mocks.NewUserRepository(t)
+			userOrgRepo := mocks.NewUserOrganizationRepository(t)
+			hasher := mocks.NewPasswordHasher(t)
+			tokenGen := mocks.NewTokenGenerator(t)
+
+			uc := NewAuthUsecase(userRepo, nil, userOrgRepo, nil, hasher, tokenGen, nil, nil)
+
+			req := &LoginRequest{
+				Email:    tt.rawEmail,
+				Password: "SecurePass123!",
+			}
+
+			ctx := context.Background()
+			userID := uuid.New()
+			orgID := uuid.New()
+
+			user := &entity.User{
+				ID:           userID,
+				Email:        canonicalEmail,
+				PasswordHash: "hashed_password",
+			}
+
+			org := &entity.Organization{
+				ID:   orgID,
+				Name: "Test Org",
+			}
+
+			// Repository must be queried with the canonical email, never the
+			// raw input.
+			userRepo.EXPECT().
+				GetByEmail(ctx, canonicalEmail).
+				Return(user, nil).
+				Once()
+
+			hasher.EXPECT().
+				Compare(user.PasswordHash, req.Password).
+				Return(nil).
+				Once()
+
+			userOrgRepo.EXPECT().
+				GetUserWithOrganization(ctx, userID).
+				Return(&entity.UserWithOrganization{
+					User:         *user,
+					Organization: *org,
+					Role:         types.RoleOwner,
+				}, nil).
+				Once()
+
+			tokenGen.EXPECT().
+				Generate(userID, orgID, types.RoleOwner).
+				Return(&token.TokenPair{
+					AccessToken:  "access_token",
+					RefreshToken: "refresh_token",
+				}, nil).
+				Once()
+
+			result, err := uc.Login(ctx, req)
+
+			assert.NoError(t, err)
+			assert.NotNil(t, result)
+			// req.Email must be the canonical form after Login returns.
+			assert.Equal(t, canonicalEmail, req.Email)
+		})
+	}
+}
+
+// TestAuthUsecase_Login_RejectsWhitespaceOnlyEmail ensures that an email
+// containing only whitespace collapses to empty after normalization and
+// surfaces an invalid-input error without ever hitting the repository.
+func TestAuthUsecase_Login_RejectsWhitespaceOnlyEmail(t *testing.T) {
+	t.Parallel()
+
+	uc := NewAuthUsecase(nil, nil, nil, nil, nil, nil, nil, nil)
+
+	req := &LoginRequest{
+		Email:    "   ",
+		Password: "SecurePass123!",
+	}
+
+	result, err := uc.Login(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, domainerrors.ErrInvalidInput)
+}
+
 func TestAuthUsecase_GetMe_Success(t *testing.T) {
 	t.Parallel()
 
 	// Setup mocks
 	userOrgRepo := mocks.NewUserOrganizationRepository(t)
-	uc := NewAuthUsecase(nil, nil, userOrgRepo, nil, nil, nil, nil)
+	uc := NewAuthUsecase(nil, nil, userOrgRepo, nil, nil, nil, nil, nil)
 
 	ctx := context.Background()
 	userID := uuid.New()
@@ -471,7 +696,7 @@ func TestAuthUsecase_GetMe_UserNotFound(t *testing.T) {
 
 	// Setup mocks
 	userOrgRepo := mocks.NewUserOrganizationRepository(t)
-	uc := NewAuthUsecase(nil, nil, userOrgRepo, nil, nil, nil, nil)
+	uc := NewAuthUsecase(nil, nil, userOrgRepo, nil, nil, nil, nil, nil)
 
 	ctx := context.Background()
 	userID := uuid.New()

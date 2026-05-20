@@ -1,6 +1,5 @@
 package org.sekre_mobile.com.domain.usecase.transaction
 
-import org.sekre_mobile.com.domain.entity.TransactionStatus
 import org.sekre_mobile.com.domain.entity.TransactionType
 import org.sekre_mobile.com.domain.entity.TransactionWithDetails
 import org.sekre_mobile.com.domain.model.Result
@@ -11,40 +10,32 @@ import org.sekre_mobile.com.domain.repository.TransactionRepository
  * Application layer - orchestrates business logic
  */
 class CreateTransactionUseCase(
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
 ) {
     suspend operator fun invoke(
         divisionId: String,
-        eventId: String?,
         type: TransactionType,
         amountCents: Long,
-        currency: String,
         description: String,
-        receiptUrl: String?
+        currency: String = "IDR",
+        eventId: String? = null,
+        receiptUrl: String? = null,
     ): Result<TransactionWithDetails> {
-        // Validate input
-        if (divisionId.isBlank()) {
-            return Result.Error(Exception("Division is required"))
-        }
-        if (amountCents <= 0) {
-            return Result.Error(Exception("Amount must be greater than 0"))
-        }
-        if (description.isBlank()) {
-            return Result.Error(Exception("Description is required"))
-        }
+        if (divisionId.isBlank()) return Result.Error(Exception("Division is required"))
+        if (amountCents <= 0L) return Result.Error(Exception("Amount must be greater than 0"))
+        if (description.isBlank()) return Result.Error(Exception("Description is required"))
         if (description.length > 1000) {
             return Result.Error(Exception("Description must be less than 1000 characters"))
         }
 
-        // Create transaction via repository
         return transactionRepository.createTransaction(
             divisionId = divisionId,
-            eventId = eventId,
             type = type,
             amountCents = amountCents,
-            currency = currency,
             description = description,
-            receiptUrl = receiptUrl
+            currency = currency,
+            eventId = eventId,
+            receiptUrl = receiptUrl,
         )
     }
 }

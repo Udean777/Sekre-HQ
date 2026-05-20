@@ -1,78 +1,98 @@
 package org.sekre_mobile.com.presentation.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-
-private fun formatMoney(cents: Long, currency: String): String = "$currency ${cents / 100}"
+import org.sekre_mobile.com.presentation.dashboard.components.DashboardErrorState
+import org.sekre_mobile.com.presentation.dashboard.components.DashboardHeader
+import org.sekre_mobile.com.presentation.dashboard.components.DashboardHeroCard
+import org.sekre_mobile.com.presentation.dashboard.components.DashboardInfoSection
+import org.sekre_mobile.com.presentation.dashboard.components.DashboardInlineError
+import org.sekre_mobile.com.presentation.dashboard.components.DashboardLoadingState
+import org.sekre_mobile.com.presentation.dashboard.components.DashboardMetrics
+import org.sekre_mobile.com.presentation.foundation.SafeArea
 
 @Composable
 fun DashboardScreen(
     state: DashboardState,
     onEvent: (DashboardEvent) -> Unit,
 ) {
-    when {
-        state.isLoading -> {
-            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
-                CircularProgressIndicator()
-            }
-        }
+    SafeArea {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            val isWide = maxWidth >= 760.dp
+            val horizontalPadding = if (isWide) 24.dp else 16.dp
 
-        state.errorMessage != null && state.user == null && state.financeSummary == null -> {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text("Dashboard gagal dimuat")
-                Text(state.errorMessage)
-                Button(onClick = { onEvent(DashboardEvent.Retry) }) { Text("Coba lagi") }
-            }
-        }
+            when {
+                state.isLoading && state.user == null && state.financeSummary == null -> {
+                    DashboardLoadingState()
+                }
 
-        else -> {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text("Dashboard")
-                state.user?.let { user ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text("Halo, ${user.user.fullName}")
-                            Text("Role: ${user.role}")
-                            Text("Org: ${user.organization.name}")
+                state.errorMessage != null && state.user == null && state.financeSummary == null -> {
+                    DashboardErrorState(
+                        message = state.errorMessage,
+                        onRetry = { onEvent(DashboardEvent.Retry) }
+                    )
+                }
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = horizontalPadding,
+                            end = horizontalPadding,
+                            bottom = 32.dp
+                        ),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        item {
+                            Column(
+                                modifier = Modifier.widthIn(max = 860.dp),
+                                verticalArrangement = Arrangement.spacedBy(24.dp)
+                            ) {
+                                DashboardHeader(
+                                    user = state.user,
+                                    onLogoutClick = { onEvent(DashboardEvent.Logout) }
+                                )
+
+                                DashboardHeroCard(
+                                    user = state.user,
+                                    summary = state.financeSummary
+                                )
+
+                                DashboardMetrics(
+                                    summary = state.financeSummary,
+                                    isWide = isWide
+                                )
+
+                                DashboardInfoSection(
+                                    user = state.user,
+                                    summary = state.financeSummary,
+                                    isWide = isWide
+                                )
+
+                                state.errorMessage?.let { msg ->
+                                    DashboardInlineError(
+                                        message = msg,
+                                        onRetry = { onEvent(DashboardEvent.Retry) }
+                                    )
+                                }
+                            }
                         }
                     }
-                }
-                state.financeSummary?.let { summary ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text("Ringkasan Keuangan")
-                            Text("Income: ${formatMoney(summary.totalIncomeCents, summary.currency)}")
-                            Text("Expense: ${formatMoney(summary.totalExpenseCents, summary.currency)}")
-                            Text("Balance: ${formatMoney(summary.balanceCents, summary.currency)}")
-                            Text("Transactions: ${summary.transactionCount}")
-                        }
-                    }
-                }
-                if (state.errorMessage != null) {
-                    Text("Partial error: ${state.errorMessage}")
-                    Button(onClick = { onEvent(DashboardEvent.Retry) }) { Text("Retry") }
                 }
             }
         }

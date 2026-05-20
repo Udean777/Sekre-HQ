@@ -1,26 +1,45 @@
 package org.sekre_mobile.com.presentation.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.savedstate.read
 import org.koin.compose.viewmodel.koinViewModel
 import org.sekre_mobile.com.presentation.auth.AuthEffect
 import org.sekre_mobile.com.presentation.auth.AuthEvent
@@ -34,9 +53,9 @@ import org.sekre_mobile.com.presentation.dashboard.DashboardViewModel
 import org.sekre_mobile.com.presentation.division.DivisionDetailScreen
 import org.sekre_mobile.com.presentation.division.DivisionEffect
 import org.sekre_mobile.com.presentation.division.DivisionEvent
+import org.sekre_mobile.com.presentation.division.DivisionFormScreen
 import org.sekre_mobile.com.presentation.division.DivisionListScreen
 import org.sekre_mobile.com.presentation.division.DivisionViewModel
-import org.sekre_mobile.com.presentation.division.MemberListScreen
 import org.sekre_mobile.com.presentation.event.EventCreateScreen
 import org.sekre_mobile.com.presentation.event.EventDetailScreen
 import org.sekre_mobile.com.presentation.event.EventEffect
@@ -45,18 +64,24 @@ import org.sekre_mobile.com.presentation.event.EventListScreen
 import org.sekre_mobile.com.presentation.event.EventViewModel
 import org.sekre_mobile.com.presentation.finance.FinanceCreateScreen
 import org.sekre_mobile.com.presentation.finance.FinanceDetailScreen
+import org.sekre_mobile.com.presentation.finance.FinanceEditScreen
 import org.sekre_mobile.com.presentation.finance.FinanceEffect
 import org.sekre_mobile.com.presentation.finance.FinanceEvent
 import org.sekre_mobile.com.presentation.finance.FinanceListScreen
 import org.sekre_mobile.com.presentation.finance.FinanceViewModel
-import org.sekre_mobile.com.presentation.more.ChangePasswordScreen
-import org.sekre_mobile.com.presentation.more.MoreEffect
-import org.sekre_mobile.com.presentation.more.MoreScreen
-import org.sekre_mobile.com.presentation.more.MoreViewModel
-import org.sekre_mobile.com.presentation.more.ProfileScreen
 import org.sekre_mobile.com.presentation.member.AddMemberEffect
 import org.sekre_mobile.com.presentation.member.AddMemberScreen
 import org.sekre_mobile.com.presentation.member.AddMemberViewModel
+import org.sekre_mobile.com.presentation.member.MemberEffect
+import org.sekre_mobile.com.presentation.member.MemberEvent
+import org.sekre_mobile.com.presentation.member.MemberListScreen
+import org.sekre_mobile.com.presentation.member.MemberViewModel
+import org.sekre_mobile.com.presentation.more.ChangePasswordScreen
+import org.sekre_mobile.com.presentation.more.MoreEffect
+import org.sekre_mobile.com.presentation.more.MoreEvent
+import org.sekre_mobile.com.presentation.more.MoreListScreen
+import org.sekre_mobile.com.presentation.more.MoreViewModel
+import org.sekre_mobile.com.presentation.more.ProfileScreen
 import org.sekre_mobile.com.presentation.task.TaskCreateScreen
 import org.sekre_mobile.com.presentation.task.TaskDetailScreen
 import org.sekre_mobile.com.presentation.task.TaskEffect
@@ -64,14 +89,18 @@ import org.sekre_mobile.com.presentation.task.TaskEvent
 import org.sekre_mobile.com.presentation.task.TaskListScreen
 import org.sekre_mobile.com.presentation.task.TaskViewModel
 
-private data class MainTabItem(val route: String, val label: String)
+private data class MainTabItem(
+    val route: String,
+    val label: String,
+    val icon: ImageVector,
+)
 
 private val mainTabs = listOf(
-    MainTabItem(Routes.DASHBOARD, "Dashboard"),
-    MainTabItem(Routes.TASKS, "Tasks"),
-    MainTabItem(Routes.EVENTS, "Events"),
-    MainTabItem(Routes.FINANCE, "Finance"),
-    MainTabItem(Routes.MORE, "More"),
+    MainTabItem(Routes.DASHBOARD, "Dashboard", Icons.Default.Home),
+    MainTabItem(Routes.TASKS, "Tasks", Icons.Default.FilterList),
+    MainTabItem(Routes.EVENTS, "Events", Icons.Default.Event),
+    MainTabItem(Routes.FINANCE, "Finance", Icons.Default.AccountBalanceWallet),
+    MainTabItem(Routes.MORE, "More", Icons.Default.MoreHoriz),
 )
 private val mainTabRoutes = mainTabs.map { it.route }.toSet()
 
@@ -85,6 +114,7 @@ fun RootNavHost() {
     val financeViewModel = koinViewModel<FinanceViewModel>()
     val moreViewModel = koinViewModel<MoreViewModel>()
     val divisionViewModel = koinViewModel<DivisionViewModel>()
+    val memberViewModel = koinViewModel<MemberViewModel>()
     val addMemberViewModel = koinViewModel<AddMemberViewModel>()
 
     val authState by authViewModel.state.collectAsState()
@@ -92,12 +122,28 @@ fun RootNavHost() {
 
     LaunchedEffect(Unit) {
         authViewModel.onEvent(AuthEvent.Bootstrap)
+    }
+
+    LaunchedEffect(Unit) {
         authViewModel.effect.collect { effect ->
             when (effect) {
                 is AuthEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+                AuthEffect.OpenLogin -> {
+                    rootNav.navigate(Routes.LOGIN) {
+                        popUpTo(rootNav.graph.findStartDestination().id) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+
+                AuthEffect.OpenRegister -> {
+                    rootNav.navigate(Routes.REGISTER) {
+                        launchSingleTop = true
+                    }
+                }
+
                 AuthEffect.OpenMain -> {
                     rootNav.navigate(Routes.MAIN) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
+                        popUpTo(rootNav.graph.findStartDestination().id) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
@@ -112,26 +158,55 @@ fun RootNavHost() {
             eventViewModel.onEvent(EventEvent.Load)
             financeViewModel.onEvent(FinanceEvent.Load)
             divisionViewModel.onEvent(DivisionEvent.LoadDivisions)
-            divisionViewModel.onEvent(DivisionEvent.LoadMembers)
+            memberViewModel.onEvent(MemberEvent.Load)
+            moreViewModel.onEvent(MoreEvent.LoadProfile)
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) { paddingValues ->
+    if (authState.isBootstrapping) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        return
+    }
+
+    val startDestination = if (authState.isAuthenticated) Routes.MAIN else Routes.LOGIN
+
+    Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+    ) { paddingValues ->
         NavHost(
             modifier = Modifier.fillMaxSize().padding(paddingValues),
             navController = rootNav,
-            startDestination = Routes.LOGIN,
+            startDestination = startDestination,
         ) {
             composable(Routes.LOGIN) {
                 LoginScreen(
                     state = authState,
-                    onEvent = authViewModel::onEvent
+                    onEvent = authViewModel::onEvent,
+                    onNavigateToRegister = {
+                        rootNav.navigate(Routes.REGISTER) {
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
             composable(Routes.REGISTER) {
                 RegisterScreen(
                     state = authState,
-                    onEvent = authViewModel::onEvent
+                    onEvent = authViewModel::onEvent,
+                    onNavigateToLogin = {
+                        rootNav.popBackStack()
+                    }
                 )
             }
             composable(Routes.MAIN) {
@@ -142,8 +217,12 @@ fun RootNavHost() {
                     financeViewModel = financeViewModel,
                     moreViewModel = moreViewModel,
                     divisionViewModel = divisionViewModel,
+                    memberViewModel = memberViewModel,
                     addMemberViewModel = addMemberViewModel,
                     snackbarHostState = snackbarHostState,
+                    onLogout = {
+                        authViewModel.onEvent(AuthEvent.SignedOut)
+                    }
                 )
             }
         }
@@ -158,8 +237,10 @@ private fun MainScaffold(
     financeViewModel: FinanceViewModel,
     moreViewModel: MoreViewModel,
     divisionViewModel: DivisionViewModel,
+    memberViewModel: MemberViewModel,
     addMemberViewModel: AddMemberViewModel,
     snackbarHostState: SnackbarHostState,
+    onLogout: () -> Unit
 ) {
     val mainNav = rememberNavController()
     val dashboardState by dashboardViewModel.state.collectAsState()
@@ -168,49 +249,72 @@ private fun MainScaffold(
     val financeState by financeViewModel.state.collectAsState()
     val moreState by moreViewModel.state.collectAsState()
     val divisionState by divisionViewModel.state.collectAsState()
+    val memberState by memberViewModel.state.collectAsState()
     val addMemberState by addMemberViewModel.state.collectAsState()
 
+    val canManageOrganization = moreState.authenticatedUser?.hasAdminPrivileges() ?: false
+
     LaunchedEffect(Unit) {
-        dashboardViewModel.effect.collect {
-            if (it is DashboardEffect.ShowError) snackbarHostState.showSnackbar(
-                it.message
-            )
-        }
-    }
-    LaunchedEffect(Unit) {
-        taskViewModel.effect.collect {
-            if (it is TaskEffect.ShowError) snackbarHostState.showSnackbar(
-                it.message
-            )
-        }
-    }
-    LaunchedEffect(Unit) {
-        eventViewModel.effect.collect {
-            if (it is EventEffect.ShowError) snackbarHostState.showSnackbar(
-                it.message
-            )
-        }
-    }
-    LaunchedEffect(Unit) {
-        financeViewModel.effect.collect {
-            if (it is FinanceEffect.ShowError) snackbarHostState.showSnackbar(
-                it.message
-            )
-        }
-    }
-    LaunchedEffect(Unit) {
-        moreViewModel.effect.collect {
-            when (it) {
-                is MoreEffect.ShowError -> snackbarHostState.showSnackbar(it.message)
-                MoreEffect.PasswordChanged -> snackbarHostState.showSnackbar("Password changed")
+        dashboardViewModel.effect.collect { effect ->
+            when (effect) {
+                is DashboardEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+                is DashboardEffect.NavigateToLogin -> onLogout()
             }
         }
     }
     LaunchedEffect(Unit) {
-        divisionViewModel.effect.collect {
-            if (it is DivisionEffect.ShowError) snackbarHostState.showSnackbar(
-                it.message
-            )
+        taskViewModel.effect.collect {
+            if (it is TaskEffect.ShowError) snackbarHostState.showSnackbar(it.message)
+        }
+    }
+    LaunchedEffect(Unit) {
+        eventViewModel.effect.collect {
+            if (it is EventEffect.ShowError) snackbarHostState.showSnackbar(it.message)
+        }
+    }
+    LaunchedEffect(Unit) {
+        financeViewModel.effect.collect {
+            if (it is FinanceEffect.ShowError) snackbarHostState.showSnackbar(it.message)
+        }
+    }
+    LaunchedEffect(Unit) {
+        moreViewModel.effect.collect { effect ->
+            when (effect) {
+                is MoreEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+                MoreEffect.PasswordChanged -> {
+                    snackbarHostState.showSnackbar("Password berhasil diubah")
+                    mainNav.popBackStack()
+                }
+                MoreEffect.ProfileUpdated -> {
+                    snackbarHostState.showSnackbar("Profil berhasil diperbarui")
+                    mainNav.popBackStack()
+                }
+                MoreEffect.NavigateToLogin -> onLogout()
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        divisionViewModel.effect.collect { effect ->
+            when (effect) {
+                is DivisionEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+                DivisionEffect.CreatedSuccessfully -> {
+                    snackbarHostState.showSnackbar("Divisi berhasil dibuat")
+                    mainNav.popBackStack()
+                }
+                DivisionEffect.UpdatedSuccessfully -> {
+                    snackbarHostState.showSnackbar("Divisi berhasil diperbarui")
+                    mainNav.popBackStack()
+                }
+                DivisionEffect.DeletedSuccessfully -> {
+                    snackbarHostState.showSnackbar("Divisi berhasil dihapus")
+                    mainNav.popBackStack()
+                }
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        memberViewModel.effect.collect {
+            if (it is MemberEffect.ShowError) snackbarHostState.showSnackbar(it.message)
         }
     }
     LaunchedEffect(Unit) {
@@ -218,8 +322,8 @@ private fun MainScaffold(
             when (it) {
                 is AddMemberEffect.ShowError -> snackbarHostState.showSnackbar(it.message)
                 AddMemberEffect.CreatedSuccessfully -> {
-                    snackbarHostState.showSnackbar("Member created")
-                    divisionViewModel.onEvent(DivisionEvent.LoadMembers)
+                    snackbarHostState.showSnackbar("Anggota berhasil ditambahkan")
+                    memberViewModel.onEvent(MemberEvent.Load)
                     mainNav.popBackStack()
                 }
             }
@@ -235,22 +339,51 @@ private fun MainScaffold(
 
     Scaffold(
         bottomBar = {
-            if (showBottomBar) NavigationBar {
-                mainTabs.forEach { tab ->
-                    NavigationBarItem(
-                        selected = selectedTab == tab.route,
-                        onClick = {
-                            mainNav.navigate(tab.route) {
-                                popUpTo(mainNav.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Text(tab.label.take(1)) },
-                        label = { Text(tab.label) },
-                    )
+            if (showBottomBar) {
+                Surface(
+                    shadowElevation = 8.dp,
+                    tonalElevation = 0.dp,
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp,
+                    ) {
+                        mainTabs.forEach { tab ->
+                            val isSelected = selectedTab == tab.route
+                            NavigationBarItem(
+                                selected = isSelected,
+                                onClick = {
+                                    mainNav.navigate(tab.route) {
+                                        popUpTo(mainNav.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                icon = {
+                                    Icon(
+                                        imageVector = tab.icon,
+                                        contentDescription = tab.label
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        text = tab.label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                ),
+                            )
+                        }
+                    }
                 }
             }
         },
@@ -269,13 +402,27 @@ private fun MainScaffold(
             composable(Routes.TASKS) {
                 TaskListScreen(
                     state = taskState,
+                    onOpenCreate = {
+                        mainNav.navigate(Routes.TASK_CREATE)
+                    },
+                    onOpenDetail = { taskId ->
+                        taskViewModel.onEvent(TaskEvent.OpenDetail(taskId))
+                        mainNav.navigate(Routes.TASK_DETAIL)
+                    },
                     onEvent = taskViewModel::onEvent
                 )
             }
-            composable(Routes.TASK_CREATE) { TaskCreateScreen(onEvent = taskViewModel::onEvent) }
+            composable(Routes.TASK_CREATE) {
+                TaskCreateScreen(
+                    state = taskState,
+                    onBack = { mainNav.popBackStack() },
+                    onEvent = taskViewModel::onEvent
+                )
+            }
             composable(Routes.TASK_DETAIL) {
                 TaskDetailScreen(
                     state = taskState,
+                    onBack = { mainNav.popBackStack() },
                     onEvent = taskViewModel::onEvent
                 )
             }
@@ -292,6 +439,7 @@ private fun MainScaffold(
             }
             composable(Routes.EVENT_CREATE) {
                 EventCreateScreen(
+                    state = eventState,
                     onBack = { mainNav.popBackStack() },
                     onEvent = eventViewModel::onEvent
                 )
@@ -316,53 +464,128 @@ private fun MainScaffold(
             }
             composable(Routes.FINANCE_CREATE) {
                 FinanceCreateScreen(
-                    onBack = { mainNav.popBackStack() },
-                    onEvent = financeViewModel::onEvent
-                )
-            }
-            composable(Routes.FINANCE_DETAIL) {
-                FinanceDetailScreen(
                     state = financeState,
                     onBack = { mainNav.popBackStack() },
                     onEvent = financeViewModel::onEvent
                 )
             }
+        composable(Routes.FINANCE_DETAIL) {
+            FinanceDetailScreen(
+                state = financeState,
+                onBack = { mainNav.popBackStack() },
+                onOpenEdit = { id ->
+                    mainNav.navigate(Routes.financeEdit(id))
+                },
+                onEvent = financeViewModel::onEvent
+            )
+        }
+        composable(
+            route = Routes.FINANCE_EDIT,
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { backStack ->
+            val id = backStack.arguments?.read { getStringOrNull("id") }.orEmpty()
+            LaunchedEffect(id) {
+                if (id.isNotBlank() && financeState.selectedTransaction?.transaction?.id != id) {
+                    financeViewModel.onEvent(FinanceEvent.OpenDetail(id))
+                }
+            }
+            FinanceEditScreen(
+                state = financeState,
+                transactionId = id,
+                onBack = { mainNav.popBackStack() },
+                onEvent = financeViewModel::onEvent,
+            )
+        }
             composable(Routes.MORE) {
-                MoreScreen(
+                LaunchedEffect(Unit) { moreViewModel.onEvent(MoreEvent.LoadProfile) }
+                MoreListScreen(
+                    state = moreState,
                     onOpenProfile = { mainNav.navigate(Routes.PROFILE) },
                     onOpenChangePassword = { mainNav.navigate(Routes.CHANGE_PASSWORD) },
                     onOpenDivisions = { mainNav.navigate(Routes.DIVISIONS) },
                     onOpenMembers = { mainNav.navigate(Routes.MEMBERS) },
                     onOpenAddMember = { mainNav.navigate(Routes.ADD_MEMBER) },
+                    onLogout = { moreViewModel.onEvent(MoreEvent.Logout) },
                 )
             }
             composable(Routes.PROFILE) {
                 ProfileScreen(
                     state = moreState,
-                    onEvent = moreViewModel::onEvent
+                    onBack = { mainNav.popBackStack() },
+                    onEvent = moreViewModel::onEvent,
                 )
             }
-            composable(Routes.CHANGE_PASSWORD) { ChangePasswordScreen(onEvent = moreViewModel::onEvent) }
+            composable(Routes.CHANGE_PASSWORD) {
+                ChangePasswordScreen(
+                    state = moreState,
+                    onBack = { mainNav.popBackStack() },
+                    onEvent = moreViewModel::onEvent,
+                )
+            }
             composable(Routes.DIVISIONS) {
                 DivisionListScreen(
                     state = divisionState,
+                    canManage = canManageOrganization,
+                    onBack = { mainNav.popBackStack() },
                     onOpenDetail = {
                         divisionViewModel.onEvent(DivisionEvent.OpenDivisionDetail(it))
                         mainNav.navigate(Routes.DIVISION_DETAIL)
                     },
+                    onOpenCreate = { mainNav.navigate(Routes.DIVISION_CREATE) },
                     onEvent = divisionViewModel::onEvent,
                 )
             }
-            composable(Routes.DIVISION_DETAIL) { DivisionDetailScreen(state = divisionState) }
+            composable(Routes.DIVISION_DETAIL) {
+                DivisionDetailScreen(
+                    state = divisionState,
+                    canManage = canManageOrganization,
+                    onBack = { mainNav.popBackStack() },
+                    onOpenEdit = { id ->
+                        mainNav.navigate(Routes.divisionEdit(id))
+                    },
+                    onEvent = divisionViewModel::onEvent,
+                )
+            }
+            composable(Routes.DIVISION_CREATE) {
+                DivisionFormScreen(
+                    state = divisionState,
+                    divisionId = null,
+                    onBack = { mainNav.popBackStack() },
+                    onEvent = divisionViewModel::onEvent,
+                )
+            }
+            composable(
+                route = Routes.DIVISION_EDIT,
+                arguments = listOf(navArgument("id") { type = NavType.StringType }),
+            ) { backStack ->
+                val id = backStack.arguments?.read { getStringOrNull("id") }.orEmpty()
+                LaunchedEffect(id) {
+                    if (id.isNotBlank() && divisionState.selectedDivision?.id != id) {
+                        divisionViewModel.onEvent(DivisionEvent.OpenDivisionDetail(id))
+                    }
+                }
+                DivisionFormScreen(
+                    state = divisionState,
+                    divisionId = id,
+                    onBack = { mainNav.popBackStack() },
+                    onEvent = divisionViewModel::onEvent,
+                )
+            }
             composable(Routes.MEMBERS) {
                 MemberListScreen(
-                    state = divisionState,
+                    state = memberState,
+                    canAdd = canManageOrganization,
+                    onBack = { mainNav.popBackStack() },
                     onOpenAddMember = { mainNav.navigate(Routes.ADD_MEMBER) },
-                    onEvent = divisionViewModel::onEvent
+                    onEvent = memberViewModel::onEvent,
                 )
             }
             composable(Routes.ADD_MEMBER) {
-                AddMemberScreen(state = addMemberState, onEvent = addMemberViewModel::onEvent)
+                AddMemberScreen(
+                    state = addMemberState,
+                    onBack = { mainNav.popBackStack() },
+                    onEvent = addMemberViewModel::onEvent,
+                )
             }
         }
     }

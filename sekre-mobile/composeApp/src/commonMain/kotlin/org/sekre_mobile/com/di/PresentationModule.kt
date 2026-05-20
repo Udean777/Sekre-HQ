@@ -10,6 +10,7 @@ import org.sekre_mobile.com.presentation.finance.FinanceViewModel
 import org.sekre_mobile.com.presentation.foundation.FoundationViewModel
 import org.sekre_mobile.com.presentation.more.MoreViewModel
 import org.sekre_mobile.com.presentation.member.AddMemberViewModel
+import org.sekre_mobile.com.presentation.member.MemberViewModel
 import org.sekre_mobile.com.presentation.task.TaskViewModel
 
 val presentationModule = module {
@@ -21,5 +22,6 @@ val presentationModule = module {
     viewModelOf(::FinanceViewModel)
     viewModelOf(::MoreViewModel)
     viewModelOf(::DivisionViewModel)
+    viewModelOf(::MemberViewModel)
     viewModelOf(::AddMemberViewModel)
 }

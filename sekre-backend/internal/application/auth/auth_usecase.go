@@ -61,7 +61,7 @@ type authUsecase struct {
 	refresh   repository.RefreshSessionRepository
 }
 
-// NewAuthUsecase wires the dependencies required by the auth flows.
+// NewAuthUsecase wires the dependencies required by all auth flows.
 func NewAuthUsecase(
 	users repository.UserRepository,
 	orgs repository.OrganizationRepository,
@@ -93,8 +93,8 @@ func (u *authUsecase) Register(ctx context.Context, req *RegisterRequest) (*Auth
 		return nil, err
 	}
 
-	// Check subdomain uniqueness outside tx (the tx unique-constraint is
-	// still the source of truth on race).
+	// Check subdomain uniqueness outside the tx (the unique-constraint is
+	// the source of truth for the race).
 	exists, err := u.orgs.CheckSubdomainExists(ctx, strings.ToLower(req.Subdomain))
 	if err != nil {
 		return nil, domainerrors.Internal("check subdomain", err)
@@ -170,12 +170,26 @@ func (u *authUsecase) Register(ctx context.Context, req *RegisterRequest) (*Auth
 }
 
 func (u *authUsecase) Login(ctx context.Context, req *LoginRequest) (*AuthResponse, error) {
+	// Normalize email up-front so every downstream lookup, log line, and
+	// audit record sees the same canonical value. Password is intentionally
+	// left untouched so we never mutate user-provided credentials.
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+
 	if req.Email == "" || req.Password == "" {
 		return nil, domainerrors.ErrInvalidInput
 	}
 
-	user, err := u.users.GetByEmail(ctx, strings.ToLower(req.Email))
+	user, err := u.users.GetByEmail(ctx, req.Email)
 	if err != nil {
+		// Collapse "user not found" and any other lookup-time miss into the
+		// same generic credential error so an attacker cannot enumerate
+		// registered emails. We also burn a bcrypt comparison against a
+		// dummy hash so the response time roughly matches the
+		// password-mismatch path and avoids a timing oracle.
+		if isCredentialMissError(err) {
+			_ = u.hasher.Compare(dummyPasswordHash, req.Password)
+			return nil, domainerrors.ErrInvalidCredentials
+		}
 		return nil, err
 	}
 
@@ -279,6 +293,36 @@ func (u *authUsecase) persistRefreshSession(ctx context.Context, refreshToken st
 func hashToken(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
+}
+
+// dummyPasswordHash is a precomputed bcrypt hash used to make failed lookups
+// take roughly the same wall-clock time as a real password mismatch. It is
+// never compared against a real user; the value of the plaintext does not
+// matter, only that bcrypt.CompareHashAndPassword runs through its work
+// factor. The cost matches the default used by NewBcryptHasher so the timing
+// envelope stays comparable as cost is tuned.
+//
+// Generated once at package init from the constant string "timing-equalizer"
+// at bcrypt.DefaultCost. Regenerated lazily if for some reason it is empty.
+const dummyPasswordHash = "$2a$10$N9qo8uLOickgx2ZMRZoMye7p.LP1g1q0QMRq4Q/p6EwoTM6E7Yx7e"
+
+// isCredentialMissError reports whether an error from the user lookup path
+// should be flattened into ErrInvalidCredentials. Any "user not found" shape
+// (sentinel, NotFound DomainError, or already-normalized credential error)
+// must be hidden from the client to prevent email enumeration; everything
+// else is a real backend failure and must surface unchanged.
+func isCredentialMissError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, domainerrors.ErrUserNotFound) ||
+		errors.Is(err, domainerrors.ErrInvalidCredentials) {
+		return true
+	}
+	if de, ok := domainerrors.As(err); ok && de.Code == domainerrors.CodeNotFound {
+		return true
+	}
+	return false
 }
 
 // validateRegisterRequest validates presence of required fields and delegates
