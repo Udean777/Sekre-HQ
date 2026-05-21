@@ -6,6 +6,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-2.0-FF3E00?style=flat&logo=svelte)](https://kit.svelte.dev/)
+[![React Native](https://img.shields.io/badge/React_Native-0.85.3-61DAFB?style=flat&logo=react)](https://reactnative.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-Internal-blue?style=flat)](LICENSE)
 
@@ -24,18 +25,22 @@ Aplikasi lengkap untuk mengelola organisasi kampus (BEM, UKM, Himpunan) dengan f
 <td width="50%">
 
 ### 📋 Task Management
+
 Kelola tugas dan deadline dengan assignment ke anggota, tracking progress, dan notifikasi otomatis.
 
 ### 📅 Event Scheduling
+
 Jadwalkan acara organisasi, kelola peserta, dan kirim reminder ke anggota.
 
 </td>
 <td width="50%">
 
 ### 💰 Finance Tracking
+
 Catat pemasukan & pengeluaran, generate laporan keuangan, dan export ke Excel.
 
 ### 👥 Multi-tenant
+
 Isolasi data per organisasi dengan role-based access control (OWNER, ADMIN, MEMBER).
 
 </td>
@@ -59,8 +64,11 @@ Isolasi data per organisasi dengan role-based access control (OWNER, ADMIN, MEMB
 ✓ npm/bun
 
 # Mobile
+✓ Node.js 18+
+✓ bun
 ✓ Android Studio
-✓ Xcode (for iOS)
+✓ Xcode 15+ (for iOS, macOS only)
+✓ CocoaPods (for iOS)
 ```
 
 ### ⚡ Development Setup
@@ -125,12 +133,23 @@ npm run dev
 ```bash
 cd sekre-mobile
 
-# Android
-./gradlew :composeApp:installDebug
+# Install dependencies
+bun install
 
-# iOS (macOS only)
-open iosApp/iosApp.xcworkspace
+# iOS only
+cd ios && pod install && cd ..
+
+# Start Metro bundler
+bun start
+
+# Android
+bun android
+
+# iOS
+bun ios
 ```
+
+> **API URL:** Android emulator → `http://10.0.2.2:8080/api/v1` | iOS simulator → `http://127.0.0.1:8080/api/v1`
 
 </details>
 
@@ -142,10 +161,10 @@ open iosApp/iosApp.xcworkspace
 
 ```mermaid
 graph LR
-    A[📱 Mobile App<br/>Kotlin Multiplatform] --> B[🔌 Backend API<br/>Go + PostgreSQL]
+    A[📱 Mobile App<br/>React Native] --> B[🔌 Backend API<br/>Go + PostgreSQL]
     C[💻 Web App<br/>SvelteKit] --> B
     B --> D[(🗄️ PostgreSQL<br/>Database)]
-    
+
     style A fill:#4CAF50,stroke:#2E7D32,color:#fff
     style B fill:#2196F3,stroke:#1565C0,color:#fff
     style C fill:#FF9800,stroke:#E65100,color:#fff
@@ -179,9 +198,9 @@ graph LR
 ![Go](https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 
-**Framework:** gorilla/mux  
-**ORM:** GORM v2  
-**Auth:** JWT + bcrypt  
+**Framework:** gorilla/mux
+**ORM:** GORM v2
+**Auth:** JWT + bcrypt
 **Architecture:** Clean Architecture
 
 [📖 Backend Docs](./sekre-backend/README.md)
@@ -194,9 +213,9 @@ graph LR
 ![SvelteKit](https://img.shields.io/badge/SvelteKit-2.0-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 
-**Framework:** SvelteKit 2  
-**Styling:** Tailwind CSS 4  
-**Build:** Vite 8  
+**Framework:** SvelteKit 2
+**Styling:** Tailwind CSS 4
+**Build:** Vite 8
 **Language:** TypeScript 6
 
 </td>
@@ -204,12 +223,15 @@ graph LR
 
 ### 📱 Mobile
 
-![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
-![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)
+![React Native](https://img.shields.io/badge/React_Native-0.85.3-61DAFB?style=for-the-badge&logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 
-**Framework:** KMP  
-**UI:** Compose Multiplatform  
+**Framework:** React Native 0.85.3
+**State:** Redux Toolkit + TanStack Query
+**Storage:** MMKV + Keychain
 **Platforms:** Android, iOS
+
+[📖 Mobile Docs](./sekre-mobile/README.md)
 
 </td>
 </tr>
@@ -221,12 +243,12 @@ graph LR
 
 ### 🔗 API Documentation
 
-| Endpoint | Description |
-|----------|-------------|
-| 📊 [Swagger UI](http://localhost:8080/docs) | Interactive API documentation |
-| 📄 [OpenAPI Spec](http://localhost:8080/openapi.yaml) | OpenAPI 3.0 specification |
-| ❤️ [Health Check](http://localhost:8080/health/live) | Liveness probe |
-| 📈 [Metrics](http://localhost:8080/metrics) | Prometheus metrics |
+| Endpoint                                              | Description                   |
+| ----------------------------------------------------- | ----------------------------- |
+| 📊 [Swagger UI](http://localhost:8080/docs)           | Interactive API documentation |
+| 📄 [OpenAPI Spec](http://localhost:8080/openapi.yaml) | OpenAPI 3.0 specification     |
+| ❤️ [Health Check](http://localhost:8080/health/live)  | Liveness probe                |
+| 📈 [Metrics](http://localhost:8080/metrics)           | Prometheus metrics            |
 
 ### 🎯 Root-Level Commands
 
@@ -256,6 +278,7 @@ make check-frontend # Check frontend types
 <td width="50%">
 
 ### 🛡️ Authentication & Authorization
+
 - ✅ JWT with 15-minute access tokens
 - ✅ Refresh token rotation
 - ✅ Role-based access (OWNER, ADMIN, MEMBER)
@@ -265,6 +288,7 @@ make check-frontend # Check frontend types
 <td width="50%">
 
 ### 🔒 Security Layers
+
 - ✅ Multi-tenant data isolation
 - ✅ Rate limiting (10 req/s per IP)
 - ✅ Input validation & XSS protection
@@ -309,10 +333,12 @@ npm run check   # ✅ Type check
 <summary><b>🔧 Backend Configuration</b></summary>
 
 **Required:**
+
 - `JWT_SECRET` - At least 32 characters
 - `DB_PASSWORD` - Database password
 
 **Important:**
+
 - `SERVER_PORT` - Default: 8080
 - `DB_HOST` - Default: localhost
 - `DB_PORT` - Default: 5432
@@ -355,12 +381,14 @@ npm run build
 ### 📱 Mobile Deployment
 
 ```bash
-# Android
-./gradlew :composeApp:assembleRelease
+# Android — release APK
+cd sekre-mobile
+bun android --mode release
 
-# iOS
-xcodebuild -workspace iosApp/iosApp.xcworkspace \
-  -scheme iosApp -configuration Release archive
+# iOS — archive (macOS only)
+cd sekre-mobile/ios
+xcodebuild -workspace SekreMobile.xcworkspace \
+  -scheme SekreMobile -configuration Release archive
 ```
 
 ---
@@ -371,7 +399,7 @@ xcodebuild -workspace iosApp/iosApp.xcworkspace \
 sekre-project/
 ├── 🔙 sekre-backend/      # Go API server (Clean Architecture)
 ├── 🎨 sekre-frontend/     # SvelteKit web application
-├── 📱 sekre-mobile/       # Kotlin Multiplatform mobile app
+├── 📱 sekre-mobile/       # React Native mobile app (Android + iOS)
 └── 📝 Makefile            # Root-level development commands
 ```
 
