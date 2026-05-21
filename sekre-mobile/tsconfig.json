@@ -14,18 +14,16 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "ignoreDeprecations": "6.0",
     "types": ["jest"],
-    "baseUrl": ".",
     "paths": {
-      "@app/*": ["src/app/*"],
-      "@core/*": ["src/core/*"],
-      "@data/*": ["src/data/*"],
-      "@presentation/*": ["src/presentation/*"],
-      "@store/*": ["src/store/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@shared/*": ["src/shared/*"],
-      "@di/*": ["src/di/*"]
+      "@app/*": ["./src/app/*"],
+      "@core/*": ["./src/core/*"],
+      "@data/*": ["./src/data/*"],
+      "@presentation/*": ["./src/presentation/*"],
+      "@store/*": ["./src/store/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@di/*": ["./src/di/*"]
     }
   },
   "include": ["src", "index.js", "**/*.ts", "**/*.tsx"],
