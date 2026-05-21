@@ -40,6 +40,16 @@ const TAB_CONFIG: Record<string, { label: string; active: IoniconName; inactive:
 const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const insets = useSafeAreaInsets();
 
+  // Sembunyikan tab bar jika route aktif punya nested stack yang sudah di-push
+  // (bukan screen pertama / root screen dari navigator tersebut)
+  const activeRoute = state.routes[state.index];
+  const isNestedStackActive =
+    activeRoute?.state !== undefined &&
+    activeRoute.state.index !== undefined &&
+    activeRoute.state.index > 0;
+
+  if (isNestedStackActive) return null;
+
   return (
     <View style={[styles.tabBarWrapper, { paddingBottom: insets.bottom || spacing[3] }]}>
       <View style={styles.tabBar}>

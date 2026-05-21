@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AppText } from '../Text/Text';
+import { BottomSheet } from '../BottomSheet';
 import { colors, spacing, radius, fontSize, fontWeight } from '@presentation/theme';
 
 export interface SelectOption<T = string> {
@@ -42,6 +43,8 @@ export function SelectField<T = string>({
     onChange(opt.value);
     setOpen(false);
   };
+
+  const snapTo = Math.min(0.85, Math.max(0.35, 0.15 + options.length * 0.07));
 
   return (
     <View style={styles.container}>
@@ -89,61 +92,54 @@ export function SelectField<T = string>({
         </AppText>
       ) : null}
 
-      {/* ── Modal dropdown ── */}
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setOpen(false)} />
-        <View style={styles.modalContainer}>
-          <View style={styles.sheet}>
-            {/* Header */}
-            <View style={styles.sheetHeader}>
-              <AppText variant="bodyMd" style={styles.sheetTitle}>
-                {label ?? 'Pilih'}
-              </AppText>
+      {/* ── BottomSheet dropdown ── */}
+      <BottomSheet
+        visible={open}
+        onClose={() => setOpen(false)}
+        title={label ?? 'Pilih'}
+        snapTo={snapTo}
+      >
+        <FlatList
+          data={options}
+          keyExtractor={(_, i) => String(i)}
+          renderItem={({ item }) => {
+            const isSelected = item.value === value;
+            return (
               <TouchableOpacity
-                onPress={() => setOpen(false)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                onPress={() => handleSelect(item)}
+                activeOpacity={0.7}
+                style={[styles.option, isSelected && styles.optionSelected]}
               >
-                <Ionicons name="close" size={20} color={colors.text.secondary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Options */}
-            <FlatList
-              data={options}
-              keyExtractor={(_, i) => String(i)}
-              renderItem={({ item }) => {
-                const isSelected = item.value === value;
-                return (
-                  <TouchableOpacity
-                    onPress={() => handleSelect(item)}
-                    activeOpacity={0.7}
-                    style={[styles.option, isSelected && styles.optionSelected]}
+                <View style={styles.optionContent}>
+                  <AppText
+                    variant="bodyMd"
+                    style={isSelected ? styles.optionLabelSelected : undefined}
                   >
-                    <View style={styles.optionContent}>
-                      <AppText
-                        variant="bodyMd"
-                        style={isSelected ? styles.optionLabelSelected : undefined}
-                      >
-                        {item.label}
-                      </AppText>
-                      {item.description ? (
-                        <AppText variant="bodySm" color={colors.text.secondary}>
-                          {item.description}
-                        </AppText>
-                      ) : null}
-                    </View>
-                    {isSelected ? (
-                      <Ionicons name="checkmark" size={18} color={colors.primary[500]} />
-                    ) : null}
-                  </TouchableOpacity>
-                );
-              }}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
-              style={styles.optionList}
-            />
-          </View>
-        </View>
-      </Modal>
+                    {item.label}
+                  </AppText>
+                  {item.description ? (
+                    <AppText variant="bodySm" color={colors.text.secondary}>
+                      {item.description}
+                    </AppText>
+                  ) : null}
+                </View>
+                {isSelected ? (
+                  <Ionicons name="checkmark" size={18} color={colors.primary[500]} />
+                ) : null}
+              </TouchableOpacity>
+            );
+          }}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <AppText variant="bodySm" color={colors.text.secondary}>
+                Tidak ada pilihan tersedia
+              </AppText>
+            </View>
+          }
+        />
+      </BottomSheet>
     </View>
   );
 }
@@ -190,42 +186,7 @@ const styles = StyleSheet.create({
     marginTop: spacing[1],
   },
 
-  // Modal
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.surface.overlay,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.surface.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '60%',
-    paddingBottom: spacing[6],
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  sheetTitle: {
-    fontWeight: fontWeight.semiBold,
-    color: colors.text.primary,
-  },
-  optionList: {
-    flexGrow: 0,
-  },
+  // Options
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -248,5 +209,9 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border.default,
     marginHorizontal: spacing[4],
+  },
+  emptyContainer: {
+    padding: spacing[6],
+    alignItems: 'center',
   },
 });

@@ -59,6 +59,7 @@ export class TaskRepositoryImpl implements ITaskRepository {
     const payload: UpdateTaskRequestDTO = {
       ...(params.title !== undefined && { title: params.title }),
       ...(params.description !== undefined && { description: params.description }),
+      ...(params.status !== undefined && { status: params.status }),
       ...(params.assigneeId !== undefined && { assignee_id: params.assigneeId }),
       ...(params.dueDate !== undefined && { due_date: params.dueDate }),
     };
@@ -68,8 +69,10 @@ export class TaskRepositoryImpl implements ITaskRepository {
 
   async updateTaskStatus(id: TaskId, status: TaskStatus): Promise<Task> {
     const payload: UpdateTaskStatusRequestDTO = { status };
-    const { data } = await this.http.patch<TaskResponseDTO>(ENDPOINTS.TASKS.UPDATE_STATUS(id), payload);
-    return mapTaskResponseDTOToEntity(data);
+    await this.http.patch(ENDPOINTS.TASKS.UPDATE_STATUS(id), payload);
+    // Backend returns only { success, message } — no task data.
+    // Fetch the updated task to return the full entity.
+    return this.getTaskById(id);
   }
 
   async deleteTask(id: TaskId): Promise<void> {

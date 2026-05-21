@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Platform, Animated } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AppText } from '../Text/Text';
+import { BottomSheet } from '../BottomSheet';
+import { Button } from '../Button';
 import { colors, spacing, radius, fontSize, fontWeight } from '@presentation/theme';
 
 type Mode = 'date' | 'datetime';
@@ -41,18 +43,16 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   mode = 'date',
   minimumDate,
   maximumDate,
+  placeholder,
   error,
   hint,
   optional = false,
 }) => {
-  const [expanded, setExpanded] = useState(false);
-  // iosStep hanya untuk datetime: 'date' dulu lalu 'time'
+  const [open, setOpen] = useState(false);
   const [iosStep, setIosStep] = useState<'date' | 'time'>('date');
-  // tempDate untuk buffer sebelum confirm
   const [tempDate, setTempDate] = useState<Date>(new Date());
 
   const hasError = Boolean(error);
-
   const displayText = value
     ? mode === 'datetime'
       ? formatDateTime(value)
@@ -60,16 +60,16 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
     : null;
 
   const handlePress = () => {
-    if (!expanded) {
-      setTempDate(value ?? new Date());
-      setIosStep('date');
-    }
-    setExpanded(prev => !prev);
+    setTempDate(value ?? new Date());
+    setIosStep('date');
+    setOpen(true);
   };
 
-  const handleClear = () => {
-    onChange(null);
-    setExpanded(false);
+  const handleClear = () => onChange(null);
+
+  const handleClose = () => {
+    setOpen(false);
+    setIosStep('date');
   };
 
   const handleConfirm = () => {
@@ -78,27 +78,28 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
       return;
     }
     onChange(tempDate);
-    setExpanded(false);
+    setOpen(false);
     setIosStep('date');
   };
 
-  const handleCancel = () => {
-    setExpanded(false);
-    setIosStep('date');
-  };
-
-  // Android: native dialog
+  // Android: native dialog langsung
   const handleAndroidChange = (_: unknown, selected?: Date) => {
-    if (!selected) return;
+    if (!selected) {
+      setOpen(false);
+      return;
+    }
     if (mode === 'datetime' && iosStep === 'date') {
       setTempDate(selected);
       setIosStep('time');
     } else {
       onChange(selected);
+      setOpen(false);
       setIosStep('date');
-      setExpanded(false);
     }
   };
+
+  const stepTitle =
+    mode === 'datetime' ? (iosStep === 'date' ? 'Pilih Tanggal' : 'Pilih Waktu') : 'Pilih Tanggal';
 
   return (
     <View style={styles.container}>
@@ -118,20 +119,22 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.7}
-        style={[styles.field, hasError && styles.fieldError, expanded && styles.fieldActive]}
+        style={[styles.field, hasError && styles.fieldError]}
         accessibilityRole="button"
         accessibilityLabel={label}
       >
         <Ionicons
           name="calendar-outline"
           size={18}
-          color={expanded || value ? colors.primary[500] : colors.text.disabled}
+          color={value ? colors.primary[500] : colors.text.disabled}
         />
         <AppText
           style={[styles.valueText, ...(value ? [] : [styles.placeholderText])]}
           numberOfLines={1}
         >
-          {displayText ?? (mode === 'datetime' ? 'Pilih tanggal & waktu' : 'Pilih tanggal')}
+          {displayText ??
+            placeholder ??
+            (mode === 'datetime' ? 'Pilih tanggal & waktu' : 'Pilih tanggal')}
         </AppText>
         {value && optional ? (
           <TouchableOpacity
@@ -142,11 +145,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
             <Ionicons name="close-circle" size={18} color={colors.neutral[400]} />
           </TouchableOpacity>
         ) : (
-          <Ionicons
-            name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={16}
-            color={colors.text.secondary}
-          />
+          <Ionicons name="chevron-down" size={16} color={colors.text.secondary} />
         )}
       </TouchableOpacity>
 
@@ -160,16 +159,47 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
         </AppText>
       ) : null}
 
-      {/* ── iOS inline picker ── */}
-      {Platform.OS === 'ios' && expanded ? (
-        <View style={styles.pickerContainer}>
-          {/* Step label untuk datetime */}
-          {mode === 'datetime' ? (
-            <AppText variant="bodySm" color={colors.text.secondary} style={styles.stepLabel}>
-              {iosStep === 'date' ? 'Pilih Tanggal' : 'Pilih Waktu'}
-            </AppText>
-          ) : null}
+      {/* ── Android native dialog ── */}
+      {Platform.OS === 'android' && open ? (
+        <RNDateTimePicker
+          value={tempDate}
+          mode={mode === 'datetime' ? iosStep : 'date'}
+          display="default"
+          minimumDate={minimumDate}
+          maximumDate={maximumDate}
+          onChange={handleAndroidChange}
+        />
+      ) : null}
 
+      {/* ── iOS BottomSheet picker ── */}
+      {Platform.OS === 'ios' ? (
+        <BottomSheet
+          visible={open}
+          onClose={handleClose}
+          title={stepTitle}
+          snapTo={0.48}
+          headerLeft={
+            <TouchableOpacity
+              onPress={handleClose}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AppText variant="bodyMd" color={colors.danger.main}>
+                Batal
+              </AppText>
+            </TouchableOpacity>
+          }
+          headerRight={
+            <TouchableOpacity
+              onPress={handleConfirm}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AppText variant="bodyMd" color={colors.primary[500]} style={styles.confirmText}>
+                {mode === 'datetime' && iosStep === 'date' ? 'Lanjut →' : 'Selesai'}
+              </AppText>
+            </TouchableOpacity>
+          }
+          contentStyle={styles.pickerContent}
+        >
           <RNDateTimePicker
             value={tempDate}
             mode={mode === 'datetime' ? iosStep : 'date'}
@@ -184,33 +214,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
             accentColor={colors.primary[500]}
             style={styles.spinner}
           />
-
-          {/* Action buttons */}
-          <View style={styles.pickerActions}>
-            <TouchableOpacity onPress={handleCancel} style={styles.cancelBtn}>
-              <AppText variant="bodyMd" color={colors.text.secondary}>
-                Batal
-              </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleConfirm} style={styles.confirmBtn}>
-              <AppText variant="bodyMd" color={colors.text.inverse} style={styles.confirmText}>
-                {mode === 'datetime' && iosStep === 'date' ? 'Lanjut →' : 'Selesai'}
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : null}
-
-      {/* ── Android native dialog ── */}
-      {Platform.OS === 'android' && expanded ? (
-        <RNDateTimePicker
-          value={tempDate}
-          mode={mode === 'datetime' ? iosStep : 'date'}
-          display="default"
-          minimumDate={minimumDate}
-          maximumDate={maximumDate}
-          onChange={handleAndroidChange}
-        />
+        </BottomSheet>
       ) : null}
     </View>
   );
@@ -241,11 +245,6 @@ const styles = StyleSheet.create({
   fieldError: {
     borderColor: colors.border.error,
   },
-  fieldActive: {
-    borderColor: colors.primary[500],
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
   valueText: {
     flex: 1,
     fontSize: fontSize.md,
@@ -258,45 +257,15 @@ const styles = StyleSheet.create({
   helperText: {
     marginTop: spacing[1],
   },
-
-  // Picker container — muncul di bawah field
-  pickerContainer: {
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: colors.primary[500],
-    borderBottomLeftRadius: radius.md,
-    borderBottomRightRadius: radius.md,
-    backgroundColor: colors.neutral[0],
-    overflow: 'hidden',
+  confirmText: {
+    fontWeight: fontWeight.semiBold,
   },
-  stepLabel: {
-    textAlign: 'center',
-    paddingTop: spacing[3],
-    paddingHorizontal: spacing[4],
+  pickerContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   spinner: {
     width: '100%',
-    height: 180,
-  },
-  pickerActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  cancelBtn: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    borderRightWidth: 1,
-    borderRightColor: colors.border.default,
-  },
-  confirmBtn: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    backgroundColor: colors.primary[500],
-  },
-  confirmText: {
-    fontWeight: fontWeight.semiBold,
+    height: 200,
   },
 });

@@ -12,6 +12,7 @@ import (
 type TaskRepository interface {
 	Create(ctx context.Context, orgID uuid.UUID, task *entity.Task) error
 	GetByID(ctx context.Context, orgID, taskID uuid.UUID) (*entity.Task, error)
+	GetByIDWithAssignee(ctx context.Context, orgID, taskID uuid.UUID) (*entity.TaskWithAssignee, error)
 	List(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.Task, error)
 	ListWithAssignee(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.TaskWithAssignee, error)
 	ListFiltered(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters) ([]entity.TaskWithAssignee, error)

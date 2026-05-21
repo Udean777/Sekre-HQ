@@ -18,6 +18,7 @@ export interface CreateTaskParams {
 export interface UpdateTaskParams {
   title?: string;
   description?: string;
+  status?: string;
   assigneeId?: string | null;
   dueDate?: string; // RFC3339
 }

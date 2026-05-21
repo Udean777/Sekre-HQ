@@ -59,7 +59,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <Screen scrollable padded edges={['top']}>
+    <Screen scrollable padded edges={['top']} noTabBar>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}

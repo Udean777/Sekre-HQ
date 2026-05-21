@@ -76,6 +76,7 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
         params: {
           title: values.title,
           description: values.description || undefined,
+          status: task?.status,
           assigneeId: values.assigneeId ?? null,
           dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
         },

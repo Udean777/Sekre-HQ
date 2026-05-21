@@ -61,6 +61,7 @@ export interface CreateTaskRequestDTO {
 export interface UpdateTaskRequestDTO {
   title?: string;
   description?: string;
+  status?: string;
   priority?: TaskPriority;
   assignee_id?: string | null;
   division_id?: string;

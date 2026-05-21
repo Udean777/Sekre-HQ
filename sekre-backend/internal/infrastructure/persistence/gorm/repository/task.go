@@ -47,6 +47,24 @@ func (r *taskRepository) GetByID(ctx context.Context, orgID, taskID uuid.UUID) (
 	return mapper.TaskToEntity(&model), nil
 }
 
+func (r *taskRepository) GetByIDWithAssignee(ctx context.Context, orgID, taskID uuid.UUID) (*entity.TaskWithAssignee, error) {
+	var model models.Task
+	err := dbFor(ctx, r.db).
+		Preload("Assignee").
+		Where("id = ? AND organization_id = ?", taskID, orgID).
+		First(&model).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrTaskNotFound
+		}
+		return nil, domainerrors.Internal("get task with assignee", err)
+	}
+	return &entity.TaskWithAssignee{
+		Task:     *mapper.TaskToEntity(&model),
+		Assignee: mapper.UserToEntity(model.Assignee),
+	}, nil
+}
+
 func (r *taskRepository) List(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.Task, error) {
 	var models []models.Task
 	err := dbFor(ctx, r.db).
