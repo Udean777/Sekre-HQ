@@ -4,7 +4,7 @@ import { DashboardScreen } from '@presentation/screens/dashboard/DashboardScreen
 import { TasksNavigator } from './TasksNavigator';
 import { MembersNavigator } from './MembersNavigator';
 import { DivisionsNavigator } from './DivisionsNavigator';
-import { EventsScreen } from '@presentation/screens/events/EventsScreen';
+import { EventsNavigator } from './EventsNavigator';
 import { FinanceScreen } from '@presentation/screens/finance/FinanceScreen';
 import { SettingsScreen } from '@presentation/screens/settings/SettingsScreen';
 import { colors, fontSize } from '@presentation/theme';
@@ -54,7 +54,7 @@ export const AppNavigator: React.FC = () => {
         component={DivisionsNavigator}
         options={{ tabBarLabel: 'Divisi' }}
       />
-      <Tab.Screen name="Events" component={EventsScreen} options={{ tabBarLabel: 'Acara' }} />
+      <Tab.Screen name="Events" component={EventsNavigator} options={{ tabBarLabel: 'Acara' }} />
       <Tab.Screen name="Finance" component={FinanceScreen} options={{ tabBarLabel: 'Keuangan' }} />
       <Tab.Screen
         name="Settings"

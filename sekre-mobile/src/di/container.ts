@@ -4,10 +4,12 @@ import { AuthRepositoryImpl } from '@data/repositories/AuthRepositoryImpl';
 import { TaskRepositoryImpl } from '@data/repositories/TaskRepositoryImpl';
 import { MemberRepositoryImpl } from '@data/repositories/MemberRepositoryImpl';
 import { DivisionRepositoryImpl } from '@data/repositories/DivisionRepositoryImpl';
+import { EventRepositoryImpl } from '@data/repositories/EventRepositoryImpl';
 import type { IAuthRepository } from '@core/ports/IAuthRepository';
 import type { ITaskRepository } from '@core/ports/ITaskRepository';
 import type { IMemberRepository } from '@core/ports/IMemberRepository';
 import type { IDivisionRepository } from '@core/ports/IDivisionRepository';
+import type { IEventRepository } from '@core/ports/IEventRepository';
 
 // Storage
 export const getTokenStorage = (): typeof tokenStorage => tokenStorage;
@@ -49,4 +51,13 @@ export const getDivisionRepository = (): IDivisionRepository => {
     _divisionRepo = new DivisionRepositoryImpl(getHttpClient());
   }
   return _divisionRepo;
+};
+
+// Event Repository — singleton
+let _eventRepo: IEventRepository | null = null;
+export const getEventRepository = (): IEventRepository => {
+  if (!_eventRepo) {
+    _eventRepo = new EventRepositoryImpl(getHttpClient());
+  }
+  return _eventRepo;
 };
