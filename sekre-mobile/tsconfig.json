@@ -1,0 +1,31 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
+    "jsx": "react-native",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "types": ["jest"],
+    "paths": {
+      "@app/*": ["./src/app/*"],
+      "@core/*": ["./src/core/*"],
+      "@data/*": ["./src/data/*"],
+      "@presentation/*": ["./src/presentation/*"],
+      "@store/*": ["./src/store/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@di/*": ["./src/di/*"]
+    }
+  },
+  "include": ["src", "index.js", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "android", "ios", "**/Pods"]
+}

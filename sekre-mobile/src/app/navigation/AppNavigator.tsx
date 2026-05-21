@@ -1,0 +1,70 @@
+import React from 'react';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { DashboardScreen } from '@presentation/screens/dashboard/DashboardScreen';
+import { TasksNavigator } from './TasksNavigator';
+import { MembersNavigator } from './MembersNavigator';
+import { DivisionsNavigator } from './DivisionsNavigator';
+import { EventsNavigator } from './EventsNavigator';
+import { FinanceNavigator } from './FinanceNavigator';
+import { SettingsNavigator } from './SettingsNavigator';
+import { colors, fontSize } from '@presentation/theme';
+
+export type AppTabParamList = {
+  Dashboard: undefined;
+  Tasks: undefined;
+  Members: undefined;
+  Divisions: undefined;
+  Events: undefined;
+  Finance: undefined;
+  Settings: undefined;
+};
+
+const Tab = createBottomTabNavigator<AppTabParamList>();
+
+export const AppNavigator: React.FC = () => {
+  return (
+    <Tab.Navigator
+      initialRouteName="Dashboard"
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary[500],
+        tabBarInactiveTintColor: colors.text.secondary,
+        tabBarStyle: {
+          borderTopColor: colors.border.default,
+          backgroundColor: colors.surface.card,
+        },
+        tabBarLabelStyle: {
+          fontSize: fontSize.xs,
+        },
+      }}
+    >
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{ tabBarLabel: 'Dashboard' }}
+      />
+      <Tab.Screen name="Tasks" component={TasksNavigator} options={{ tabBarLabel: 'Tugas' }} />
+      <Tab.Screen
+        name="Members"
+        component={MembersNavigator}
+        options={{ tabBarLabel: 'Anggota' }}
+      />
+      <Tab.Screen
+        name="Divisions"
+        component={DivisionsNavigator}
+        options={{ tabBarLabel: 'Divisi' }}
+      />
+      <Tab.Screen name="Events" component={EventsNavigator} options={{ tabBarLabel: 'Acara' }} />
+      <Tab.Screen
+        name="Finance"
+        component={FinanceNavigator}
+        options={{ tabBarLabel: 'Keuangan' }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsNavigator}
+        options={{ tabBarLabel: 'Pengaturan' }}
+      />
+    </Tab.Navigator>
+  );
+};
