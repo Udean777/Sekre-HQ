@@ -3,21 +3,23 @@ import type { OrgRole } from '@core/domain/entities/Member';
 
 export interface MemberDTO {
   id: string;
-  user_id: string;
   email: string;
   full_name: string;
   role: OrgRole;
-  division_id: string | null;
-  division_name: string | null;
-  joined_at: string;
 }
 
 export interface MemberListResponseDTO {
-  members: MemberDTO[];
-  total: number;
-  page: number;
-  limit: number;
-  total_pages: number;
+  success: boolean;
+  message: string;
+  data: {
+    data: MemberDTO[];
+    pagination: {
+      page: number;
+      page_size: number;
+      total_items: number;
+      total_pages: number;
+    };
+  };
 }
 
 // Request shapes

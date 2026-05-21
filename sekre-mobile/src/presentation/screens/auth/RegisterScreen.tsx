@@ -3,17 +3,28 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } fr
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
-import { colors, spacing } from '@presentation/theme';
+import { colors, spacing, fontWeight } from '@presentation/theme';
 import { registerSchema, type RegisterFormValues } from '@shared/utils/authSchemas';
 import { useRegisterMutation } from '@hooks/auth/useRegisterMutation';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { AuthStackParamList } from '@app/navigation/AuthNavigator';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
+
+// ─── Section label ────────────────────────────────────────────────────────────
+
+const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
+  <AppText variant="label" color={colors.text.secondary} style={styles.sectionLabel}>
+    {label}
+  </AppText>
+);
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -40,22 +51,30 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setGlobalError(null);
     register(values, {
       onError: (error: Error) => {
-        if (isDomainError(error)) {
-          setGlobalError(error.message);
-        } else {
-          setGlobalError('Terjadi kesalahan. Coba lagi nanti.');
-        }
+        setGlobalError(
+          isDomainError(error) ? error.message : 'Terjadi kesalahan. Coba lagi nanti.',
+        );
       },
     });
   };
 
   return (
-    <Screen scrollable padded>
+    <Screen scrollable padded edges={['top']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
-        {/* Header */}
+        {/* ── Branding ── */}
+        <View style={styles.branding}>
+          <View style={styles.logoBox}>
+            <Ionicons name="layers-outline" size={36} color={colors.primary[500]} />
+          </View>
+          <AppText variant="h1" style={styles.appName}>
+            Sekre
+          </AppText>
+        </View>
+
+        {/* ── Header ── */}
         <View style={styles.header}>
           <AppText variant="h2">Buat Organisasi</AppText>
           <AppText variant="bodyMd" color={colors.text.secondary} style={styles.subtitle}>
@@ -63,17 +82,21 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           </AppText>
         </View>
 
-        {/* Global error */}
+        {/* ── Error banner ── */}
         {globalError ? (
           <View style={styles.errorBanner}>
-            <AppText variant="bodySm" color={colors.danger.main}>
+            <Ionicons name="alert-circle-outline" size={16} color={colors.danger.main} />
+            <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
               {globalError}
             </AppText>
           </View>
         ) : null}
 
-        {/* Form */}
+        {/* ── Form ── */}
         <View style={styles.form}>
+          {/* Grup: Info Organisasi */}
+          <SectionLabel label="INFO ORGANISASI" />
+
           <Controller
             control={control}
             name="orgName"
@@ -109,6 +132,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               />
             )}
           />
+
+          {/* Grup: Info Akun */}
+          <SectionLabel label="INFO AKUN ANDA" />
 
           <Controller
             control={control}
@@ -167,10 +193,13 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                     accessibilityLabel={
                       showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'
                     }
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <AppText variant="label" color={colors.primary[500]}>
-                      {showPassword ? 'Sembunyikan' : 'Tampilkan'}
-                    </AppText>
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.text.secondary}
+                    />
                   </TouchableOpacity>
                 }
               />
@@ -178,7 +207,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
-        {/* Submit */}
+        {/* ── Submit ── */}
         <Button
           label="Daftar"
           variant="primary"
@@ -189,13 +218,16 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.submitButton}
         />
 
-        {/* Login link */}
+        {/* ── Login link ── */}
         <View style={styles.footer}>
           <AppText variant="bodyMd" color={colors.text.secondary}>
             Sudah punya akun?{' '}
           </AppText>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <AppText variant="bodyMd" color={colors.primary[500]}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Login')}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <AppText variant="bodyMd" color={colors.primary[500]} style={styles.footerLink}>
               Masuk
             </AppText>
           </TouchableOpacity>
@@ -205,36 +237,81 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+
+  // Branding
+  branding: {
+    alignItems: 'center',
+    marginTop: spacing[8],
+    marginBottom: spacing[6],
+    gap: spacing[2],
+  },
+  logoBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appName: {
+    color: colors.primary[600],
+    fontWeight: fontWeight.bold,
+  },
+
+  // Header
   header: {
-    marginTop: spacing[6],
     marginBottom: spacing[6],
     gap: spacing[1],
   },
   subtitle: {
     marginTop: spacing[1],
   },
+
+  // Error
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
     backgroundColor: colors.danger.light,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: spacing[3],
     marginBottom: spacing[4],
   },
+  errorText: {
+    flex: 1,
+  },
+
+  // Form
   form: {
     gap: spacing[4],
     marginBottom: spacing[6],
   },
+  sectionLabel: {
+    marginTop: spacing[2],
+    marginBottom: spacing[1],
+    letterSpacing: 0.5,
+  },
+
+  // Submit
   submitButton: {
     marginBottom: spacing[4],
   },
+
+  // Footer
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing[2],
-    marginBottom: spacing[8],
+    paddingBottom: spacing[8],
+  },
+  footerLink: {
+    fontWeight: fontWeight.semiBold,
   },
 });

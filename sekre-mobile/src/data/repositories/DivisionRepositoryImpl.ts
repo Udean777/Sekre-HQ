@@ -15,18 +15,18 @@ import type {
 } from '@core/domain/entities/Division';
 import { ENDPOINTS } from '@data/http/endpoints';
 import type {
-  DivisionDTO,
-  DivisionDetailDTO,
   DivisionListResponseDTO,
+  DivisionResponseDTO,
+  DivisionDetailResponseDTO,
   CreateDivisionRequestDTO,
   UpdateDivisionRequestDTO,
   AddDivisionMemberRequestDTO,
   UpdateDivisionMemberRequestDTO,
 } from '@data/dto/division.dto';
 import {
-  mapDivisionDTOToEntity,
-  mapDivisionDetailDTOToEntity,
   mapDivisionListDTOToResult,
+  mapDivisionResponseDTOToEntity,
+  mapDivisionDetailResponseDTOToEntity,
 } from '@data/mappers/division.mapper';
 
 export class DivisionRepositoryImpl implements IDivisionRepository {
@@ -45,8 +45,8 @@ export class DivisionRepositoryImpl implements IDivisionRepository {
   }
 
   async getDivisionById(id: DivisionId): Promise<DivisionDetail> {
-    const { data } = await this.http.get<DivisionDetailDTO>(ENDPOINTS.DIVISIONS.DETAIL(id));
-    return mapDivisionDetailDTOToEntity(data);
+    const { data } = await this.http.get<DivisionDetailResponseDTO>(ENDPOINTS.DIVISIONS.DETAIL(id));
+    return mapDivisionDetailResponseDTOToEntity(data);
   }
 
   async createDivision(params: CreateDivisionParams): Promise<Division> {
@@ -54,8 +54,8 @@ export class DivisionRepositoryImpl implements IDivisionRepository {
       name: params.name,
       ...(params.description !== undefined && { description: params.description }),
     };
-    const { data } = await this.http.post<DivisionDTO>(ENDPOINTS.DIVISIONS.CREATE, payload);
-    return mapDivisionDTOToEntity(data);
+    const { data } = await this.http.post<DivisionResponseDTO>(ENDPOINTS.DIVISIONS.CREATE, payload);
+    return mapDivisionResponseDTOToEntity(data);
   }
 
   async updateDivision(id: DivisionId, params: UpdateDivisionParams): Promise<Division> {
@@ -63,8 +63,11 @@ export class DivisionRepositoryImpl implements IDivisionRepository {
       ...(params.name !== undefined && { name: params.name }),
       ...(params.description !== undefined && { description: params.description }),
     };
-    const { data } = await this.http.put<DivisionDTO>(ENDPOINTS.DIVISIONS.UPDATE(id), payload);
-    return mapDivisionDTOToEntity(data);
+    const { data } = await this.http.put<DivisionResponseDTO>(
+      ENDPOINTS.DIVISIONS.UPDATE(id),
+      payload,
+    );
+    return mapDivisionResponseDTOToEntity(data);
   }
 
   async deleteDivision(id: DivisionId): Promise<void> {

@@ -17,6 +17,7 @@ type EventUsecase interface {
 	GetByID(ctx context.Context, orgID, id uuid.UUID) (*entity.Event, error)
 	List(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.Event, error)
 	ListPaginated(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, pagination types.PaginationParams) ([]entity.Event, int, error)
+	ListPaginatedFiltered(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.Event, int, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, event *entity.Event) error
 	Delete(ctx context.Context, orgID, id uuid.UUID) error
 }
@@ -57,6 +58,10 @@ func (u *eventUsecase) List(ctx context.Context, orgID, divisionID uuid.UUID) ([
 
 func (u *eventUsecase) ListPaginated(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, pagination types.PaginationParams) ([]entity.Event, int, error) {
 	return u.repo.ListPaginated(ctx, orgID, divisionID, pagination)
+}
+
+func (u *eventUsecase) ListPaginatedFiltered(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.Event, int, error) {
+	return u.repo.ListPaginatedFiltered(ctx, orgID, divisionID, search, pagination)
 }
 
 func (u *eventUsecase) Update(ctx context.Context, orgID, id uuid.UUID, event *entity.Event) error {

@@ -126,11 +126,17 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 		divisionID = &parsed
 	}
 
+	// Parse optional search
+	var search *string
+	if s := r.URL.Query().Get("search"); s != "" {
+		search = &s
+	}
+
 	// Parse pagination params
 	paginationParams := pagination.ParseParams(r)
 	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
 
-	events, total, err := h.usecase.ListPaginated(r.Context(), orgID, divisionID, domainPagination)
+	events, total, err := h.usecase.ListPaginatedFiltered(r.Context(), orgID, divisionID, search, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return

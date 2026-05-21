@@ -47,11 +47,17 @@ func (h *MemberHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse optional search
+	var search *string
+	if s := r.URL.Query().Get("search"); s != "" {
+		search = &s
+	}
+
 	// Parse pagination params
 	paginationParams := pagination.ParseParams(r)
 	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
 
-	members, total, err := h.usecase.ListMembersPaginated(r.Context(), orgID, domainPagination)
+	members, total, err := h.usecase.ListMembersPaginatedFiltered(r.Context(), orgID, search, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return

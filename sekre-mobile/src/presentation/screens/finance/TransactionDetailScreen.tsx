@@ -1,12 +1,12 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
 import { Button } from '@presentation/components/Button';
 import { Badge, txTypeVariant, txStatusVariant } from '@presentation/components/Badge';
-import { Divider } from '@presentation/components/Divider';
 import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useTransactionQuery } from '@hooks/finance/useTransactionQuery';
 import { useDeleteTransactionMutation } from '@hooks/finance/useDeleteTransactionMutation';
@@ -15,6 +15,8 @@ import type { Money } from '@core/domain/entities/Transaction';
 import type { FinanceStackParamList } from '@app/navigation/FinanceNavigator';
 
 type Props = NativeStackScreenProps<FinanceStackParamList, 'TransactionDetail'>;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const formatMoney = (money: Money): string => {
   const amount = money.amountCents / 100;
@@ -33,6 +35,37 @@ const formatDate = (date: Date): string =>
     hour: '2-digit',
     minute: '2-digit',
   });
+
+const STATUS_LABEL: Record<string, string> = {
+  APPROVED: 'Disetujui',
+  REJECTED: 'Ditolak',
+  PENDING: 'Menunggu',
+};
+
+// ─── Info Row ─────────────────────────────────────────────────────────────────
+
+const InfoRow: React.FC<{ icon: string; label: string; value: string; valueColor?: string }> = ({
+  icon,
+  label,
+  value,
+  valueColor,
+}) => (
+  <View style={styles.infoRow}>
+    <View style={styles.infoIcon}>
+      <Ionicons name={icon as any} size={16} color={colors.primary[500]} />
+    </View>
+    <View style={styles.infoContent}>
+      <AppText variant="bodySm" color={colors.text.secondary}>
+        {label}
+      </AppText>
+      <AppText variant="bodyMd" style={styles.infoValue} color={valueColor}>
+        {value}
+      </AppText>
+    </View>
+  </View>
+);
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { transactionId } = route.params;
@@ -59,29 +92,34 @@ export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) 
     ]);
   }, [deleteTransaction, transactionId, navigation]);
 
+  // ── Loading ──
   if (isLoading) {
     return (
       <Screen>
         <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary[500]} />
+          <ActivityIndicator size="large" color={colors.primary[500]} />
         </View>
       </Screen>
     );
   }
 
+  // ── Error ──
   if (isError || !tx) {
     return (
       <Screen padded>
-        <AppText variant="bodySm" color={colors.danger.main}>
-          Gagal memuat detail transaksi.
-        </AppText>
-        <Button
-          label="Kembali"
-          variant="ghost"
-          size="sm"
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        />
+        <View style={styles.centered}>
+          <Ionicons name="alert-circle-outline" size={40} color={colors.danger.main} />
+          <AppText variant="bodyMd" color={colors.danger.main} style={styles.errorText}>
+            Gagal memuat detail transaksi.
+          </AppText>
+          <Button
+            label="Kembali"
+            variant="ghost"
+            size="sm"
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          />
+        </View>
       </Screen>
     );
   }
@@ -91,107 +129,82 @@ export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Amount */}
-        <View style={styles.amountSection}>
-          <Badge label={isIncome ? 'Pemasukan' : 'Pengeluaran'} variant={txTypeVariant(tx.type)} />
+        {/* ── Hero amount ── */}
+        <View style={styles.hero}>
+          <View
+            style={[
+              styles.heroIcon,
+              {
+                backgroundColor: isIncome ? `${colors.success.main}18` : `${colors.danger.main}18`,
+              },
+            ]}
+          >
+            <Ionicons
+              name={isIncome ? 'arrow-down-outline' : 'arrow-up-outline'}
+              size={32}
+              color={isIncome ? colors.success.main : colors.danger.main}
+            />
+          </View>
           <AppText
             variant="h2"
-            style={[styles.amount, { color: isIncome ? colors.success.main : colors.danger.main }]}
+            style={styles.heroAmount}
+            color={isIncome ? colors.success.main : colors.danger.main}
           >
-            {isIncome ? '+' : '-'} {formatMoney(tx.amount)}
+            {isIncome ? '+' : '-'}
+            {formatMoney(tx.amount)}
           </AppText>
-        </View>
-
-        {/* Description */}
-        <Card style={styles.card}>
-          <AppText variant="label" color={colors.text.secondary}>
-            Deskripsi
-          </AppText>
-          <Divider marginVertical={spacing[2]} />
-          <AppText variant="bodyMd">{tx.description}</AppText>
-        </Card>
-
-        {/* Detail */}
-        <Card style={styles.card}>
-          <View style={styles.row}>
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              Status
-            </AppText>
+          <View style={styles.heroBadges}>
             <Badge
-              label={
-                tx.status === 'APPROVED'
-                  ? 'Disetujui'
-                  : tx.status === 'REJECTED'
-                    ? 'Ditolak'
-                    : 'Menunggu'
-              }
+              label={isIncome ? 'Pemasukan' : 'Pengeluaran'}
+              variant={txTypeVariant(tx.type)}
+            />
+            <Badge
+              label={STATUS_LABEL[tx.status] ?? tx.status}
               variant={txStatusVariant(tx.status)}
             />
           </View>
-          <Divider marginVertical={spacing[2]} />
-          <View style={styles.row}>
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              Mata Uang
-            </AppText>
-            <AppText variant="bodyMd" style={styles.value}>
-              {tx.amount.currency}
-            </AppText>
-          </View>
+        </View>
+
+        {/* ── Deskripsi ── */}
+        <Card style={styles.descCard}>
+          <AppText variant="label" color={colors.text.secondary} style={styles.descLabel}>
+            Deskripsi
+          </AppText>
+          <AppText variant="bodyMd">{tx.description}</AppText>
+        </Card>
+
+        {/* ── Detail ── */}
+        <Card style={styles.infoCard}>
+          <InfoRow icon="layers-outline" label="ID Divisi" value={tx.divisionId} />
           {tx.eventId ? (
             <>
-              <Divider marginVertical={spacing[2]} />
-              <View style={styles.row}>
-                <AppText variant="bodySm" color={colors.text.secondary}>
-                  ID Acara
-                </AppText>
-                <AppText variant="bodyMd" style={styles.value} numberOfLines={1}>
-                  {tx.eventId}
-                </AppText>
-              </View>
+              <View style={styles.infoDivider} />
+              <InfoRow icon="calendar-outline" label="ID Acara" value={tx.eventId} />
             </>
           ) : null}
           {tx.receiptUrl ? (
             <>
-              <Divider marginVertical={spacing[2]} />
-              <View style={styles.row}>
-                <AppText variant="bodySm" color={colors.text.secondary}>
-                  Bukti
-                </AppText>
-                <AppText
-                  variant="bodySm"
-                  color={colors.primary[500]}
-                  numberOfLines={1}
-                  style={styles.value}
-                >
-                  {tx.receiptUrl}
-                </AppText>
-              </View>
+              <View style={styles.infoDivider} />
+              <InfoRow
+                icon="document-attach-outline"
+                label="Bukti"
+                value={tx.receiptUrl}
+                valueColor={colors.primary[500]}
+              />
             </>
           ) : null}
+          <View style={styles.infoDivider} />
+          <InfoRow icon="cash-outline" label="Mata Uang" value={tx.amount.currency} />
         </Card>
 
-        {/* Meta */}
-        <Card style={styles.card}>
-          <View style={styles.row}>
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              Dibuat
-            </AppText>
-            <AppText variant="bodyMd" style={styles.value}>
-              {formatDate(tx.createdAt)}
-            </AppText>
-          </View>
-          <Divider marginVertical={spacing[2]} />
-          <View style={styles.row}>
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              Diperbarui
-            </AppText>
-            <AppText variant="bodyMd" style={styles.value}>
-              {formatDate(tx.updatedAt)}
-            </AppText>
-          </View>
+        {/* ── Meta ── */}
+        <Card style={styles.infoCard}>
+          <InfoRow icon="create-outline" label="Dibuat" value={formatDate(tx.createdAt)} />
+          <View style={styles.infoDivider} />
+          <InfoRow icon="refresh-outline" label="Diperbarui" value={formatDate(tx.updatedAt)} />
         </Card>
 
-        {/* Actions */}
+        {/* ── Actions ── */}
         {canManage ? (
           <View style={styles.actions}>
             {canEdit ? (
@@ -203,10 +216,13 @@ export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) 
                 onPress={handleEdit}
               />
             ) : (
-              <AppText variant="bodySm" color={colors.text.secondary} style={styles.lockedNote}>
-                Transaksi tidak dapat diedit karena sudah{' '}
-                {tx.status === 'APPROVED' ? 'disetujui' : 'ditolak'}.
-              </AppText>
+              <View style={styles.lockedNote}>
+                <Ionicons name="lock-closed-outline" size={14} color={colors.text.secondary} />
+                <AppText variant="bodySm" color={colors.text.secondary}>
+                  Tidak dapat diedit — transaksi sudah{' '}
+                  {tx.status === 'APPROVED' ? 'disetujui' : 'ditolak'}.
+                </AppText>
+              </View>
             )}
             <Button
               label="Hapus Transaksi"
@@ -215,7 +231,6 @@ export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) 
               fullWidth
               loading={isDeleting}
               onPress={handleDelete}
-              style={styles.deleteButton}
             />
           </View>
         ) : null}
@@ -224,16 +239,99 @@ export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) 
   );
 };
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  scrollContent: { padding: spacing[4], paddingBottom: spacing[10] },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  backButton: { marginTop: spacing[3] },
-  amountSection: { alignItems: 'center', gap: spacing[2], marginBottom: spacing[5] },
-  amount: { fontWeight: fontWeight.bold },
-  card: { marginBottom: spacing[4] },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  value: { fontWeight: fontWeight.medium, flex: 1, textAlign: 'right', marginLeft: spacing[3] },
-  actions: { gap: spacing[3] },
-  deleteButton: { marginTop: spacing[1] },
-  lockedNote: { textAlign: 'center', marginBottom: spacing[2] },
+  scrollContent: {
+    padding: spacing[4],
+    paddingBottom: spacing[10],
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing[3],
+    padding: spacing[6],
+  },
+  errorText: {
+    textAlign: 'center',
+  },
+  backButton: {
+    marginTop: spacing[1],
+  },
+
+  // Hero
+  hero: {
+    alignItems: 'center',
+    gap: spacing[3],
+    marginBottom: spacing[5],
+    paddingVertical: spacing[4],
+  },
+  heroIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroAmount: {
+    fontWeight: fontWeight.bold,
+  },
+  heroBadges: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+
+  // Description
+  descCard: {
+    marginBottom: spacing[4],
+    gap: spacing[2],
+  },
+  descLabel: {
+    marginBottom: spacing[1],
+  },
+
+  // Info card
+  infoCard: {
+    marginBottom: spacing[4],
+    gap: 0,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[3],
+    paddingVertical: spacing[2],
+  },
+  infoIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoContent: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  infoValue: {
+    fontWeight: fontWeight.medium,
+  },
+  infoDivider: {
+    height: 1,
+    backgroundColor: colors.border.default,
+  },
+
+  // Actions
+  actions: {
+    gap: spacing[3],
+  },
+  lockedNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    backgroundColor: colors.neutral[100],
+    borderRadius: 8,
+    padding: spacing[3],
+  },
 });

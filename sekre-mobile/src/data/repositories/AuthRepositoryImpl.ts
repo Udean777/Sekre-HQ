@@ -58,8 +58,8 @@ export class AuthRepositoryImpl implements IAuthRepository {
       refresh_token: refreshToken,
     });
     return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
+      accessToken: data.data.access_token,
+      refreshToken: data.data.refresh_token,
     };
   }
 

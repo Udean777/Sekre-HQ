@@ -10,19 +10,16 @@ import type {
 export interface CreateTaskParams {
   title: string;
   description?: string;
-  priority: TaskPriority;
+  divisionId: string;
   assigneeId?: string;
-  divisionId?: string;
-  dueDate?: string; // ISO string
+  dueDate?: string; // RFC3339
 }
 
 export interface UpdateTaskParams {
   title?: string;
   description?: string;
-  priority?: TaskPriority;
-  assigneeId?: string;
-  divisionId?: string;
-  dueDate?: string; // ISO string
+  assigneeId?: string | null;
+  dueDate?: string; // RFC3339
 }
 
 export interface ITaskRepository {

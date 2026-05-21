@@ -3,11 +3,12 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } fr
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
-import { colors, spacing } from '@presentation/theme';
+import { colors, spacing, fontWeight } from '@presentation/theme';
 import { loginSchema, type LoginFormValues } from '@shared/utils/authSchemas';
 import { useLoginMutation } from '@hooks/auth/useLoginMutation';
 import { isDomainError } from '@core/domain/errors/DomainError';
@@ -36,23 +37,31 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       { email: values.email, password: values.password },
       {
         onError: (error: Error) => {
-          if (isDomainError(error)) {
-            setGlobalError(error.message);
-          } else {
-            setGlobalError('Terjadi kesalahan. Coba lagi nanti.');
-          }
+          setGlobalError(
+            isDomainError(error) ? error.message : 'Terjadi kesalahan. Coba lagi nanti.',
+          );
         },
       },
     );
   };
 
   return (
-    <Screen scrollable padded>
+    <Screen scrollable padded edges={['top']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
-        {/* Header */}
+        {/* ── Branding ── */}
+        <View style={styles.branding}>
+          <View style={styles.logoBox}>
+            <Ionicons name="layers-outline" size={36} color={colors.primary[500]} />
+          </View>
+          <AppText variant="h1" style={styles.appName}>
+            Sekre
+          </AppText>
+        </View>
+
+        {/* ── Header ── */}
         <View style={styles.header}>
           <AppText variant="h2">Selamat Datang</AppText>
           <AppText variant="bodyMd" color={colors.text.secondary} style={styles.subtitle}>
@@ -60,16 +69,17 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </AppText>
         </View>
 
-        {/* Global error */}
+        {/* ── Error banner ── */}
         {globalError ? (
           <View style={styles.errorBanner}>
-            <AppText variant="bodySm" color={colors.danger.main}>
+            <Ionicons name="alert-circle-outline" size={16} color={colors.danger.main} />
+            <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
               {globalError}
             </AppText>
           </View>
         ) : null}
 
-        {/* Form */}
+        {/* ── Form ── */}
         <View style={styles.form}>
           <Controller
             control={control}
@@ -111,10 +121,13 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                     accessibilityLabel={
                       showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'
                     }
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <AppText variant="label" color={colors.primary[500]}>
-                      {showPassword ? 'Sembunyikan' : 'Tampilkan'}
-                    </AppText>
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.text.secondary}
+                    />
                   </TouchableOpacity>
                 }
               />
@@ -122,7 +135,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
-        {/* Submit */}
+        {/* ── Submit ── */}
         <Button
           label="Masuk"
           variant="primary"
@@ -133,13 +146,16 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.submitButton}
         />
 
-        {/* Register link */}
+        {/* ── Register link ── */}
         <View style={styles.footer}>
           <AppText variant="bodyMd" color={colors.text.secondary}>
             Belum punya akun?{' '}
           </AppText>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <AppText variant="bodyMd" color={colors.primary[500]}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Register')}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <AppText variant="bodyMd" color={colors.primary[500]} style={styles.footerLink}>
               Daftar
             </AppText>
           </TouchableOpacity>
@@ -153,31 +169,70 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+
+  // Branding
+  branding: {
+    alignItems: 'center',
+    marginTop: spacing[10],
+    marginBottom: spacing[6],
+    gap: spacing[2],
+  },
+  logoBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appName: {
+    color: colors.primary[600],
+    fontWeight: fontWeight.bold,
+  },
+
+  // Header
   header: {
-    marginTop: spacing[8],
     marginBottom: spacing[6],
     gap: spacing[1],
   },
   subtitle: {
     marginTop: spacing[1],
   },
+
+  // Error
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
     backgroundColor: colors.danger.light,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: spacing[3],
     marginBottom: spacing[4],
   },
+  errorText: {
+    flex: 1,
+  },
+
+  // Form
   form: {
     gap: spacing[4],
     marginBottom: spacing[6],
   },
+
+  // Submit
   submitButton: {
     marginBottom: spacing[4],
   },
+
+  // Footer
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing[2],
+    paddingBottom: spacing[6],
+  },
+  footerLink: {
+    fontWeight: fontWeight.semiBold,
   },
 });

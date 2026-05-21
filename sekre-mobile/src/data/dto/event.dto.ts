@@ -2,21 +2,35 @@
 
 export interface EventDTO {
   id: string;
+  organization_id: string;
+  division_id: string | null;
   title: string;
   description: string | null;
   location: string | null;
-  start_date: string;
-  end_date: string | null;
+  start_time: string;
+  end_time: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface EventListResponseDTO {
-  events: EventDTO[];
-  total: number;
-  page: number;
-  limit: number;
-  total_pages: number;
+  success: boolean;
+  message: string;
+  data: {
+    data: EventDTO[];
+    pagination: {
+      page: number;
+      page_size: number;
+      total_items: number;
+      total_pages: number;
+    };
+  };
+}
+
+export interface EventResponseDTO {
+  success: boolean;
+  message: string;
+  data: EventDTO;
 }
 
 // Request shapes

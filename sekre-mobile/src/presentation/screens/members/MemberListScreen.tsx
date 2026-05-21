@@ -1,16 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
 import { Badge, roleVariant } from '@presentation/components/Badge';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
-import { Divider } from '@presentation/components/Divider';
 import { SkeletonList } from '@presentation/components/Skeleton';
 import { EmptyState } from '@presentation/components/EmptyState';
-import { colors, spacing, fontWeight } from '@presentation/theme';
+import { colors, spacing, fontWeight, fontSize } from '@presentation/theme';
 import { useMembersQuery } from '@hooks/members/useMembersQuery';
 import { useDeleteMemberMutation } from '@hooks/members/useDeleteMemberMutation';
 import { useAppSelector } from '@store/hooks';
@@ -19,12 +19,38 @@ import type { MembersStackParamList } from '@app/navigation/MembersNavigator';
 
 type Props = NativeStackScreenProps<MembersStackParamList, 'MemberList'>;
 
-const ROLE_OPTIONS: Array<{ label: string; value: OrgRole | undefined }> = [
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const ROLE_FILTERS: Array<{ label: string; value: OrgRole | undefined }> = [
   { label: 'Semua', value: undefined },
   { label: 'Owner', value: 'OWNER' },
   { label: 'Admin', value: 'ADMIN' },
   { label: 'Member', value: 'MEMBER' },
 ];
+
+const ROLE_LABEL: Record<OrgRole, string> = {
+  OWNER: 'Owner',
+  ADMIN: 'Admin',
+  MEMBER: 'Member',
+};
+
+// ─── Avatar ───────────────────────────────────────────────────────────────────
+
+const Avatar: React.FC<{ name: string }> = ({ name }) => {
+  const initials = name
+    .split(' ')
+    .slice(0, 2)
+    .map(w => w[0]?.toUpperCase() ?? '')
+    .join('');
+
+  return (
+    <View style={styles.avatar}>
+      <AppText style={styles.avatarText}>{initials}</AppText>
+    </View>
+  );
+};
+
+// ─── Member Card ──────────────────────────────────────────────────────────────
 
 interface MemberCardProps {
   member: Member;
@@ -35,50 +61,42 @@ interface MemberCardProps {
 
 const MemberCard: React.FC<MemberCardProps> = ({ member, canManage, onEdit, onDelete }) => (
   <Card style={styles.memberCard}>
-    <View style={styles.memberCardHeader}>
+    <View style={styles.cardRow}>
+      <Avatar name={member.fullName} />
       <View style={styles.memberInfo}>
-        <AppText variant="bodyMd" style={styles.memberName}>
+        <AppText variant="bodyMd" style={styles.memberName} numberOfLines={1}>
           {member.fullName}
         </AppText>
-        <AppText variant="bodySm" color={colors.text.secondary}>
+        <AppText variant="bodySm" color={colors.text.secondary} numberOfLines={1}>
           {member.email}
         </AppText>
       </View>
-      <Badge label={member.role} variant={roleVariant(member.role)} />
+      <View style={styles.cardRight}>
+        <Badge label={ROLE_LABEL[member.role]} variant={roleVariant(member.role)} />
+        {canManage && member.role !== 'OWNER' ? (
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              onPress={onEdit}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="pencil-outline" size={17} color={colors.primary[500]} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onDelete}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="trash-outline" size={17} color={colors.danger.main} />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
     </View>
-
-    {member.divisionName ? (
-      <>
-        <Divider marginVertical={spacing[2]} />
-        <AppText variant="bodySm" color={colors.text.secondary}>
-          Divisi: {member.divisionName}
-        </AppText>
-      </>
-    ) : null}
-
-    {canManage && member.role !== 'OWNER' ? (
-      <>
-        <Divider marginVertical={spacing[2]} />
-        <View style={styles.memberActions}>
-          <Button
-            label="Edit Peran"
-            variant="secondary"
-            size="sm"
-            onPress={onEdit}
-            style={styles.actionButton}
-          />
-          <Button
-            label="Hapus"
-            variant="danger"
-            size="sm"
-            onPress={onDelete}
-            style={styles.actionButton}
-          />
-        </View>
-      </>
-    ) : null}
   </Card>
 );
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
@@ -95,31 +113,19 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
 
   const { mutate: deleteMember } = useDeleteMemberMutation();
 
-  const handleInvite = useCallback(() => {
-    navigation.navigate('InviteMember');
-  }, [navigation]);
+  const handleInvite = useCallback(() => navigation.navigate('InviteMember'), [navigation]);
 
   const handleEdit = useCallback(
-    (member: Member) => {
-      navigation.navigate('EditMember', { memberId: member.id });
-    },
+    (member: Member) => navigation.navigate('EditMember', { memberId: member.id }),
     [navigation],
   );
 
   const handleDelete = useCallback(
     (member: Member) => {
-      Alert.alert(
-        'Hapus Anggota',
-        `Apakah Anda yakin ingin menghapus ${member.fullName} dari organisasi?`,
-        [
-          { text: 'Batal', style: 'cancel' },
-          {
-            text: 'Hapus',
-            style: 'destructive',
-            onPress: () => deleteMember(member.id),
-          },
-        ],
-      );
+      Alert.alert('Hapus Anggota', `Hapus ${member.fullName} dari organisasi?`, [
+        { text: 'Batal', style: 'cancel' },
+        { text: 'Hapus', style: 'destructive', onPress: () => deleteMember(member.id) },
+      ]);
     },
     [deleteMember],
   );
@@ -139,8 +145,8 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
   const keyExtractor = useCallback((item: Member) => item.id, []);
 
   return (
-    <Screen padded>
-      {/* Header */}
+    <Screen padded edges={[]}>
+      {/* ── Header ── */}
       <View style={styles.header}>
         <AppText variant="h3">Anggota</AppText>
         {canManage ? (
@@ -148,7 +154,7 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
       </View>
 
-      {/* Search */}
+      {/* ── Search ── */}
       <Input
         placeholder="Cari anggota..."
         value={search}
@@ -156,11 +162,11 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.searchInput}
       />
 
-      {/* Role filter */}
+      {/* ── Role filter ── */}
       <View style={styles.filterRow}>
-        {ROLE_OPTIONS.map(opt => (
+        {ROLE_FILTERS.map(opt => (
           <TouchableOpacity
-            key={String(opt.value)}
+            key={opt.value ?? 'all'}
             onPress={() => setActiveRole(opt.value)}
             style={[styles.filterChip, activeRole === opt.value && styles.filterChipActive]}
             activeOpacity={0.7}
@@ -175,19 +181,20 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
         ))}
       </View>
 
-      {/* Total */}
+      {/* ── Total ── */}
       {!isLoading && !isError && data ? (
         <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.total} anggota
+          {data.total} anggota ditemukan
         </AppText>
       ) : null}
 
-      {/* List */}
+      {/* ── List ── */}
       {isLoading ? (
         <SkeletonList count={5} />
       ) : isError ? (
         <View style={styles.centered}>
-          <AppText variant="bodySm" color={colors.danger.main}>
+          <Ionicons name="alert-circle-outline" size={32} color={colors.danger.main} />
+          <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
             Gagal memuat anggota.
           </AppText>
           <Button
@@ -203,6 +210,7 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
           data={data?.members ?? []}
           keyExtractor={keyExtractor}
           renderItem={renderMember}
+          style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -214,7 +222,7 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
           }
           ListEmptyComponent={
             <EmptyState
-              icon="👥"
+              icon="people-outline"
               title="Belum ada anggota"
               description="Undang anggota pertama untuk bergabung ke organisasi."
               actionLabel={canManage ? '+ Undang Anggota' : undefined}
@@ -227,6 +235,8 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -235,13 +245,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
   },
   searchInput: {
-    marginBottom: spacing[3],
+    marginBottom: spacing[2],
   },
   filterRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing[2],
-    marginBottom: spacing[2],
+    marginVertical: spacing[2],
   },
   filterChip: {
     paddingHorizontal: spacing[3],
@@ -258,18 +268,22 @@ const styles = StyleSheet.create({
   totalText: {
     marginBottom: spacing[3],
   },
+  list: {
+    flex: 1,
+  },
   listContent: {
     gap: spacing[3],
     paddingBottom: spacing[6],
   },
+
+  // Card
   memberCard: {
-    gap: spacing[1],
+    paddingVertical: spacing[3],
   },
-  memberCardHeader: {
+  cardRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing[2],
+    alignItems: 'center',
+    gap: spacing[3],
   },
   memberInfo: {
     flex: 1,
@@ -278,21 +292,42 @@ const styles = StyleSheet.create({
   memberName: {
     fontWeight: fontWeight.semiBold,
   },
-  memberActions: {
+  cardRight: {
+    alignItems: 'flex-end',
+    gap: spacing[2],
+  },
+  cardActions: {
     flexDirection: 'row',
     gap: spacing[2],
-    justifyContent: 'flex-end',
   },
-  actionButton: {
-    minWidth: 80,
+
+  // Avatar
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary[100],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  avatarText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semiBold,
+    color: colors.primary[700],
+  },
+
+  // States
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing[10],
+    gap: spacing[2],
+  },
+  errorText: {
+    marginTop: spacing[1],
   },
   retryButton: {
-    marginTop: spacing[2],
+    marginTop: spacing[1],
   },
 });

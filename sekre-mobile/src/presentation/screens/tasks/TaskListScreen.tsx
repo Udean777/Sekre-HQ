@@ -1,20 +1,26 @@
 import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
-import { Badge, taskStatusVariant, taskPriorityVariant } from '@presentation/components/Badge';
+import { Badge, taskStatusVariant } from '@presentation/components/Badge';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
 import { SkeletonList } from '@presentation/components/Skeleton';
 import { EmptyState } from '@presentation/components/EmptyState';
-import { colors, spacing, fontWeight, fontSize } from '@presentation/theme';
+import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useTasksQuery } from '@hooks/tasks/useTasksQuery';
-import type { Task, TaskStatus, TaskPriority } from '@core/domain/entities/Task';
+import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
+import { useAppSelector } from '@store/hooks';
+import type { Task, TaskStatus } from '@core/domain/entities/Task';
 import type { TasksStackParamList } from '@app/navigation/TasksNavigator';
+import type { DivisionId } from '@core/domain/entities/Division';
 
 type Props = NativeStackScreenProps<TasksStackParamList, 'TaskList'>;
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS: Array<{ label: string; value: TaskStatus | undefined }> = [
   { label: 'Semua', value: undefined },
@@ -31,54 +37,68 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
   CANCELLED: 'Dibatalkan',
 };
 
-const PRIORITY_LABEL: Record<TaskPriority, string> = {
-  LOW: 'Rendah',
-  MEDIUM: 'Sedang',
-  HIGH: 'Tinggi',
-  URGENT: 'Mendesak',
-};
+// ─── Task Card ────────────────────────────────────────────────────────────────
 
 interface TaskCardProps {
   task: Task;
+  divisionName: string | null;
   onPress: () => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onPress }) => (
+const TaskCard: React.FC<TaskCardProps> = ({ task, divisionName, onPress }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
     <Card style={styles.taskCard}>
-      <View style={styles.taskCardHeader}>
-        <AppText variant="bodyMd" style={styles.taskTitle} numberOfLines={2}>
-          {task.title}
-        </AppText>
-        <Badge label={PRIORITY_LABEL[task.priority]} variant={taskPriorityVariant(task.priority)} />
+      <View style={styles.cardHeader}>
+        {/* Icon */}
+        <View style={styles.taskIcon}>
+          <Ionicons
+            name={task.status === 'DONE' ? 'checkmark-circle' : 'ellipse-outline'}
+            size={20}
+            color={task.status === 'DONE' ? colors.success.main : colors.neutral[400]}
+          />
+        </View>
+
+        {/* Info */}
+        <View style={styles.cardInfo}>
+          <AppText variant="bodyMd" style={styles.taskTitle} numberOfLines={2}>
+            {task.title}
+          </AppText>
+          {divisionName ? (
+            <View style={styles.metaItem}>
+              <Ionicons name="business-outline" size={12} color={colors.text.secondary} />
+              <AppText variant="bodySm" color={colors.text.secondary} numberOfLines={1}>
+                {divisionName}
+              </AppText>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Chevron */}
+        <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
       </View>
 
-      {task.description ? (
-        <AppText
-          variant="bodySm"
-          color={colors.text.secondary}
-          numberOfLines={2}
-          style={styles.taskDescription}
-        >
-          {task.description}
-        </AppText>
-      ) : null}
-
-      <View style={styles.taskCardFooter}>
+      {/* Footer */}
+      <View style={styles.cardFooter}>
         <Badge label={STATUS_LABEL[task.status]} variant={taskStatusVariant(task.status)} />
-        <View style={styles.taskMeta}>
+        <View style={styles.metaRow}>
           {task.assigneeName ? (
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              {task.assigneeName}
-            </AppText>
+            <View style={styles.metaItem}>
+              <Ionicons name="person-outline" size={12} color={colors.text.secondary} />
+              <AppText variant="bodySm" color={colors.text.secondary} numberOfLines={1}>
+                {task.assigneeName}
+              </AppText>
+            </View>
           ) : null}
           {task.dueDate ? (
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              {task.dueDate.toLocaleDateString('id-ID', {
-                day: 'numeric',
-                month: 'short',
-              })}
-            </AppText>
+            <View style={styles.metaItem}>
+              <Ionicons name="calendar-outline" size={12} color={colors.text.secondary} />
+              <AppText variant="bodySm" color={colors.text.secondary}>
+                {task.dueDate.toLocaleDateString('id-ID', {
+                  day: 'numeric',
+                  month: 'short',
+                })}
+              </AppText>
+            </View>
           ) : null}
         </View>
       </View>
@@ -86,9 +106,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onPress }) => (
   </TouchableOpacity>
 );
 
+// ─── Screen ──────────────────────────────────────────────────────────────────
+
 export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [activeStatus, setActiveStatus] = useState<TaskStatus | undefined>(undefined);
+
+  const role = useAppSelector(state => state.auth.role);
+  const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data, isLoading, isError, refetch, isFetching } = useTasksQuery({
     status: activeStatus,
@@ -96,33 +121,47 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
     limit: 50,
   });
 
-  const handleTaskPress = useCallback(
-    (task: Task) => {
-      navigation.navigate('TaskDetail', { taskId: task.id });
+  const { data: divisionsData } = useDivisionsQuery({ limit: 100 });
+
+  const getDivisionName = useCallback(
+    (divisionId: string | null): string | null => {
+      if (!divisionId || !divisionsData) return null;
+      return divisionsData.divisions.find(d => d.id === (divisionId as DivisionId))?.name ?? null;
     },
+    [divisionsData],
+  );
+
+  const handleTaskPress = useCallback(
+    (task: Task) => navigation.navigate('TaskDetail', { taskId: task.id }),
     [navigation],
   );
 
-  const handleCreatePress = useCallback(() => {
-    navigation.navigate('CreateTask');
-  }, [navigation]);
+  const handleCreate = useCallback(() => navigation.navigate('CreateTask'), [navigation]);
 
   const renderTask = useCallback(
-    ({ item }: { item: Task }) => <TaskCard task={item} onPress={() => handleTaskPress(item)} />,
-    [handleTaskPress],
+    ({ item }: { item: Task }) => (
+      <TaskCard
+        task={item}
+        onPress={() => handleTaskPress(item)}
+        divisionName={getDivisionName(item.divisionId)}
+      />
+    ),
+    [handleTaskPress, getDivisionName],
   );
 
   const keyExtractor = useCallback((item: Task) => item.id, []);
 
   return (
-    <Screen padded>
-      {/* Header */}
+    <Screen padded edges={['top']} tabScreen>
+      {/* ── Header ── */}
       <View style={styles.header}>
         <AppText variant="h3">Tugas</AppText>
-        <Button label="+ Buat" variant="primary" size="sm" onPress={handleCreatePress} />
+        {canManage ? (
+          <Button label="+ Buat" variant="primary" size="sm" onPress={handleCreate} />
+        ) : null}
       </View>
 
-      {/* Search */}
+      {/* ── Search ── */}
       <Input
         placeholder="Cari tugas..."
         value={search}
@@ -130,11 +169,11 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.searchInput}
       />
 
-      {/* Status filter */}
+      {/* ── Status filter ── */}
       <View style={styles.filterRow}>
         {STATUS_OPTIONS.map(opt => (
           <TouchableOpacity
-            key={String(opt.value)}
+            key={opt.value ?? 'all'}
             onPress={() => setActiveStatus(opt.value)}
             style={[styles.filterChip, activeStatus === opt.value && styles.filterChipActive]}
             activeOpacity={0.7}
@@ -149,12 +188,20 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
         ))}
       </View>
 
-      {/* List */}
+      {/* ── Total ── */}
+      {!isLoading && !isError && data ? (
+        <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
+          {data.tasks.length} tugas ditemukan
+        </AppText>
+      ) : null}
+
+      {/* ── List ── */}
       {isLoading ? (
         <SkeletonList count={5} />
       ) : isError ? (
         <View style={styles.centered}>
-          <AppText variant="bodySm" color={colors.danger.main}>
+          <Ionicons name="alert-circle-outline" size={32} color={colors.danger.main} />
+          <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
             Gagal memuat tugas.
           </AppText>
           <Button
@@ -170,6 +217,7 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
           data={data?.tasks ?? []}
           keyExtractor={keyExtractor}
           renderItem={renderTask}
+          style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -181,11 +229,11 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
           }
           ListEmptyComponent={
             <EmptyState
-              icon="📋"
+              icon="checkmark-circle-outline"
               title="Belum ada tugas"
               description="Buat tugas pertama untuk mulai melacak pekerjaan tim."
-              actionLabel="+ Buat Tugas"
-              onAction={handleCreatePress}
+              actionLabel={canManage ? '+ Buat Tugas' : undefined}
+              onAction={canManage ? handleCreate : undefined}
             />
           }
         />
@@ -193,6 +241,8 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
     </Screen>
   );
 };
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   header: {
@@ -208,7 +258,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing[2],
-    marginBottom: spacing[3],
+    marginVertical: spacing[2],
   },
   filterChip: {
     paddingHorizontal: spacing[3],
@@ -222,48 +272,74 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[500],
     borderColor: colors.primary[500],
   },
+  totalText: {
+    marginVertical: spacing[3],
+  },
+  list: {
+    flex: 1,
+  },
   listContent: {
     gap: spacing[3],
     paddingBottom: spacing[6],
   },
+
+  // Card
   taskCard: {
-    gap: spacing[2],
+    gap: spacing[3],
   },
-  taskCardHeader: {
+  cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    gap: spacing[2],
+    gap: spacing[3],
+  },
+  taskIcon: {
+    marginTop: 2,
+  },
+  cardInfo: {
+    flex: 1,
+    gap: spacing[1],
   },
   taskTitle: {
-    flex: 1,
     fontWeight: fontWeight.semiBold,
   },
   taskDescription: {
     marginTop: spacing[1],
   },
-  taskCardFooter: {
+  cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: spacing[1],
+    flexWrap: 'wrap',
+    gap: spacing[2],
   },
-  taskMeta: {
+  badgeRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    flexWrap: 'wrap',
+  },
+  metaRow: {
     flexDirection: 'row',
     gap: spacing[3],
     alignItems: 'center',
   },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+  },
+
+  // States
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing[10],
+    gap: spacing[2],
+  },
+  errorText: {
+    marginTop: spacing[1],
   },
   retryButton: {
-    marginTop: spacing[2],
-  },
-  statCount: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
+    marginTop: spacing[1],
   },
 });

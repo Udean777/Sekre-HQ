@@ -4,40 +4,32 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
+import { DatePickerField } from '@presentation/components/DatePickerField';
+import { SelectField } from '@presentation/components/SelectField';
+import type { SelectOption } from '@presentation/components/SelectField';
 import { colors, spacing } from '@presentation/theme';
 import { taskSchema, type TaskFormValues } from '@shared/utils/taskSchemas';
 import { useTaskQuery } from '@hooks/tasks/useTaskQuery';
 import { useUpdateTaskMutation } from '@hooks/tasks/useUpdateTaskMutation';
+import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
+import { useDivisionMembersOptions } from '@hooks/divisions/useDivisionMembersOptions';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { TasksStackParamList } from '@app/navigation/TasksNavigator';
-import type { TaskPriority } from '@core/domain/entities/Task';
 
 type Props = NativeStackScreenProps<TasksStackParamList, 'EditTask'>;
 
-const PRIORITY_OPTIONS: Array<{ label: string; value: TaskPriority }> = [
-  { label: 'Rendah', value: 'LOW' },
-  { label: 'Sedang', value: 'MEDIUM' },
-  { label: 'Tinggi', value: 'HIGH' },
-  { label: 'Mendesak', value: 'URGENT' },
-];
-
-const PRIORITY_COLOR: Record<TaskPriority, string> = {
-  LOW: colors.neutral[400],
-  MEDIUM: colors.info.main,
-  HIGH: colors.warning.main,
-  URGENT: colors.danger.main,
-};
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
   const { taskId } = route.params;
@@ -45,10 +37,12 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const { data: task, isLoading } = useTaskQuery(taskId);
   const { mutate: updateTask, isPending } = useUpdateTaskMutation();
+  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ limit: 100 });
 
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -56,11 +50,23 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
       ? {
           title: task.title,
           description: task.description ?? '',
-          priority: task.priority,
-          dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : '',
+          divisionId: task.divisionId ?? '',
+          assigneeId: task.assigneeId ?? null,
+          dueDate: task.dueDate ?? null,
         }
       : undefined,
   });
+
+  const selectedDivisionId = watch('divisionId');
+  const { options: assigneeOptions, isLoading: assigneeLoading } =
+    useDivisionMembersOptions(selectedDivisionId || null);
+
+  const divisionOptions: SelectOption[] =
+    divisionsData?.divisions.map(d => ({
+      label: d.name,
+      value: d.id,
+      description: d.description ?? undefined,
+    })) ?? [];
 
   const onSubmit = (values: TaskFormValues): void => {
     setGlobalError(null);
@@ -70,28 +76,27 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
         params: {
           title: values.title,
           description: values.description || undefined,
-          priority: values.priority,
-          dueDate: values.dueDate || undefined,
+          assigneeId: values.assigneeId ?? null,
+          dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
         },
       },
       {
         onSuccess: () => navigation.goBack(),
         onError: (error: Error) => {
-          if (isDomainError(error)) {
-            setGlobalError(error.message);
-          } else {
-            setGlobalError('Terjadi kesalahan. Coba lagi nanti.');
-          }
+          setGlobalError(
+            isDomainError(error) ? error.message : 'Terjadi kesalahan. Coba lagi nanti.',
+          );
         },
       },
     );
   };
 
+  // ── Loading data tugas ──
   if (isLoading) {
     return (
       <Screen>
         <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary[500]} />
+          <ActivityIndicator size="large" color={colors.primary[500]} />
         </View>
       </Screen>
     );
@@ -108,26 +113,37 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <AppText variant="h3" style={styles.title}>
-            Edit Tugas
-          </AppText>
+          {/* ── Header ── */}
+          <View style={styles.header}>
+            <View style={styles.headerIcon}>
+              <Ionicons name="pencil-outline" size={28} color={colors.primary[500]} />
+            </View>
+            <AppText variant="h3">Edit Tugas</AppText>
+            {task ? (
+              <AppText variant="bodyMd" color={colors.text.secondary} style={styles.subtitle}>
+                {task.title}
+              </AppText>
+            ) : null}
+          </View>
 
+          {/* ── Error banner ── */}
           {globalError ? (
             <View style={styles.errorBanner}>
-              <AppText variant="bodySm" color={colors.danger.main}>
+              <Ionicons name="alert-circle-outline" size={16} color={colors.danger.main} />
+              <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
                 {globalError}
               </AppText>
             </View>
           ) : null}
 
+          {/* ── Form ── */}
           <View style={styles.form}>
-            {/* Title */}
             <Controller
               control={control}
               name="title"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  label="Judul"
+                  label="Judul Tugas"
                   placeholder="Masukkan judul tugas"
                   returnKeyType="next"
                   value={value}
@@ -138,14 +154,68 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
               )}
             />
 
-            {/* Description */}
+            <Controller
+              control={control}
+              name="divisionId"
+              render={({ field: { onChange, value } }) => (
+                <SelectField
+                  label="Divisi"
+                  value={value || null}
+                  onChange={onChange}
+                  options={divisionOptions}
+                  placeholder="Pilih divisi"
+                  loading={divisionsLoading}
+                  error={errors.divisionId?.message}
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="assigneeId"
+              render={({ field: { onChange, value } }) => (
+                <SelectField
+                  label="Penanggung Jawab"
+                  value={value ?? null}
+                  onChange={onChange}
+                  options={assigneeOptions}
+                  placeholder={
+                    selectedDivisionId
+                      ? assigneeOptions.length === 0 && !assigneeLoading
+                        ? 'Divisi belum punya anggota'
+                        : 'Pilih anggota divisi'
+                      : 'Pilih divisi terlebih dahulu'
+                  }
+                  loading={assigneeLoading}
+                  optional
+                  error={errors.assigneeId?.message}
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="dueDate"
+              render={({ field: { onChange, value } }) => (
+                <DatePickerField
+                  label="Tenggat"
+                  value={value ?? null}
+                  onChange={onChange}
+                  mode="date"
+                  minimumDate={new Date()}
+                  optional
+                  error={errors.dueDate?.message}
+                />
+              )}
+            />
+
             <Controller
               control={control}
               name="description"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
                   label="Deskripsi (opsional)"
-                  placeholder="Masukkan deskripsi tugas"
+                  placeholder="Jelaskan detail tugas ini"
                   multiline
                   numberOfLines={4}
                   value={value}
@@ -155,67 +225,9 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
                 />
               )}
             />
-
-            {/* Priority */}
-            <Controller
-              control={control}
-              name="priority"
-              render={({ field: { onChange, value } }) => (
-                <View>
-                  <AppText variant="label" style={styles.fieldLabel}>
-                    Prioritas
-                  </AppText>
-                  <View style={styles.priorityRow}>
-                    {PRIORITY_OPTIONS.map(opt => (
-                      <TouchableOpacity
-                        key={opt.value}
-                        onPress={() => onChange(opt.value)}
-                        style={[
-                          styles.priorityChip,
-                          value === opt.value && {
-                            backgroundColor: PRIORITY_COLOR[opt.value],
-                            borderColor: PRIORITY_COLOR[opt.value],
-                          },
-                        ]}
-                        activeOpacity={0.7}
-                      >
-                        <AppText
-                          variant="bodySm"
-                          color={value === opt.value ? colors.text.inverse : colors.text.secondary}
-                        >
-                          {opt.label}
-                        </AppText>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  {errors.priority ? (
-                    <AppText variant="bodySm" color={colors.danger.main}>
-                      {errors.priority.message}
-                    </AppText>
-                  ) : null}
-                </View>
-              )}
-            />
-
-            {/* Due date */}
-            <Controller
-              control={control}
-              name="dueDate"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Tenggat (opsional)"
-                  placeholder="YYYY-MM-DD"
-                  keyboardType="numbers-and-punctuation"
-                  returnKeyType="done"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.dueDate?.message}
-                />
-              )}
-            />
           </View>
 
+          {/* ── Actions ── */}
           <Button
             label="Simpan Perubahan"
             variant="primary"
@@ -224,7 +236,6 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
             loading={isPending}
             onPress={handleSubmit(onSubmit)}
           />
-
           <Button
             label="Batal"
             variant="ghost"
@@ -239,10 +250,10 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  keyboardView: {
-    flex: 1,
-  },
+  keyboardView: { flex: 1 },
   scrollContent: {
     padding: spacing[4],
     paddingBottom: spacing[10],
@@ -252,37 +263,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    marginBottom: spacing[5],
+  header: {
+    alignItems: 'center',
+    gap: spacing[2],
+    marginBottom: spacing[6],
+    marginTop: spacing[2],
+  },
+  headerIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[1],
+  },
+  subtitle: {
+    textAlign: 'center',
+    color: colors.text.secondary,
   },
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
     backgroundColor: colors.danger.light,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: spacing[3],
     marginBottom: spacing[4],
   },
+  errorText: { flex: 1 },
   form: {
     gap: spacing[4],
     marginBottom: spacing[6],
   },
-  fieldLabel: {
-    marginBottom: spacing[2],
-    color: colors.text.primary,
-  },
-  priorityRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  priorityChip: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.card,
-  },
-  cancelButton: {
-    marginTop: spacing[2],
-  },
+  cancelButton: { marginTop: spacing[2] },
 });

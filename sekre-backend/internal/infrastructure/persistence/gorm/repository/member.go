@@ -58,14 +58,22 @@ func (r *memberRepository) GetOrganizationMembers(ctx context.Context, orgID uui
 }
 
 func (r *memberRepository) GetOrganizationMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
-	// Get total count
-	var totalCount int64
-	err := dbFor(ctx, r.db).
+	return r.GetOrganizationMembersPaginatedFiltered(ctx, orgID, nil, pagination)
+}
+
+func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+	baseQuery := dbFor(ctx, r.db).
 		Table("users AS u").
 		Joins("INNER JOIN user_organizations AS uo ON u.id = uo.user_id").
-		Where("uo.organization_id = ? AND u.deleted_at IS NULL", orgID).
-		Count(&totalCount).Error
-	if err != nil {
+		Where("uo.organization_id = ? AND u.deleted_at IS NULL", orgID)
+
+	if search != nil && *search != "" {
+		baseQuery = baseQuery.Where("(u.full_name ILIKE ? OR u.email ILIKE ?)", "%"+*search+"%", "%"+*search+"%")
+	}
+
+	// Get total count
+	var totalCount int64
+	if err := baseQuery.Count(&totalCount).Error; err != nil {
 		return nil, 0, domainerrors.Internal("count members", err)
 	}
 
@@ -77,12 +85,18 @@ func (r *memberRepository) GetOrganizationMembersPaginated(ctx context.Context, 
 		Role     types.Role
 	}
 
-	var rows []row
-	err = dbFor(ctx, r.db).
+	query := dbFor(ctx, r.db).
 		Table("users AS u").
 		Select("u.id, u.email, u.full_name, uo.role").
 		Joins("INNER JOIN user_organizations AS uo ON u.id = uo.user_id").
-		Where("uo.organization_id = ? AND u.deleted_at IS NULL", orgID).
+		Where("uo.organization_id = ? AND u.deleted_at IS NULL", orgID)
+
+	if search != nil && *search != "" {
+		query = query.Where("(u.full_name ILIKE ? OR u.email ILIKE ?)", "%"+*search+"%", "%"+*search+"%")
+	}
+
+	var rows []row
+	err := query.
 		Order("u.full_name").
 		Limit(pagination.Limit).
 		Offset(pagination.Offset).

@@ -3,12 +3,17 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from 'axios';
+import Config from 'react-native-config';
 import { tokenStorage } from '@data/storage/MmkvTokenStorage';
 import { ENDPOINTS } from '../endpoints';
 
 interface RefreshResponse {
-  access_token: string;
-  refresh_token: string;
+  success: boolean;
+  message: string;
+  data: {
+    access_token: string;
+    refresh_token: string;
+  };
 }
 
 // Extend config untuk flag retry
@@ -34,8 +39,22 @@ const processQueue = (error: unknown, token: string | null): void => {
 };
 
 /**
- * Handle 401 — single-flight refresh token, queue concurrent requests
- * Jika refresh gagal → clear storage → emit event untuk navigasi ke Login
+ * Bare axios instance khusus untuk refresh token.
+ * Tidak punya interceptor apapun — menghindari loop dan
+ * errorInterceptor mengubah error sebelum kita bisa handle.
+ */
+const refreshClient = axios.create({
+  baseURL: `${Config.API_BASE_URL ?? 'http://192.168.1.4:8080'}/api/v1`,
+  timeout: 15000,
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  },
+});
+
+/**
+ * Handle 401 — single-flight refresh token, queue concurrent requests.
+ * Jika refresh gagal → clear storage → emit event untuk navigasi ke Login.
  */
 export const refreshInterceptor = (client: AxiosInstance): void => {
   client.interceptors.response.use(
@@ -47,12 +66,8 @@ export const refreshInterceptor = (client: AxiosInstance): void => {
 
       const originalRequest = error.config as RetryConfig | undefined;
 
-      // Hanya handle 401, skip jika sudah retry atau request ke /auth/refresh itu sendiri
-      if (
-        error.response?.status !== 401 ||
-        originalRequest?._retry ||
-        originalRequest?.url === ENDPOINTS.AUTH.REFRESH
-      ) {
+      // Hanya handle 401, skip jika sudah retry
+      if (error.response?.status !== 401 || originalRequest?._retry) {
         return Promise.reject(error);
       }
 
@@ -84,22 +99,17 @@ export const refreshInterceptor = (client: AxiosInstance): void => {
           throw new Error('No refresh token');
         }
 
-        const { data } = await client.post<RefreshResponse>(
-          ENDPOINTS.AUTH.REFRESH,
-          {
-            refresh_token: refreshToken,
-          },
-        );
+        // Pakai refreshClient (bare instance) — tidak melewati interceptor manapun
+        const { data } = await refreshClient.post<RefreshResponse>(ENDPOINTS.AUTH.REFRESH, {
+          refresh_token: refreshToken,
+        });
 
-        tokenStorage.setAccessToken(data.access_token);
-        tokenStorage.setRefreshToken(data.refresh_token);
+        tokenStorage.setAccessToken(data.data.access_token);
+        tokenStorage.setRefreshToken(data.data.refresh_token);
 
-        processQueue(null, data.access_token);
+        processQueue(null, data.data.access_token);
 
-        originalRequest.headers.set(
-          'Authorization',
-          `Bearer ${data.access_token}`,
-        );
+        originalRequest.headers.set('Authorization', `Bearer ${data.data.access_token}`);
         return client(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);

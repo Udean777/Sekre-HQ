@@ -32,6 +32,7 @@ type DivisionUsecase interface {
 	GetByID(ctx context.Context, orgID, id uuid.UUID) (*entity.DivisionWithMembers, error)
 	List(ctx context.Context, orgID uuid.UUID) ([]entity.Division, error)
 	ListPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.Division, int, error)
+	ListPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.Division, int, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, req *UpdateDivisionRequest) (*entity.Division, error)
 	Delete(ctx context.Context, orgID, id uuid.UUID) error
 
@@ -125,6 +126,10 @@ func (u *divisionUsecase) List(ctx context.Context, orgID uuid.UUID) ([]entity.D
 
 func (u *divisionUsecase) ListPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.Division, int, error) {
 	return u.repo.ListPaginated(ctx, orgID, pagination)
+}
+
+func (u *divisionUsecase) ListPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.Division, int, error) {
+	return u.repo.ListPaginatedFiltered(ctx, orgID, search, pagination)
 }
 
 func (u *divisionUsecase) Update(ctx context.Context, orgID, id uuid.UUID, req *UpdateDivisionRequest) (*entity.Division, error) {

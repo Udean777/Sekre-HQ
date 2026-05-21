@@ -15,6 +15,7 @@ type DivisionRepository interface {
 	GetByNames(ctx context.Context, orgID uuid.UUID, names []string) ([]entity.Division, error)
 	List(ctx context.Context, orgID uuid.UUID) ([]entity.Division, error)
 	ListPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.Division, int, error)
+	ListPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.Division, int, error)
 	Update(ctx context.Context, orgID uuid.UUID, division *entity.Division) error
 	Delete(ctx context.Context, orgID, divisionID uuid.UUID) error
 	CountByOrganization(ctx context.Context, orgID uuid.UUID) (int, error)

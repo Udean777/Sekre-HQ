@@ -19,22 +19,36 @@ export interface OrganizationDTO {
 }
 
 export interface AuthSessionDTO {
-  access_token: string;
-  refresh_token: string;
-  user: UserDTO;
-  organization: OrganizationDTO;
-  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  success: boolean;
+  message: string;
+  data: {
+    user: UserDTO;
+    organization: OrganizationDTO;
+    role: 'OWNER' | 'ADMIN' | 'MEMBER';
+    tokens: {
+      access_token: string;
+      refresh_token: string;
+    };
+  };
 }
 
 export interface GetMeResponseDTO {
-  user: UserDTO;
-  organization: OrganizationDTO;
-  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  success: boolean;
+  message: string;
+  data: {
+    user: UserDTO;
+    organization: OrganizationDTO;
+    role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  };
 }
 
 export interface RefreshResponseDTO {
-  access_token: string;
-  refresh_token: string;
+  success: boolean;
+  message: string;
+  data: {
+    access_token: string;
+    refresh_token: string;
+  };
 }
 
 // Request shapes

@@ -107,6 +107,10 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		filters.Status = &statusStr
 	}
 
+	if search := r.URL.Query().Get("search"); search != "" {
+		filters.Search = &search
+	}
+
 	// Parse pagination params
 	paginationParams := pagination.ParseParams(r)
 	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())

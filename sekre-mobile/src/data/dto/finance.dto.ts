@@ -22,12 +22,29 @@ export interface TransactionDTO {
 }
 
 export interface TransactionListResponseDTO {
-  data: TransactionDTO[];
-  pagination: {
-    page: number;
-    page_size: number;
-    total: number;
+  success: boolean;
+  message: string;
+  data: {
+    data: TransactionDTO[];
+    pagination: {
+      page: number;
+      page_size: number;
+      total_items: number;
+      total_pages: number;
+    };
   };
+}
+
+export interface TransactionResponseDTO {
+  success: boolean;
+  message: string;
+  data: TransactionDTO;
+}
+
+export interface FinanceSummaryResponseDTO {
+  success: boolean;
+  message: string;
+  data: FinanceSummaryDTO;
 }
 
 export interface FinanceSummaryDTO {

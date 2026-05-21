@@ -99,6 +99,9 @@ func (r *taskRepository) ListFiltered(ctx context.Context, orgID uuid.UUID, filt
 	if filters.Status != nil {
 		query = query.Where("status = ?", *filters.Status)
 	}
+	if filters.Search != nil && *filters.Search != "" {
+		query = query.Where("title ILIKE ?", "%"+*filters.Search+"%")
+	}
 
 	var rows []models.Task
 	if err := query.Order("created_at DESC").Find(&rows).Error; err != nil {
@@ -130,6 +133,9 @@ func (r *taskRepository) ListFilteredPaginated(ctx context.Context, orgID uuid.U
 	if filters.Status != nil {
 		baseQuery = baseQuery.Where("status = ?", *filters.Status)
 	}
+	if filters.Search != nil && *filters.Search != "" {
+		baseQuery = baseQuery.Where("title ILIKE ?", "%"+*filters.Search+"%")
+	}
 
 	// Get total count
 	var totalCount int64
@@ -150,6 +156,9 @@ func (r *taskRepository) ListFilteredPaginated(ctx context.Context, orgID uuid.U
 	}
 	if filters.Status != nil {
 		query = query.Where("status = ?", *filters.Status)
+	}
+	if filters.Search != nil && *filters.Search != "" {
+		query = query.Where("title ILIKE ?", "%"+*filters.Search+"%")
 	}
 
 	var rows []models.Task

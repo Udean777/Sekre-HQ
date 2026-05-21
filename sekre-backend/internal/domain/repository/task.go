@@ -14,9 +14,6 @@ type TaskRepository interface {
 	GetByID(ctx context.Context, orgID, taskID uuid.UUID) (*entity.Task, error)
 	List(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.Task, error)
 	ListWithAssignee(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.TaskWithAssignee, error)
-	// ListFiltered returns tasks with their assignees filtered by the given
-	// optional criteria. Use this instead of ListWithAssignee when callers
-	// need richer filtering than division scope.
 	ListFiltered(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters) ([]entity.TaskWithAssignee, error)
 	ListFilteredPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams) ([]entity.TaskWithAssignee, int, error)
 	Update(ctx context.Context, orgID uuid.UUID, task *entity.Task) error
