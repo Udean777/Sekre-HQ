@@ -30,5 +30,48 @@ target 'SekreMobile' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Patch Sentry SDK for C++20 compatibility with Xcode 16+
+    # Removes `const` from std::vector<const T> which is invalid in C++20 with libc++ hardening
+    sentry_header = File.join(__dir__, 'Pods', 'Sentry', 'Sources', 'Sentry', 'include', 'SentryThreadMetadataCache.hpp')
+    if File.exist?(sentry_header)
+      content = File.read(sentry_header)
+      old_line = 'std::vector<const ThreadHandleMetadataPair> threadMetadataCache_;'
+      new_line = 'std::vector<ThreadHandleMetadataPair> threadMetadataCache_;'
+      if content.include?(old_line)
+        content.sub!(old_line, new_line)
+        File.write(sentry_header, content)
+        Pod::UI.puts "  - Patched SentryThreadMetadataCache.hpp for C++20 compatibility".green
+      end
+    end
+
+    # Disable HERMES_ENABLE_DEBUGGER for RNReanimated — hermes/inspector/RuntimeAdapter.h
+    # was removed in newer Hermes bundled with RN 0.85.x
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'RNReanimated'
+      target.build_configurations.each do |config|
+        defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || '$(inherited)'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs.gsub('HERMES_ENABLE_DEBUGGER=1', 'HERMES_ENABLE_DEBUGGER=0')
+      end
+    end
+
+    # Disable folly coroutines — folly/coro/Coroutine.h is not shipped with
+    # the ReactNativeDependencies prebuilt pod in RN 0.85.x, causing build failures.
+    folly_headers_dir = File.join(__dir__, 'Pods', 'ReactNativeDependencies', 'Headers', 'folly')
+    if Dir.exist?(folly_headers_dir)
+      ['Expected.h', 'Optional.h', 'Portability.h'].each do |header|
+        path = File.join(folly_headers_dir, header)
+        next unless File.exist?(path)
+        content = File.read(path)
+        old_guard = '#if FOLLY_HAS_COROUTINES'
+        new_guard = '#if 0 // FOLLY_HAS_COROUTINES disabled: coro headers not in prebuilt pod'
+        if content.include?(old_guard)
+          FileUtils.chmod('+w', path)
+          content.gsub!(old_guard, new_guard)
+          File.write(path, content)
+          Pod::UI.puts "  - Patched folly/#{header} to disable FOLLY_HAS_COROUTINES".green
+        end
+      end
+    end
   end
 end

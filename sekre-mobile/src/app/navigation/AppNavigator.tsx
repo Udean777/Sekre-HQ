@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DashboardScreen } from '@presentation/screens/dashboard/DashboardScreen';
 import { TasksNavigator } from './TasksNavigator';
+import { MembersNavigator } from './MembersNavigator';
 import { EventsScreen } from '@presentation/screens/events/EventsScreen';
 import { FinanceScreen } from '@presentation/screens/finance/FinanceScreen';
 import { SettingsScreen } from '@presentation/screens/settings/SettingsScreen';
@@ -10,6 +11,7 @@ import { colors, fontSize } from '@presentation/theme';
 export type AppTabParamList = {
   Dashboard: undefined;
   Tasks: undefined;
+  Members: undefined;
   Events: undefined;
   Finance: undefined;
   Settings: undefined;
@@ -43,6 +45,11 @@ export const AppNavigator: React.FC = () => {
         name="Tasks"
         component={TasksNavigator}
         options={{ tabBarLabel: 'Tugas' }}
+      />
+      <Tab.Screen
+        name="Members"
+        component={MembersNavigator}
+        options={{ tabBarLabel: 'Anggota' }}
       />
       <Tab.Screen
         name="Events"
