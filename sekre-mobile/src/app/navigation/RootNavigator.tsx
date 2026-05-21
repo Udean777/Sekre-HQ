@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet, DeviceEventEmitter } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import BootSplash from 'react-native-bootsplash';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 import { useAppSelector, useAppDispatch } from '@store/hooks';
@@ -31,6 +32,13 @@ export const RootNavigator: React.FC = () => {
 
     return () => subscription.remove();
   }, [dispatch]);
+
+  // Hide splash screen setelah bootstrap selesai
+  useEffect(() => {
+    if (!isBootstrapping) {
+      void BootSplash.hide({ fade: true });
+    }
+  }, [isBootstrapping]);
 
   // Splash / loading saat bootstrap
   if (isBootstrapping) {

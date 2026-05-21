@@ -1,13 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-} from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
@@ -16,6 +8,8 @@ import { Badge, roleVariant } from '@presentation/components/Badge';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
 import { Divider } from '@presentation/components/Divider';
+import { SkeletonList } from '@presentation/components/Skeleton';
+import { EmptyState } from '@presentation/components/EmptyState';
 import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useMembersQuery } from '@hooks/members/useMembersQuery';
 import { useDeleteMemberMutation } from '@hooks/members/useDeleteMemberMutation';
@@ -190,9 +184,7 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* List */}
       {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary[500]} />
-        </View>
+        <SkeletonList count={5} />
       ) : isError ? (
         <View style={styles.centered}>
           <AppText variant="bodySm" color={colors.danger.main}>
@@ -221,11 +213,13 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
             />
           }
           ListEmptyComponent={
-            <View style={styles.centered}>
-              <AppText variant="bodySm" color={colors.text.secondary}>
-                Belum ada anggota.
-              </AppText>
-            </View>
+            <EmptyState
+              icon="👥"
+              title="Belum ada anggota"
+              description="Undang anggota pertama untuk bergabung ke organisasi."
+              actionLabel={canManage ? '+ Undang Anggota' : undefined}
+              onAction={canManage ? handleInvite : undefined}
+            />
           }
         />
       )}

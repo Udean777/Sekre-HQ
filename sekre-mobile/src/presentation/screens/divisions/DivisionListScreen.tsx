@@ -1,19 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-} from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
+import { SkeletonList } from '@presentation/components/Skeleton';
+import { EmptyState } from '@presentation/components/EmptyState';
 import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
 import { useDeleteDivisionMutation } from '@hooks/divisions/useDeleteDivisionMutation';
@@ -179,9 +173,7 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* List */}
       {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary[500]} />
-        </View>
+        <SkeletonList count={5} />
       ) : isError ? (
         <View style={styles.centered}>
           <AppText variant="bodySm" color={colors.danger.main}>
@@ -210,11 +202,13 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
             />
           }
           ListEmptyComponent={
-            <View style={styles.centered}>
-              <AppText variant="bodySm" color={colors.text.secondary}>
-                Belum ada divisi.
-              </AppText>
-            </View>
+            <EmptyState
+              icon="🏢"
+              title="Belum ada divisi"
+              description="Buat divisi untuk mengorganisir anggota tim."
+              actionLabel={canManage ? '+ Buat Divisi' : undefined}
+              onAction={canManage ? handleCreate : undefined}
+            />
           }
         />
       )}
