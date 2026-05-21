@@ -5,7 +5,7 @@ import { TasksNavigator } from './TasksNavigator';
 import { MembersNavigator } from './MembersNavigator';
 import { DivisionsNavigator } from './DivisionsNavigator';
 import { EventsNavigator } from './EventsNavigator';
-import { FinanceScreen } from '@presentation/screens/finance/FinanceScreen';
+import { FinanceNavigator } from './FinanceNavigator';
 import { SettingsScreen } from '@presentation/screens/settings/SettingsScreen';
 import { colors, fontSize } from '@presentation/theme';
 
@@ -55,7 +55,11 @@ export const AppNavigator: React.FC = () => {
         options={{ tabBarLabel: 'Divisi' }}
       />
       <Tab.Screen name="Events" component={EventsNavigator} options={{ tabBarLabel: 'Acara' }} />
-      <Tab.Screen name="Finance" component={FinanceScreen} options={{ tabBarLabel: 'Keuangan' }} />
+      <Tab.Screen
+        name="Finance"
+        component={FinanceNavigator}
+        options={{ tabBarLabel: 'Keuangan' }}
+      />
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}

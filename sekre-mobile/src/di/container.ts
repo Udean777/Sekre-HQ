@@ -5,11 +5,13 @@ import { TaskRepositoryImpl } from '@data/repositories/TaskRepositoryImpl';
 import { MemberRepositoryImpl } from '@data/repositories/MemberRepositoryImpl';
 import { DivisionRepositoryImpl } from '@data/repositories/DivisionRepositoryImpl';
 import { EventRepositoryImpl } from '@data/repositories/EventRepositoryImpl';
+import { FinanceRepositoryImpl } from '@data/repositories/FinanceRepositoryImpl';
 import type { IAuthRepository } from '@core/ports/IAuthRepository';
 import type { ITaskRepository } from '@core/ports/ITaskRepository';
 import type { IMemberRepository } from '@core/ports/IMemberRepository';
 import type { IDivisionRepository } from '@core/ports/IDivisionRepository';
 import type { IEventRepository } from '@core/ports/IEventRepository';
+import type { IFinanceRepository } from '@core/ports/IFinanceRepository';
 
 // Storage
 export const getTokenStorage = (): typeof tokenStorage => tokenStorage;
@@ -60,4 +62,13 @@ export const getEventRepository = (): IEventRepository => {
     _eventRepo = new EventRepositoryImpl(getHttpClient());
   }
   return _eventRepo;
+};
+
+// Finance Repository — singleton
+let _financeRepo: IFinanceRepository | null = null;
+export const getFinanceRepository = (): IFinanceRepository => {
+  if (!_financeRepo) {
+    _financeRepo = new FinanceRepositoryImpl(getHttpClient());
+  }
+  return _financeRepo;
 };
