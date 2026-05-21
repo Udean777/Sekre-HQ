@@ -3,16 +3,12 @@ import { View, StyleSheet, type ViewStyle } from 'react-native';
 import { colors, spacing, radius, fontSize, fontWeight } from '@presentation/theme';
 import { AppText } from '../Text/Text';
 
-export type BadgeVariant =
-  | 'default'
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'info'
-  | 'primary';
+export type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary';
 
 // Task status
-export type TaskStatusBadge = 'TODO' | 'IN_PROGRESS' | 'DONE';
+export type TaskStatusBadge = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+// Task priority
+export type TaskPriorityBadge = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 // Transaction type
 export type TxTypeBadge = 'INCOME' | 'EXPENSE';
 // Transaction status
@@ -54,8 +50,19 @@ export const taskStatusVariant = (status: TaskStatusBadge): BadgeVariant => {
     TODO: 'default',
     IN_PROGRESS: 'warning',
     DONE: 'success',
+    CANCELLED: 'danger',
   };
   return map[status];
+};
+
+export const taskPriorityVariant = (priority: TaskPriorityBadge): BadgeVariant => {
+  const map: Record<TaskPriorityBadge, BadgeVariant> = {
+    LOW: 'default',
+    MEDIUM: 'info',
+    HIGH: 'warning',
+    URGENT: 'danger',
+  };
+  return map[priority];
 };
 
 export const txTypeVariant = (type: TxTypeBadge): BadgeVariant => {

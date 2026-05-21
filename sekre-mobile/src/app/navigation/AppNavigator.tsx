@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DashboardScreen } from '@presentation/screens/dashboard/DashboardScreen';
-import { TasksScreen } from '@presentation/screens/tasks/TasksScreen';
+import { TasksNavigator } from './TasksNavigator';
 import { EventsScreen } from '@presentation/screens/events/EventsScreen';
 import { FinanceScreen } from '@presentation/screens/finance/FinanceScreen';
 import { SettingsScreen } from '@presentation/screens/settings/SettingsScreen';
@@ -41,7 +41,7 @@ export const AppNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Tasks"
-        component={TasksScreen}
+        component={TasksNavigator}
         options={{ tabBarLabel: 'Tugas' }}
       />
       <Tab.Screen

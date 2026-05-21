@@ -1,7 +1,9 @@
 import { httpClient } from '@data/http/client';
 import { tokenStorage } from '@data/storage/MmkvTokenStorage';
 import { AuthRepositoryImpl } from '@data/repositories/AuthRepositoryImpl';
+import { TaskRepositoryImpl } from '@data/repositories/TaskRepositoryImpl';
 import type { IAuthRepository } from '@core/ports/IAuthRepository';
+import type { ITaskRepository } from '@core/ports/ITaskRepository';
 
 // Storage
 export const getTokenStorage = (): typeof tokenStorage => tokenStorage;
@@ -16,4 +18,13 @@ export const getAuthRepository = (): IAuthRepository => {
     _authRepo = new AuthRepositoryImpl(getHttpClient());
   }
   return _authRepo;
+};
+
+// Task Repository — singleton
+let _taskRepo: ITaskRepository | null = null;
+export const getTaskRepository = (): ITaskRepository => {
+  if (!_taskRepo) {
+    _taskRepo = new TaskRepositoryImpl(getHttpClient());
+  }
+  return _taskRepo;
 };
