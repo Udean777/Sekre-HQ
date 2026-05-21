@@ -22,4 +22,7 @@ export interface IAuthRepository {
   getMe(): Promise<Pick<AuthSession, 'user' | 'organization' | 'role'>>;
   refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }>;
   logout(): Promise<void>;
+  updateProfile(params: { fullName: string; email: string }): Promise<User>;
+  changePassword(params: { currentPassword: string; newPassword: string }): Promise<void>;
+  updateOrganization(params: { name: string }): Promise<Organization>;
 }

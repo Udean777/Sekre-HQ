@@ -1,5 +1,7 @@
 import type { AxiosInstance } from 'axios';
 import type { IAuthRepository, AuthSession } from '@core/ports/IAuthRepository';
+import type { User } from '@core/domain/entities/User';
+import type { Organization } from '@core/domain/entities/Organization';
 import { ENDPOINTS } from '@data/http/endpoints';
 import type {
   AuthSessionDTO,
@@ -7,8 +9,17 @@ import type {
   LoginRequestDTO,
   RefreshResponseDTO,
   RegisterRequestDTO,
+  UpdateProfileRequestDTO,
+  ChangePasswordRequestDTO,
+  UpdateOrganizationRequestDTO,
 } from '@data/dto/auth.dto';
-import { mapAuthSessionDTOToEntity, mapGetMeResponseDTO } from '@data/mappers/auth.mapper';
+import {
+  mapAuthSessionDTOToEntity,
+  mapGetMeResponseDTO,
+  mapUserDTOToEntity,
+  mapOrganizationDTOToEntity,
+} from '@data/mappers/auth.mapper';
+import type { UserDTO, OrganizationDTO } from '@data/dto/auth.dto';
 
 export class AuthRepositoryImpl implements IAuthRepository {
   constructor(private readonly http: AxiosInstance) {}
@@ -54,5 +65,31 @@ export class AuthRepositoryImpl implements IAuthRepository {
 
   async logout(): Promise<void> {
     await this.http.post(ENDPOINTS.AUTH.LOGOUT);
+  }
+
+  async updateProfile(params: { fullName: string; email: string }): Promise<User> {
+    const payload: UpdateProfileRequestDTO = {
+      full_name: params.fullName,
+      email: params.email,
+    };
+    const { data } = await this.http.patch<UserDTO>(ENDPOINTS.USERS.UPDATE_PROFILE, payload);
+    return mapUserDTOToEntity(data);
+  }
+
+  async changePassword(params: { currentPassword: string; newPassword: string }): Promise<void> {
+    const payload: ChangePasswordRequestDTO = {
+      current_password: params.currentPassword,
+      new_password: params.newPassword,
+    };
+    await this.http.post(ENDPOINTS.USERS.CHANGE_PASSWORD, payload);
+  }
+
+  async updateOrganization(params: { name: string }): Promise<Organization> {
+    const payload: UpdateOrganizationRequestDTO = { name: params.name };
+    const { data } = await this.http.patch<OrganizationDTO>(
+      ENDPOINTS.ORGANIZATIONS.UPDATE,
+      payload,
+    );
+    return mapOrganizationDTOToEntity(data);
   }
 }

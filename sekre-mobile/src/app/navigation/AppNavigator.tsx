@@ -6,7 +6,7 @@ import { MembersNavigator } from './MembersNavigator';
 import { DivisionsNavigator } from './DivisionsNavigator';
 import { EventsNavigator } from './EventsNavigator';
 import { FinanceNavigator } from './FinanceNavigator';
-import { SettingsScreen } from '@presentation/screens/settings/SettingsScreen';
+import { SettingsNavigator } from './SettingsNavigator';
 import { colors, fontSize } from '@presentation/theme';
 
 export type AppTabParamList = {
@@ -62,7 +62,7 @@ export const AppNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Settings"
-        component={SettingsScreen}
+        component={SettingsNavigator}
         options={{ tabBarLabel: 'Pengaturan' }}
       />
     </Tab.Navigator>

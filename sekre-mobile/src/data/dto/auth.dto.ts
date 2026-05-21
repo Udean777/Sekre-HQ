@@ -50,3 +50,18 @@ export interface RegisterRequestDTO {
   email: string;
   password: string;
 }
+
+// Settings request DTOs
+export interface UpdateProfileRequestDTO {
+  full_name: string;
+  email: string;
+}
+
+export interface ChangePasswordRequestDTO {
+  current_password: string;
+  new_password: string;
+}
+
+export interface UpdateOrganizationRequestDTO {
+  name: string;
+}
