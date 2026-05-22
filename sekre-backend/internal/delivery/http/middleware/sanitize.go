@@ -69,7 +69,7 @@ func SanitizeInput() func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			r.Body.Close()
+			r.Body.Close() //nolint:errcheck
 
 			// If body is empty, skip sanitization
 			if len(body) == 0 {

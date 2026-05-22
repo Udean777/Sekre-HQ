@@ -107,7 +107,7 @@ func TestDomainError_WithDetail(t *testing.T) {
 			Message: "access denied",
 		}
 
-		err.WithDetail("user_id", "123").
+		_ = err.WithDetail("user_id", "123").
 			WithDetail("resource", "task").
 			WithDetail("action", "delete")
 
@@ -144,7 +144,7 @@ func TestDomainError_WithDetail(t *testing.T) {
 			},
 		}
 
-		err.WithDetail("field", "username")
+		err.WithDetail("field", "username") //nolint:errcheck
 
 		if err.Details["field"] != "username" {
 			t.Errorf("Details[field] = %v, want username", err.Details["field"])

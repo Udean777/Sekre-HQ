@@ -20,6 +20,7 @@ Multi-tenant SaaS backend for organization management, written in Go. Provides a
 | Validation | go-playground/validator v10 |
 | Rate Limiting | golang.org/x/time/rate |
 | Metrics | prometheus/client_golang |
+| Scheduler | robfig/cron v3 |
 
 ### Testing
 
@@ -77,7 +78,9 @@ sekre-backend/
 │   ├── config/           # Environment configuration
 │   ├── delivery/http/    # HTTP handlers & middleware
 │   ├── domain/           # Entities, value objects, interfaces
-│   └── infrastructure/   # GORM repos, JWT, bcrypt
+│   ├── infrastructure/   # GORM repos, JWT, bcrypt
+│   └── scheduler/        # Background cron jobs
+│       └── jobs/         # cleanup.go, ping.go
 │
 ├── pkg/                  # Reusable packages
 │   ├── database/         # GORM connection
@@ -90,6 +93,8 @@ sekre-backend/
 ├── tests/e2e/            # End-to-end tests
 ├── docs/api/             # OpenAPI spec
 │
+├── Dockerfile            # Multi-stage Docker build
+├── render.yaml           # Render deployment config
 ├── .env.example          # Configuration template
 ├── Makefile              # Development commands
 └── README.md
@@ -133,14 +138,14 @@ make db-seed
 make run
 ```
 
-Server runs on `http://localhost:8080`
+Server runs on `http://localhost:1000`
 
 ### Quick Health Check
 
 ```bash
-curl http://localhost:8080/health/live
-curl http://localhost:8080/health/ready
-open http://localhost:8080/docs   # Swagger UI
+curl http://localhost:1000/health/live
+curl http://localhost:1000/health/ready
+open http://localhost:1000/docs   # Swagger UI
 ```
 
 ---
@@ -161,15 +166,37 @@ All configuration via environment variables. See `.env.example` for full list.
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `SERVER_ENV` | `development` | Set to `production` for strict validation |
-| `SERVER_PORT` | `8080` | HTTP listen port |
+| `SERVER_PORT` | `8080` | HTTP listen port (project default: `1000`) |
 | `DB_HOST` | `localhost` | PostgreSQL host |
-| `DB_PORT` | `5432` | PostgreSQL port |
+| `DB_PORT` | `5432` | PostgreSQL port (project default: `2000`) |
 | `DB_NAME` | `sekre_db` | Database name |
 | `DB_SSLMODE` | `disable` | Must be `require` in production |
 | `JWT_ACCESS_EXPIRY` | `15` | Access token lifetime (minutes) |
 | `JWT_REFRESH_EXPIRY` | `10080` | Refresh token lifetime (minutes, 7 days) |
 | `LOG_LEVEL` | `info` | trace/debug/info/warn/error |
 | `CORS_ALLOWED_ORIGINS` | `localhost:3000` | Comma-separated origins |
+
+### Scheduler Variables
+
+| Variable | Default | Notes |
+|----------|---------|-------|
+| `CLEANUP_REFRESH_SESSION_RETENTION_DAYS` | `7` | Days to keep expired refresh sessions |
+| `CLEANUP_AUDIT_LOG_RETENTION_DAYS` | `90` | Days to keep audit log entries |
+| `SELF_PING_URL` | `` | Health URL to ping every 14 min (prevents Render spin-down) |
+
+---
+
+## Background Scheduler
+
+The server runs a built-in cron scheduler with the following jobs:
+
+| Job | Schedule | Description |
+|-----|----------|-------------|
+| `CleanupExpiredSessions` | Daily 02:00 | Deletes expired refresh sessions older than retention period |
+| `CleanupAuditLogs` | Daily 02:30 | Deletes audit log entries older than retention period |
+| `SelfPing` | Every 14 min | Pings `SELF_PING_URL` to prevent Render free tier spin-down |
+
+> `SelfPing` is a no-op if `SELF_PING_URL` is not set.
 
 ---
 
@@ -224,6 +251,67 @@ go test -v -tags=e2e ./tests/e2e/...       # E2E tests
 
 ---
 
+## Deployment
+
+### Render (Current)
+
+Project uses [Render](https://render.com) for hosting with `render.yaml` Blueprint.
+
+**Resources provisioned:**
+- Web Service (Docker, free tier)
+- PostgreSQL (free tier, 90-day expiry)
+
+**Setup steps:**
+1. New → Blueprint → connect repo → set YAML path: `sekre-backend/render.yaml`
+2. Set secrets in Render dashboard: `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`
+3. After first deploy, set `SELF_PING_URL` to `https://<service>.onrender.com/health`
+4. Run migration via Render Shell: `make migrate`
+
+**GitHub Secrets required for CI/CD:**
+
+| Secret | Description |
+|--------|-------------|
+| `RENDER_DEPLOY_HOOK_URL` | From Render dashboard → Settings → Deploy Hook |
+| `RENDER_SERVICE_URL` | e.g. `https://sekre-backend.onrender.com` |
+
+### Docker (Local / VPS)
+
+```bash
+# Build image
+docker build -t sekre-backend .
+
+# Run with env file
+docker run -d \
+  --env-file .env \
+  -p 1000:1000 \
+  sekre-backend
+```
+
+### Migrating to VPS
+
+The CD workflow in `.github/workflows/backend-cd.yml` has a commented-out VPS deploy job ready to use. Replace the Render deploy step with the SSH deploy step and add these secrets:
+
+| Secret | Description |
+|--------|-------------|
+| `VPS_HOST` | VPS IP or domain |
+| `VPS_USER` | SSH username |
+| `VPS_SSH_KEY` | SSH private key |
+
+---
+
+## CI/CD
+
+GitHub Actions workflows in `.github/workflows/`:
+
+| Workflow | Trigger | Jobs |
+|----------|---------|------|
+| `backend-ci.yml` | Push / PR to `main` (path: `sekre-backend/**`) | lint → test → build → docker push (GHCR) |
+| `backend-cd.yml` | After CI passes on `main` | Deploy to Render via deploy hook |
+
+Deploy status is visible in the GitHub commit/PR timeline.
+
+---
+
 ## Security
 
 ### Multi-layer Security
@@ -245,6 +333,7 @@ go test -v -tags=e2e ./tests/e2e/...       # E2E tests
 - [ ] `DB_SSLMODE=require`
 - [ ] `LOG_LEVEL=info` or `warn`
 - [ ] `CORS_ALLOWED_ORIGINS` lists actual domains
+- [ ] `SELF_PING_URL` set to health endpoint
 - [ ] Reverse proxy sets `X-Forwarded-For`
 - [ ] Monitoring scrapes `/metrics`
 - [ ] Health checks on `/health/live` and `/health/ready`
@@ -343,8 +432,6 @@ Sistem ini dipakai banyak organisasi sekaligus, jadi data harus benar-benar terp
 
 #### Task Management
 
-Untuk task, alur umumnya:
-
 ```text
 User kirim data task
   -> backend validasi input
@@ -356,11 +443,9 @@ Status task yang didukung: `TODO`, `IN_PROGRESS`, `DONE`.
 
 #### Event Scheduling
 
-Untuk event jadwal, backend akan memastikan data waktu masuk akal (misalnya waktu mulai harus sebelum waktu selesai), lalu menyimpan data event.
+Backend memastikan data waktu masuk akal (waktu mulai harus sebelum waktu selesai), lalu menyimpan data event.
 
 #### Finance Tracking
-
-Untuk transaksi keuangan:
 
 - Data transaksi divalidasi dulu.
 - Data disimpan ke ledger.
@@ -372,16 +457,16 @@ Catatan penting: nominal uang tidak pakai `float64`, tapi integer-safe (`valueob
 
 Setiap request dari client selalu melewati validasi.
 
-- Jika format/syarat data salah -> backend balas error 4xx.
-- Jika benar -> proses bisnis dilanjutkan.
+- Jika format/syarat data salah → backend balas error 4xx.
+- Jika benar → proses bisnis dilanjutkan.
 - Setiap error menyertakan `request_id` agar mudah ditelusuri di log.
 
 ### 6) Pembatasan Request (Rate Limiting)
 
 Untuk mencegah spam/abuse, sistem membatasi jumlah request per IP (default 10 request/detik).
 
-- Masih dalam batas -> request diproses.
-- Lewat batas -> dapat `429 Too Many Requests`.
+- Masih dalam batas → request diproses.
+- Lewat batas → dapat `429 Too Many Requests`.
 
 ### 7) Monitoring dan Health Check
 
@@ -397,4 +482,4 @@ Selain itu, log dibuat terstruktur dan menyertakan `request_id` agar investigasi
 
 ## License
 
-Internal project.
+Internal project — Arah Baru Selayar.

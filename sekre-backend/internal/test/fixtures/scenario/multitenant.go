@@ -55,35 +55,39 @@ func BuildMultiTenant(t *testing.T, db *gorm.DB) *MultiTenantScenario {
 
 	s := &MultiTenantScenario{}
 
+	// Use unique subdomains per test run to avoid duplicate key conflicts
+	// when tests run in parallel within the same transaction scope.
+	suffix := uuid.New().String()[:8]
+
 	// Create organizations
 	s.OrgA = fixtures.NewOrganization().
 		WithName("Organization A").
-		WithSubdomain("org-a").
+		WithSubdomain("org-a-" + suffix).
 		Build()
 	require.NoError(t, db.Create(&s.OrgA).Error)
 
 	s.OrgB = fixtures.NewOrganization().
 		WithName("Organization B").
-		WithSubdomain("org-b").
+		WithSubdomain("org-b-" + suffix).
 		Build()
 	require.NoError(t, db.Create(&s.OrgB).Error)
 
 	// Create users for OrgA
 	s.OwnerA = fixtures.NewUser().
-		WithEmail("owner-a@example.com").
+		WithEmail("owner-a-" + suffix + "@example.com").
 		WithFullName("Owner A").
 		Build()
 	require.NoError(t, db.Create(&s.OwnerA).Error)
 
 	s.MemberA = fixtures.NewUser().
-		WithEmail("member-a@example.com").
+		WithEmail("member-a-" + suffix + "@example.com").
 		WithFullName("Member A").
 		Build()
 	require.NoError(t, db.Create(&s.MemberA).Error)
 
 	// Create user for OrgB
 	s.OwnerB = fixtures.NewUser().
-		WithEmail("owner-b@example.com").
+		WithEmail("owner-b-" + suffix + "@example.com").
 		WithFullName("Owner B").
 		Build()
 	require.NoError(t, db.Create(&s.OwnerB).Error)

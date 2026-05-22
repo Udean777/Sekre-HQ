@@ -13,6 +13,7 @@ import (
 	"github.com/username/sekre-backend/internal/domain/entity"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/types"
+	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/response"
 	"github.com/xuri/excelize/v2"
 )
@@ -80,7 +81,7 @@ func (h *MemberCreationHandler) BulkImport(w http.ResponseWriter, r *http.Reques
 		response.HandleError(w, r, domainerrors.InvalidInput("file", "is required"))
 		return
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck
 
 	// Read file content
 	fileBytes, err := io.ReadAll(file)
@@ -114,7 +115,7 @@ func (h *MemberCreationHandler) BulkImport(w http.ResponseWriter, r *http.Reques
 // DownloadTemplate generates and downloads Excel template
 func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
 	f := excelize.NewFile()
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	sheetName := "Members"
 
@@ -126,7 +127,9 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 	}
 
 	// Delete default Sheet1
-	f.DeleteSheet("Sheet1")
+	if err := f.DeleteSheet("Sheet1"); err != nil {
+		logger.Logger.Warn().Err(err).Msg("failed to delete default sheet")
+	}
 
 	// Set headers with bold style
 	headerStyle, err := f.NewStyle(&excelize.Style{
@@ -142,7 +145,9 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 	if err == nil {
 		for i := 0; i < 5; i++ {
 			cell := fmt.Sprintf("%c1", 'A'+i)
-			f.SetCellStyle(sheetName, cell, cell, headerStyle)
+			if err := f.SetCellStyle(sheetName, cell, cell, headerStyle); err != nil {
+				logger.Logger.Warn().Err(err).Msg("failed to set cell style")
+			}
 		}
 	}
 
@@ -150,7 +155,9 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 	headers := []string{"Email", "Full Name", "Role", "Division", "Division Role"}
 	for i, header := range headers {
 		cell := fmt.Sprintf("%c1", 'A'+i)
-		f.SetCellValue(sheetName, cell, header)
+		if err := f.SetCellValue(sheetName, cell, header); err != nil {
+			logger.Logger.Warn().Err(err).Msg("failed to set header cell value")
+		}
 	}
 
 	// Add example data. Using typed enum constants keeps the template rows
@@ -167,16 +174,24 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 		rowNum := i + 2
 		for j, value := range example {
 			cell := fmt.Sprintf("%c%d", 'A'+j, rowNum)
-			f.SetCellValue(sheetName, cell, value)
+			if err := f.SetCellValue(sheetName, cell, value); err != nil {
+				logger.Logger.Warn().Err(err).Msg("failed to set example cell value")
+			}
 		}
 	}
 
 	// Set column widths
-	f.SetColWidth(sheetName, "A", "A", 25) // Email
-	f.SetColWidth(sheetName, "B", "B", 20) // Full Name
-	f.SetColWidth(sheetName, "C", "C", 12) // Role
-	f.SetColWidth(sheetName, "D", "D", 15) // Division
-	f.SetColWidth(sheetName, "E", "E", 15) // Division Role
+	colWidths := []struct {
+		col   string
+		width float64
+	}{
+		{"A", 25}, {"B", 20}, {"C", 12}, {"D", 15}, {"E", 15},
+	}
+	for _, cw := range colWidths {
+		if err := f.SetColWidth(sheetName, cw.col, cw.col, cw.width); err != nil {
+			logger.Logger.Warn().Err(err).Str("col", cw.col).Msg("failed to set column width")
+		}
+	}
 
 	// Set active sheet
 	f.SetActiveSheet(index)
@@ -197,7 +212,7 @@ func (h *MemberCreationHandler) parseExcelFile(fileBytes []byte) ([]entity.BulkI
 	if err != nil {
 		return nil, fmt.Errorf("failed to open Excel file: %w", err)
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	// Get first sheet
 	sheetName := f.GetSheetName(0)

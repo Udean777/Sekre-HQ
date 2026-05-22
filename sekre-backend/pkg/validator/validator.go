@@ -97,7 +97,7 @@ func translateError(err error) error {
 		fieldErrors[field] = fieldErrorMessage(fieldErr)
 	}
 
-	de.WithDetail("fields", fieldErrors)
+	de.WithDetail("fields", fieldErrors) //nolint:errcheck
 
 	// Use first field for main message
 	if len(ve) > 0 {

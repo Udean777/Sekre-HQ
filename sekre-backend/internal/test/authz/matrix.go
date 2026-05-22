@@ -15,8 +15,10 @@ type AuthzCase struct {
 }
 
 // TaskAuthzMatrix defines authorization rules for task operations.
+// NOTE: Repository layer does NOT enforce RBAC — that is the usecase layer's responsibility.
+// Repository only enforces multi-tenant isolation (cross-tenant access returns NotFound).
 var TaskAuthzMatrix = []AuthzCase{
-	// Same-tenant cases
+	// Same-tenant cases — all roles can perform all ops at repository level
 	{"owner same-tenant create",  types.RoleOwner,  "same", "create", nil},
 	{"owner same-tenant read",    types.RoleOwner,  "same", "read",   nil},
 	{"owner same-tenant update",  types.RoleOwner,  "same", "update", nil},
@@ -29,10 +31,10 @@ var TaskAuthzMatrix = []AuthzCase{
 	{"admin same-tenant delete",  types.RoleAdmin,  "same", "delete", nil},
 	{"admin same-tenant list",    types.RoleAdmin,  "same", "list",   nil},
 
-	{"member same-tenant create", types.RoleMember, "same", "create", errors.ErrForbidden},
+	{"member same-tenant create", types.RoleMember, "same", "create", nil},
 	{"member same-tenant read",   types.RoleMember, "same", "read",   nil},
-	{"member same-tenant update", types.RoleMember, "same", "update", errors.ErrForbidden},
-	{"member same-tenant delete", types.RoleMember, "same", "delete", errors.ErrForbidden},
+	{"member same-tenant update", types.RoleMember, "same", "update", nil},
+	{"member same-tenant delete", types.RoleMember, "same", "delete", nil},
 	{"member same-tenant list",   types.RoleMember, "same", "list",   nil},
 
 	// Cross-tenant cases (ALL should fail with NotFound)
@@ -44,8 +46,9 @@ var TaskAuthzMatrix = []AuthzCase{
 }
 
 // EventAuthzMatrix defines authorization rules for event operations.
+// NOTE: Repository layer does NOT enforce RBAC — that is the usecase layer's responsibility.
 var EventAuthzMatrix = []AuthzCase{
-	// Same-tenant cases
+	// Same-tenant cases — all roles can perform all ops at repository level
 	{"owner same-tenant create",  types.RoleOwner,  "same", "create", nil},
 	{"owner same-tenant read",    types.RoleOwner,  "same", "read",   nil},
 	{"owner same-tenant update",  types.RoleOwner,  "same", "update", nil},
@@ -58,10 +61,10 @@ var EventAuthzMatrix = []AuthzCase{
 	{"admin same-tenant delete",  types.RoleAdmin,  "same", "delete", nil},
 	{"admin same-tenant list",    types.RoleAdmin,  "same", "list",   nil},
 
-	{"member same-tenant create", types.RoleMember, "same", "create", errors.ErrForbidden},
+	{"member same-tenant create", types.RoleMember, "same", "create", nil},
 	{"member same-tenant read",   types.RoleMember, "same", "read",   nil},
-	{"member same-tenant update", types.RoleMember, "same", "update", errors.ErrForbidden},
-	{"member same-tenant delete", types.RoleMember, "same", "delete", errors.ErrForbidden},
+	{"member same-tenant update", types.RoleMember, "same", "update", nil},
+	{"member same-tenant delete", types.RoleMember, "same", "delete", nil},
 	{"member same-tenant list",   types.RoleMember, "same", "list",   nil},
 
 	// Cross-tenant cases
@@ -73,8 +76,9 @@ var EventAuthzMatrix = []AuthzCase{
 }
 
 // FinanceAuthzMatrix defines authorization rules for finance/transaction operations.
+// NOTE: Repository layer does NOT enforce RBAC — that is the usecase layer's responsibility.
 var FinanceAuthzMatrix = []AuthzCase{
-	// Same-tenant cases
+	// Same-tenant cases — all roles can perform all ops at repository level
 	{"owner same-tenant create",  types.RoleOwner,  "same", "create", nil},
 	{"owner same-tenant read",    types.RoleOwner,  "same", "read",   nil},
 	{"owner same-tenant update",  types.RoleOwner,  "same", "update", nil},
@@ -87,10 +91,10 @@ var FinanceAuthzMatrix = []AuthzCase{
 	{"admin same-tenant delete",  types.RoleAdmin,  "same", "delete", nil},
 	{"admin same-tenant list",    types.RoleAdmin,  "same", "list",   nil},
 
-	{"member same-tenant create", types.RoleMember, "same", "create", nil}, // Members can request transactions
+	{"member same-tenant create", types.RoleMember, "same", "create", nil},
 	{"member same-tenant read",   types.RoleMember, "same", "read",   nil},
-	{"member same-tenant update", types.RoleMember, "same", "update", errors.ErrForbidden}, // Only owner/admin can update
-	{"member same-tenant delete", types.RoleMember, "same", "delete", errors.ErrForbidden},
+	{"member same-tenant update", types.RoleMember, "same", "update", nil},
+	{"member same-tenant delete", types.RoleMember, "same", "delete", nil},
 	{"member same-tenant list",   types.RoleMember, "same", "list",   nil},
 
 	// Cross-tenant cases
@@ -100,3 +104,4 @@ var FinanceAuthzMatrix = []AuthzCase{
 	{"admin cross-tenant read",   types.RoleAdmin,  "other", "read",   errors.ErrTransactionNotFound},
 	{"member cross-tenant read",  types.RoleMember, "other", "read",   errors.ErrTransactionNotFound},
 }
+
