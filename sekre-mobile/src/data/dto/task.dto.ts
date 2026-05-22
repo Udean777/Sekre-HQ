@@ -1,34 +1,58 @@
 // Backend response shapes (snake_case)
 import type { TaskStatus, TaskPriority } from '@core/domain/entities/Task';
 
+export interface TaskAssigneeDTO {
+  id: string;
+  email: string;
+  full_name: string;
+  must_reset_password: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TaskDTO {
   id: string;
+  organization_id: string;
+  division_id: string | null;
+  assignee_id: string | null;
   title: string;
   description: string | null;
   status: TaskStatus;
-  priority: TaskPriority;
-  assignee_id: string | null;
-  assignee_name: string | null;
-  division_id: string | null;
-  division_name: string | null;
   due_date: string | null;
   created_at: string;
   updated_at: string;
 }
 
+export interface TaskItemDTO {
+  task: TaskDTO;
+  assignee: TaskAssigneeDTO | null;
+}
+
 export interface TaskListResponseDTO {
-  tasks: TaskDTO[];
-  total: number;
-  page: number;
-  limit: number;
-  total_pages: number;
+  success: boolean;
+  message: string;
+  data: {
+    data: TaskItemDTO[];
+    pagination: {
+      page: number;
+      page_size: number;
+      total_items: number;
+      total_pages: number;
+    };
+  };
+}
+
+export interface TaskResponseDTO {
+  success: boolean;
+  message: string;
+  data: TaskItemDTO;
 }
 
 // Request shapes
 export interface CreateTaskRequestDTO {
   title: string;
   description?: string;
-  priority: TaskPriority;
+  priority?: TaskPriority;
   assignee_id?: string;
   division_id?: string;
   due_date?: string;
@@ -37,8 +61,9 @@ export interface CreateTaskRequestDTO {
 export interface UpdateTaskRequestDTO {
   title?: string;
   description?: string;
+  status?: string;
   priority?: TaskPriority;
-  assignee_id?: string;
+  assignee_id?: string | null;
   division_id?: string;
   due_date?: string;
 }

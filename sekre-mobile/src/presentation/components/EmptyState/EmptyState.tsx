@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, StyleSheet, type ViewStyle } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AppText } from '../Text/Text';
 import { Button } from '../Button';
-import { colors, spacing, fontSize } from '@presentation/theme';
+import { colors, spacing } from '@presentation/theme';
+
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: IoniconName;
   title: string;
   description?: string;
   actionLabel?: string;
@@ -14,7 +17,7 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = '📭',
+  icon = 'inbox-outline',
   title,
   description,
   actionLabel,
@@ -26,7 +29,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     accessibilityRole="text"
     accessibilityLabel={`${title}${description ? '. ' + description : ''}`}
   >
-    <AppText style={styles.icon}>{icon}</AppText>
+    <View style={styles.iconBox}>
+      <Ionicons name={icon} size={32} color={colors.neutral[400]} />
+    </View>
     <AppText variant="bodyMd" style={styles.title}>
       {title}
     </AppText>
@@ -55,8 +60,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[10],
     paddingHorizontal: spacing[6],
   },
-  icon: {
-    fontSize: 48,
+  iconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: colors.neutral[100],
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing[3],
   },
   title: {

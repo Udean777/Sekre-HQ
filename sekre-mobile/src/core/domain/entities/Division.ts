@@ -1,7 +1,7 @@
 // Branded types untuk type safety
 export type DivisionId = string & { __brand: 'DivisionId' };
 
-export type DivisionRole = 'HEAD' | 'MEMBER';
+export type DivisionRole = 'HEAD' | 'STAFF';
 
 export interface Division {
   id: DivisionId;

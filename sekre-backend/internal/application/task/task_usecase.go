@@ -90,11 +90,7 @@ func (u *taskUsecase) Create(ctx context.Context, orgID uuid.UUID, req *CreateTa
 }
 
 func (u *taskUsecase) GetByID(ctx context.Context, orgID, id uuid.UUID) (*entity.TaskWithAssignee, error) {
-	task, err := u.repo.GetByID(ctx, orgID, id)
-	if err != nil {
-		return nil, err
-	}
-	return &entity.TaskWithAssignee{Task: *task}, nil
+	return u.repo.GetByIDWithAssignee(ctx, orgID, id)
 }
 
 func (u *taskUsecase) List(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters) ([]entity.TaskWithAssignee, error) {
@@ -139,11 +135,11 @@ func (u *taskUsecase) Update(ctx context.Context, orgID, id uuid.UUID, req *Upda
 		return nil, domainerrors.Internal("update task", err)
 	}
 
-	updated, err := u.repo.GetByID(ctx, orgID, id)
+	updated, err := u.repo.GetByIDWithAssignee(ctx, orgID, id)
 	if err != nil {
 		return nil, err
 	}
-	return &entity.TaskWithAssignee{Task: *updated}, nil
+	return updated, nil
 }
 
 func (u *taskUsecase) UpdateStatus(ctx context.Context, orgID, id uuid.UUID, status string) error {

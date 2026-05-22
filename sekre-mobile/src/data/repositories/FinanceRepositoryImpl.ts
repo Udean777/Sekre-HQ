@@ -14,15 +14,15 @@ import type {
 } from '@core/domain/entities/Transaction';
 import { ENDPOINTS } from '@data/http/endpoints';
 import type {
-  TransactionDTO,
   TransactionListResponseDTO,
-  FinanceSummaryDTO,
+  TransactionResponseDTO,
+  FinanceSummaryResponseDTO,
   CreateTransactionRequestDTO,
   UpdateTransactionRequestDTO,
 } from '@data/dto/finance.dto';
 import {
-  mapTransactionDTOToEntity,
   mapTransactionListDTOToResult,
+  mapTransactionDTOToEntity,
   mapFinanceSummaryDTOToEntity,
 } from '@data/mappers/finance.mapper';
 
@@ -49,8 +49,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   async getTransactionById(id: TransactionId): Promise<Transaction> {
-    const { data } = await this.http.get<TransactionDTO>(ENDPOINTS.FINANCE.TRANSACTION_DETAIL(id));
-    return mapTransactionDTOToEntity(data);
+    const { data } = await this.http.get<TransactionResponseDTO>(ENDPOINTS.FINANCE.TRANSACTION_DETAIL(id));
+    return mapTransactionDTOToEntity(data.data);
   }
 
   async createTransaction(params: CreateTransactionParams): Promise<Transaction> {
@@ -63,11 +63,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
       ...(params.currency !== undefined && { currency: params.currency }),
       ...(params.receiptUrl !== undefined && { receipt_url: params.receiptUrl }),
     };
-    const { data } = await this.http.post<TransactionDTO>(
+    const { data } = await this.http.post<TransactionResponseDTO>(
       ENDPOINTS.FINANCE.TRANSACTION_CREATE,
       payload,
     );
-    return mapTransactionDTOToEntity(data);
+    return mapTransactionDTOToEntity(data.data);
   }
 
   async updateTransaction(
@@ -83,11 +83,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
       ...(params.description !== undefined && { description: params.description }),
       ...(params.receiptUrl !== undefined && { receipt_url: params.receiptUrl }),
     };
-    const { data } = await this.http.put<TransactionDTO>(
+    const { data } = await this.http.put<TransactionResponseDTO>(
       ENDPOINTS.FINANCE.TRANSACTION_UPDATE(id),
       payload,
     );
-    return mapTransactionDTOToEntity(data);
+    return mapTransactionDTOToEntity(data.data);
   }
 
   async deleteTransaction(id: TransactionId): Promise<void> {
@@ -100,7 +100,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     if (filter?.startDate) params.start_date = filter.startDate;
     if (filter?.endDate) params.end_date = filter.endDate;
 
-    const { data } = await this.http.get<FinanceSummaryDTO>(ENDPOINTS.FINANCE.SUMMARY, {
+    const { data } = await this.http.get<FinanceSummaryResponseDTO>(ENDPOINTS.FINANCE.SUMMARY, {
       params,
     });
     return mapFinanceSummaryDTOToEntity(data);

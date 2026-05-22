@@ -70,30 +70,44 @@ func (r *divisionRepository) List(ctx context.Context, orgID uuid.UUID) ([]entit
 }
 
 func (r *divisionRepository) ListPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.Division, int, error) {
+	return r.ListPaginatedFiltered(ctx, orgID, nil, pagination)
+}
+
+func (r *divisionRepository) ListPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.Division, int, error) {
+	baseQuery := dbFor(ctx, r.db).
+		Model(&models.Division{}).
+		Where("organization_id = ?", orgID)
+
+	if search != nil && *search != "" {
+		baseQuery = baseQuery.Where("name ILIKE ?", "%"+*search+"%")
+	}
+
 	// Get total count
 	var totalCount int64
-	err := dbFor(ctx, r.db).
-		Model(&models.Division{}).
-		Where("organization_id = ?", orgID).
-		Count(&totalCount).Error
-	if err != nil {
+	if err := baseQuery.Count(&totalCount).Error; err != nil {
 		return nil, 0, domainerrors.Internal("count divisions", err)
 	}
 
 	// Get paginated results
-	var models []models.Division
-	err = dbFor(ctx, r.db).
-		Where("organization_id = ?", orgID).
+	query := dbFor(ctx, r.db).
+		Where("organization_id = ?", orgID)
+
+	if search != nil && *search != "" {
+		query = query.Where("name ILIKE ?", "%"+*search+"%")
+	}
+
+	var divModels []models.Division
+	err := query.
 		Order("created_at DESC").
 		Limit(pagination.Limit).
 		Offset(pagination.Offset).
-		Find(&models).Error
+		Find(&divModels).Error
 	if err != nil {
 		return nil, 0, domainerrors.Internal("list divisions", err)
 	}
 
-	divisions := make([]entity.Division, len(models))
-	for i, m := range models {
+	divisions := make([]entity.Division, len(divModels))
+	for i, m := range divModels {
 		divisions[i] = *mapper.DivisionToEntity(&m)
 	}
 	return divisions, int(totalCount), nil

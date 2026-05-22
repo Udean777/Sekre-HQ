@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
@@ -16,6 +17,8 @@ import type { Division } from '@core/domain/entities/Division';
 import type { DivisionsStackParamList } from '@app/navigation/DivisionsNavigator';
 
 type Props = NativeStackScreenProps<DivisionsStackParamList, 'DivisionList'>;
+
+// ─── Division Card ────────────────────────────────────────────────────────────
 
 interface DivisionCardProps {
   division: Division;
@@ -35,14 +38,22 @@ const DivisionCard: React.FC<DivisionCardProps> = ({
   <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
     <Card style={styles.divisionCard}>
       <View style={styles.cardHeader}>
+        {/* Icon */}
+        <View style={styles.divisionIcon}>
+          <Ionicons name="git-branch-outline" size={20} color={colors.primary[500]} />
+        </View>
+
+        {/* Info */}
         <View style={styles.cardInfo}>
-          <AppText variant="bodyMd" style={styles.divisionName}>
+          <AppText variant="bodyMd" style={styles.divisionName} numberOfLines={1}>
             {division.name}
           </AppText>
           <AppText variant="bodySm" color={colors.text.secondary}>
-            {division.memberCount} anggota
+            {division.memberCount > 0 ? `${division.memberCount} anggota` : 'Belum ada anggota'}
           </AppText>
         </View>
+
+        {/* Actions */}
         {canManage ? (
           <View style={styles.cardActions}>
             <TouchableOpacity
@@ -52,10 +63,9 @@ const DivisionCard: React.FC<DivisionCardProps> = ({
               }}
               style={styles.iconButton}
               activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <AppText variant="bodySm" color={colors.primary[500]}>
-                Edit
-              </AppText>
+              <Ionicons name="pencil-outline" size={18} color={colors.primary[500]} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={e => {
@@ -64,28 +74,20 @@ const DivisionCard: React.FC<DivisionCardProps> = ({
               }}
               style={styles.iconButton}
               activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <AppText variant="bodySm" color={colors.danger.main}>
-                Hapus
-              </AppText>
+              <Ionicons name="trash-outline" size={18} color={colors.danger.main} />
             </TouchableOpacity>
           </View>
-        ) : null}
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
+        )}
       </View>
-
-      {division.description ? (
-        <AppText
-          variant="bodySm"
-          color={colors.text.secondary}
-          numberOfLines={2}
-          style={styles.description}
-        >
-          {division.description}
-        </AppText>
-      ) : null}
     </Card>
   </TouchableOpacity>
 );
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
@@ -147,8 +149,8 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
   const keyExtractor = useCallback((item: Division) => item.id, []);
 
   return (
-    <Screen padded>
-      {/* Header */}
+    <Screen padded edges={[]}>
+      {/* ── Header ── */}
       <View style={styles.header}>
         <AppText variant="h3">Divisi</AppText>
         {canManage ? (
@@ -156,7 +158,7 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
       </View>
 
-      {/* Search */}
+      {/* ── Search ── */}
       <Input
         placeholder="Cari divisi..."
         value={search}
@@ -164,19 +166,20 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.searchInput}
       />
 
-      {/* Total */}
+      {/* ── Total ── */}
       {!isLoading && !isError && data ? (
         <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.total} divisi
+          {data.total} divisi ditemukan
         </AppText>
       ) : null}
 
-      {/* List */}
+      {/* ── List ── */}
       {isLoading ? (
         <SkeletonList count={5} />
       ) : isError ? (
         <View style={styles.centered}>
-          <AppText variant="bodySm" color={colors.danger.main}>
+          <Ionicons name="alert-circle-outline" size={32} color={colors.danger.main} />
+          <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
             Gagal memuat divisi.
           </AppText>
           <Button
@@ -192,6 +195,7 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
           data={data?.divisions ?? []}
           keyExtractor={keyExtractor}
           renderItem={renderDivision}
+          style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -203,7 +207,7 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
           }
           ListEmptyComponent={
             <EmptyState
-              icon="🏢"
+              icon="business-outline"
               title="Belum ada divisi"
               description="Buat divisi untuk mengorganisir anggota tim."
               actionLabel={canManage ? '+ Buat Divisi' : undefined}
@@ -215,6 +219,8 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
     </Screen>
   );
 };
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   header: {
@@ -229,18 +235,30 @@ const styles = StyleSheet.create({
   totalText: {
     marginBottom: spacing[3],
   },
+  list: {
+    flex: 1,
+  },
   listContent: {
     gap: spacing[3],
     paddingBottom: spacing[6],
   },
+
+  // Card
   divisionCard: {
-    gap: spacing[2],
+    paddingVertical: spacing[3],
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing[2],
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  divisionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardInfo: {
     flex: 1,
@@ -251,21 +269,24 @@ const styles = StyleSheet.create({
   },
   cardActions: {
     flexDirection: 'row',
-    gap: spacing[3],
+    gap: spacing[2],
   },
   iconButton: {
-    paddingVertical: spacing[1],
+    padding: spacing[1],
   },
-  description: {
-    marginTop: spacing[1],
-  },
+
+  // States
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing[10],
+    gap: spacing[2],
+  },
+  errorText: {
+    marginTop: spacing[1],
   },
   retryButton: {
-    marginTop: spacing[2],
+    marginTop: spacing[1],
   },
 });

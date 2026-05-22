@@ -1,11 +1,11 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
 import { Button } from '@presentation/components/Button';
-import { Divider } from '@presentation/components/Divider';
 import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useEventQuery } from '@hooks/events/useEventQuery';
 import { useDeleteEventMutation } from '@hooks/events/useDeleteEventMutation';
@@ -14,8 +14,42 @@ import type { EventsStackParamList } from '@app/navigation/EventsNavigator';
 
 type Props = NativeStackScreenProps<EventsStackParamList, 'EventDetail'>;
 
-const formatDate = (date: Date): string =>
-  date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const formatDateLong = (date: Date): string =>
+  date.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+const formatTime = (date: Date): string =>
+  date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+// ─── Info Row ─────────────────────────────────────────────────────────────────
+
+const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({
+  icon,
+  label,
+  value,
+}) => (
+  <View style={styles.infoRow}>
+    <View style={styles.infoIcon}>
+      <Ionicons name={icon as any} size={18} color={colors.primary[500]} />
+    </View>
+    <View style={styles.infoContent}>
+      <AppText variant="bodySm" color={colors.text.secondary}>
+        {label}
+      </AppText>
+      <AppText variant="bodyMd" style={styles.infoValue}>
+        {value}
+      </AppText>
+    </View>
+  </View>
+);
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { eventId } = route.params;
@@ -40,87 +74,131 @@ export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     ]);
   }, [deleteEvent, eventId, navigation]);
 
+  // ── Loading ──
   if (isLoading) {
     return (
       <Screen>
         <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary[500]} />
+          <ActivityIndicator size="large" color={colors.primary[500]} />
         </View>
       </Screen>
     );
   }
 
+  // ── Error ──
   if (isError || !event) {
     return (
       <Screen padded>
-        <AppText variant="bodySm" color={colors.danger.main}>
-          Gagal memuat detail acara.
-        </AppText>
-        <Button
-          label="Kembali"
-          variant="ghost"
-          size="sm"
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        />
+        <View style={styles.centered}>
+          <Ionicons name="alert-circle-outline" size={40} color={colors.danger.main} />
+          <AppText variant="bodyMd" color={colors.danger.main} style={styles.errorText}>
+            Gagal memuat detail acara.
+          </AppText>
+          <Button
+            label="Kembali"
+            variant="ghost"
+            size="sm"
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          />
+        </View>
       </Screen>
     );
   }
 
+  const isUpcoming = event.startDate >= new Date();
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Title */}
-        <AppText variant="h3" style={styles.title}>
-          {event.title}
-        </AppText>
+        {/* ── Hero ── */}
+        <View style={styles.hero}>
+          <View style={[styles.heroDateBox, isUpcoming ? styles.heroDateBoxUpcoming : undefined]}>
+            <AppText
+              style={styles.heroDay}
+              color={isUpcoming ? colors.primary[600] : colors.text.secondary}
+            >
+              {event.startDate.getDate()}
+            </AppText>
+            <AppText
+              style={styles.heroMonth}
+              color={isUpcoming ? colors.primary[500] : colors.text.secondary}
+            >
+              {event.startDate.toLocaleDateString('id-ID', { month: 'long' })}
+            </AppText>
+            <AppText
+              style={styles.heroYear}
+              color={isUpcoming ? colors.primary[400] : colors.text.disabled}
+            >
+              {event.startDate.getFullYear()}
+            </AppText>
+          </View>
+          <View style={styles.heroInfo}>
+            <AppText variant="h3" style={styles.title}>
+              {event.title}
+            </AppText>
+            {isUpcoming ? (
+              <View style={styles.upcomingBadge}>
+                <Ionicons name="time-outline" size={12} color={colors.primary[600]} />
+                <AppText style={styles.upcomingText}>Mendatang</AppText>
+              </View>
+            ) : (
+              <View style={styles.pastBadge}>
+                <AppText style={styles.pastText}>Selesai</AppText>
+              </View>
+            )}
+          </View>
+        </View>
 
-        {/* Date */}
-        <AppText variant="bodyMd" color={colors.primary[500]} style={styles.date}>
-          {formatDate(event.startDate)}
-          {event.endDate ? ` — ${formatDate(event.endDate)}` : ''}
-        </AppText>
+        {/* ── Info Card ── */}
+        <Card style={styles.infoCard}>
+          <InfoRow
+            icon="calendar-outline"
+            label="Tanggal Mulai"
+            value={`${formatDateLong(event.startDate)} · ${formatTime(event.startDate)}`}
+          />
+          {event.endDate ? (
+            <>
+              <View style={styles.infoDivider} />
+              <InfoRow
+                icon="calendar-clear-outline"
+                label="Tanggal Selesai"
+                value={`${formatDateLong(event.endDate)} · ${formatTime(event.endDate)}`}
+              />
+            </>
+          ) : null}
+          {event.location ? (
+            <>
+              <View style={styles.infoDivider} />
+              <InfoRow icon="location-outline" label="Lokasi" value={event.location} />
+            </>
+          ) : null}
+        </Card>
 
-        {/* Location */}
-        {event.location ? (
-          <AppText variant="bodyMd" color={colors.text.secondary} style={styles.location}>
-            📍 {event.location}
-          </AppText>
-        ) : null}
-
-        {/* Description */}
+        {/* ── Deskripsi ── */}
         {event.description ? (
           <Card style={styles.descCard}>
-            <AppText variant="label" color={colors.text.secondary}>
+            <AppText variant="label" color={colors.text.secondary} style={styles.descLabel}>
               Deskripsi
             </AppText>
-            <Divider marginVertical={spacing[2]} />
-            <AppText variant="bodyMd">{event.description}</AppText>
+            <AppText variant="bodyMd" style={styles.descText}>
+              {event.description}
+            </AppText>
           </Card>
         ) : null}
 
-        {/* Meta */}
+        {/* ── Meta ── */}
         <Card style={styles.metaCard}>
-          <View style={styles.metaRow}>
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              Dibuat
-            </AppText>
-            <AppText variant="bodyMd" style={styles.metaValue}>
-              {formatDate(event.createdAt)}
-            </AppText>
-          </View>
-          <Divider marginVertical={spacing[2]} />
-          <View style={styles.metaRow}>
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              Diperbarui
-            </AppText>
-            <AppText variant="bodyMd" style={styles.metaValue}>
-              {formatDate(event.updatedAt)}
-            </AppText>
-          </View>
+          <InfoRow icon="create-outline" label="Dibuat" value={formatDateLong(event.createdAt)} />
+          <View style={styles.infoDivider} />
+          <InfoRow
+            icon="refresh-outline"
+            label="Diperbarui"
+            value={formatDateLong(event.updatedAt)}
+          />
         </Card>
 
-        {/* Actions */}
+        {/* ── Actions ── */}
         {canManage ? (
           <View style={styles.actions}>
             <Button
@@ -137,7 +215,6 @@ export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
               fullWidth
               loading={isDeleting}
               onPress={handleDelete}
-              style={styles.deleteButton}
             />
           </View>
         ) : null}
@@ -146,17 +223,154 @@ export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  scrollContent: { padding: spacing[4], paddingBottom: spacing[10] },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  backButton: { marginTop: spacing[3] },
-  title: { fontWeight: fontWeight.bold, marginBottom: spacing[2] },
-  date: { marginBottom: spacing[2] },
-  location: { marginBottom: spacing[4] },
-  descCard: { marginBottom: spacing[4] },
-  metaCard: { marginBottom: spacing[5] },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  metaValue: { fontWeight: fontWeight.medium },
-  actions: { gap: spacing[3] },
-  deleteButton: { marginTop: spacing[1] },
+  scrollContent: {
+    padding: spacing[4],
+    paddingBottom: spacing[10],
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing[3],
+    padding: spacing[6],
+  },
+  errorText: {
+    textAlign: 'center',
+  },
+  backButton: {
+    marginTop: spacing[1],
+  },
+
+  // Hero
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[4],
+    marginBottom: spacing[4],
+  },
+  heroDateBox: {
+    width: 64,
+    alignItems: 'center',
+    backgroundColor: colors.neutral[100],
+    borderRadius: 14,
+    paddingVertical: spacing[3],
+  },
+  heroDateBoxUpcoming: {
+    backgroundColor: colors.primary[50],
+  },
+  heroDay: {
+    fontSize: 28,
+    fontWeight: fontWeight.bold,
+    color: colors.text.secondary,
+  },
+  heroDayUpcoming: {
+    color: colors.primary[600],
+  },
+  heroMonth: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    textTransform: 'capitalize',
+  },
+  heroMonthUpcoming: {
+    color: colors.primary[500],
+  },
+  heroYear: {
+    fontSize: 11,
+    color: colors.text.disabled,
+  },
+  heroYearUpcoming: {
+    color: colors.primary[400],
+  },
+  heroInfo: {
+    flex: 1,
+    gap: spacing[2],
+    paddingTop: spacing[1],
+  },
+  title: {
+    fontWeight: fontWeight.bold,
+  },
+  upcomingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primary[50],
+    borderRadius: 6,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+  },
+  upcomingText: {
+    fontSize: 12,
+    fontWeight: fontWeight.medium,
+    color: colors.primary[600],
+  },
+  pastBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.neutral[100],
+    borderRadius: 6,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+  },
+  pastText: {
+    fontSize: 12,
+    fontWeight: fontWeight.medium,
+    color: colors.text.secondary,
+  },
+
+  // Info card
+  infoCard: {
+    marginBottom: spacing[4],
+    gap: 0,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[3],
+    paddingVertical: spacing[2],
+  },
+  infoIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoContent: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  infoValue: {
+    fontWeight: fontWeight.medium,
+  },
+  infoDivider: {
+    height: 1,
+    backgroundColor: colors.border.default,
+  },
+
+  // Description
+  descCard: {
+    marginBottom: spacing[4],
+    gap: spacing[2],
+  },
+  descLabel: {
+    marginBottom: spacing[1],
+  },
+  descText: {
+    lineHeight: 22,
+  },
+
+  // Meta
+  metaCard: {
+    marginBottom: spacing[5],
+    gap: 0,
+  },
+
+  // Actions
+  actions: {
+    gap: spacing[3],
+  },
 });

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
@@ -19,7 +20,8 @@ import type { FinanceStackParamList } from '@app/navigation/FinanceNavigator';
 
 type Props = NativeStackScreenProps<FinanceStackParamList, 'FinanceList'>;
 
-// Format amount_cents ke rupiah
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 const formatMoney = (money: Money): string => {
   const amount = money.amountCents / 100;
   return new Intl.NumberFormat('id-ID', {
@@ -32,14 +34,26 @@ const formatMoney = (money: Money): string => {
 const formatDate = (date: Date): string =>
   date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
+const STATUS_LABEL: Record<string, string> = {
+  APPROVED: 'Disetujui',
+  REJECTED: 'Ditolak',
+  PENDING: 'Menunggu',
+};
+
+// ─── Summary Card ─────────────────────────────────────────────────────────────
+
 interface SummaryCardProps {
   label: string;
+  icon: string;
   money: Money;
   color: string;
 }
 
-const SummaryCard: React.FC<SummaryCardProps> = ({ label, money, color }) => (
+const SummaryCard: React.FC<SummaryCardProps> = ({ label, icon, money, color }) => (
   <Card style={styles.summaryCard}>
+    <View style={[styles.summaryIcon, { backgroundColor: `${color}18` }]}>
+      <Ionicons name={icon as any} size={18} color={color} />
+    </View>
     <AppText variant="bodySm" color={colors.text.secondary}>
       {label}
     </AppText>
@@ -48,6 +62,8 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ label, money, color }) => (
     </AppText>
   </Card>
 );
+
+// ─── Transaction Card ─────────────────────────────────────────────────────────
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -61,64 +77,77 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   canManage,
   onPress,
   onDelete,
-}) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-    <Card style={styles.txCard}>
-      <View style={styles.txHeader}>
-        <View style={styles.txLeft}>
-          <Badge
-            label={transaction.type === 'INCOME' ? 'Pemasukan' : 'Pengeluaran'}
-            variant={txTypeVariant(transaction.type)}
-          />
-          <AppText variant="bodySm" color={colors.text.secondary} style={styles.txDate}>
-            {formatDate(transaction.createdAt)}
-          </AppText>
-        </View>
-        <AppText
-          variant="bodyMd"
-          style={[
-            styles.txAmount,
-            {
-              color: transaction.type === 'INCOME' ? colors.success.main : colors.danger.main,
-            },
-          ]}
-        >
-          {transaction.type === 'INCOME' ? '+' : '-'} {formatMoney(transaction.amount)}
-        </AppText>
-      </View>
+}) => {
+  const isIncome = transaction.type === 'INCOME';
 
-      <AppText variant="bodyMd" numberOfLines={2} style={styles.txDesc}>
-        {transaction.description}
-      </AppText>
-
-      <View style={styles.txFooter}>
-        <Badge
-          label={
-            transaction.status === 'APPROVED'
-              ? 'Disetujui'
-              : transaction.status === 'REJECTED'
-                ? 'Ditolak'
-                : 'Menunggu'
-          }
-          variant={txStatusVariant(transaction.status)}
-        />
-        {canManage ? (
-          <TouchableOpacity
-            onPress={e => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            activeOpacity={0.7}
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <Card style={styles.txCard}>
+        <View style={styles.txHeader}>
+          {/* Type icon */}
+          <View
+            style={[
+              styles.txIcon,
+              {
+                backgroundColor: isIncome ? `${colors.success.main}18` : `${colors.danger.main}18`,
+              },
+            ]}
           >
-            <AppText variant="bodySm" color={colors.danger.main}>
-              Hapus
+            <Ionicons
+              name={isIncome ? 'arrow-down-outline' : 'arrow-up-outline'}
+              size={18}
+              color={isIncome ? colors.success.main : colors.danger.main}
+            />
+          </View>
+
+          {/* Info */}
+          <View style={styles.txInfo}>
+            <AppText variant="bodyMd" style={styles.txDesc} numberOfLines={1}>
+              {transaction.description}
             </AppText>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-    </Card>
-  </TouchableOpacity>
-);
+            <AppText variant="bodySm" color={colors.text.secondary}>
+              {formatDate(transaction.createdAt)}
+            </AppText>
+          </View>
+
+          {/* Amount + actions */}
+          <View style={styles.txRight}>
+            <AppText
+              variant="bodyMd"
+              style={[
+                styles.txAmount,
+                { color: isIncome ? colors.success.main : colors.danger.main },
+              ]}
+            >
+              {isIncome ? '+' : '-'}
+              {formatMoney(transaction.amount)}
+            </AppText>
+            <View style={styles.txMeta}>
+              <Badge
+                label={STATUS_LABEL[transaction.status] ?? transaction.status}
+                variant={txStatusVariant(transaction.status)}
+              />
+              {canManage ? (
+                <TouchableOpacity
+                  onPress={e => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="trash-outline" size={16} color={colors.danger.main} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      </Card>
+    </TouchableOpacity>
+  );
+};
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
@@ -136,25 +165,17 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
   const { mutate: deleteTransaction } = useDeleteTransactionMutation();
 
   const handlePress = useCallback(
-    (tx: Transaction) => {
-      navigation.navigate('TransactionDetail', { transactionId: tx.id });
-    },
+    (tx: Transaction) => navigation.navigate('TransactionDetail', { transactionId: tx.id }),
     [navigation],
   );
 
-  const handleCreate = useCallback(() => {
-    navigation.navigate('CreateTransaction');
-  }, [navigation]);
+  const handleCreate = useCallback(() => navigation.navigate('CreateTransaction'), [navigation]);
 
   const handleDelete = useCallback(
     (tx: Transaction) => {
       Alert.alert('Hapus Transaksi', `Hapus transaksi "${tx.description}"?`, [
         { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Hapus',
-          style: 'destructive',
-          onPress: () => deleteTransaction(tx.id),
-        },
+        { text: 'Hapus', style: 'destructive', onPress: () => deleteTransaction(tx.id) },
       ]);
     },
     [deleteTransaction],
@@ -181,8 +202,8 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
   ];
 
   return (
-    <Screen padded>
-      {/* Header */}
+    <Screen padded edges={['top']} tabScreen>
+      {/* ── Header ── */}
       <View style={styles.header}>
         <AppText variant="h3">Keuangan</AppText>
         {canManage ? (
@@ -190,20 +211,31 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
       </View>
 
-      {/* Summary Cards */}
+      {/* ── Summary ── */}
       {summary ? (
         <View style={styles.summaryRow}>
-          <SummaryCard label="Pemasukan" money={summary.totalIncome} color={colors.success.main} />
+          <SummaryCard
+            label="Pemasukan"
+            icon="arrow-down-outline"
+            money={summary.totalIncome}
+            color={colors.success.main}
+          />
           <SummaryCard
             label="Pengeluaran"
+            icon="arrow-up-outline"
             money={summary.totalExpense}
             color={colors.danger.main}
           />
-          <SummaryCard label="Saldo" money={summary.balance} color={colors.primary[500]} />
+          <SummaryCard
+            label="Saldo"
+            icon="wallet-outline"
+            money={summary.balance}
+            color={colors.primary[500]}
+          />
         </View>
       ) : null}
 
-      {/* Search */}
+      {/* ── Search ── */}
       <Input
         placeholder="Cari transaksi..."
         value={search}
@@ -211,7 +243,7 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.searchInput}
       />
 
-      {/* Type Filter */}
+      {/* ── Type Filter ── */}
       <View style={styles.filterRow}>
         {TYPE_FILTERS.map(f => (
           <TouchableOpacity
@@ -230,17 +262,20 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
         ))}
       </View>
 
+      {/* ── Total ── */}
       {!isLoading && !isError && data ? (
         <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.total} transaksi
+          {data.total} transaksi ditemukan
         </AppText>
       ) : null}
 
+      {/* ── List ── */}
       {isLoading ? (
         <SkeletonList count={5} />
       ) : isError ? (
         <View style={styles.centered}>
-          <AppText variant="bodySm" color={colors.danger.main}>
+          <Ionicons name="alert-circle-outline" size={32} color={colors.danger.main} />
+          <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
             Gagal memuat transaksi.
           </AppText>
           <Button
@@ -256,6 +291,7 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
           data={data?.transactions ?? []}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
+          style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -267,7 +303,7 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
           }
           ListEmptyComponent={
             <EmptyState
-              icon="💰"
+              icon="wallet-outline"
               title="Belum ada transaksi"
               description="Catat transaksi pertama untuk mulai melacak keuangan."
               actionLabel={canManage ? '+ Tambah Transaksi' : undefined}
@@ -280,6 +316,8 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -287,6 +325,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing[3],
   },
+
+  // Summary
   summaryRow: {
     flexDirection: 'row',
     gap: spacing[2],
@@ -296,13 +336,28 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing[1],
     padding: spacing[3],
+    alignItems: 'flex-start',
   },
-  summaryAmount: { fontWeight: fontWeight.semiBold },
-  searchInput: { marginBottom: spacing[2] },
+  summaryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[1],
+  },
+  summaryAmount: {
+    fontWeight: fontWeight.semiBold,
+  },
+
+  // Search & filter
+  searchInput: {
+    marginBottom: spacing[2],
+  },
   filterRow: {
     flexDirection: 'row',
     gap: spacing[2],
-    marginBottom: spacing[3],
+    marginVertical: spacing[3],
   },
   filterChip: {
     paddingHorizontal: spacing[3],
@@ -315,28 +370,67 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[500],
     borderColor: colors.primary[500],
   },
-  totalText: { marginBottom: spacing[3] },
-  listContent: { gap: spacing[3], paddingBottom: spacing[6] },
-  txCard: { gap: spacing[2] },
+  totalText: {
+    marginBottom: spacing[3],
+  },
+
+  // List
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    gap: spacing[3],
+    paddingBottom: spacing[6],
+  },
+
+  // Transaction card
+  txCard: {
+    paddingVertical: spacing[3],
+  },
   txHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  txLeft: { gap: spacing[1] },
-  txDate: { marginTop: spacing[1] },
-  txAmount: { fontWeight: fontWeight.semiBold },
-  txDesc: { color: colors.text.primary },
-  txFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing[3],
   },
+  txIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  txInfo: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  txDesc: {
+    fontWeight: fontWeight.medium,
+  },
+  txRight: {
+    alignItems: 'flex-end',
+    gap: spacing[1],
+  },
+  txAmount: {
+    fontWeight: fontWeight.semiBold,
+  },
+  txMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+
+  // States
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing[10],
+    gap: spacing[2],
   },
-  retryButton: { marginTop: spacing[2] },
+  errorText: {
+    marginTop: spacing[1],
+  },
+  retryButton: {
+    marginTop: spacing[1],
+  },
 });

@@ -1,89 +1,36 @@
-import React, { useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  SectionList,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  RefreshControl,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
-import { Card } from '@presentation/components/Card';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
 import { SkeletonList } from '@presentation/components/Skeleton';
 import { EmptyState } from '@presentation/components/EmptyState';
-import { colors, spacing, fontWeight } from '@presentation/theme';
+import { colors, spacing } from '@presentation/theme';
 import { useEventsQuery } from '@hooks/events/useEventsQuery';
 import { useDeleteEventMutation } from '@hooks/events/useDeleteEventMutation';
 import { useAppSelector } from '@store/hooks';
-import type { Event } from '@core/domain/entities/Event';
+import type { Event, EventStatus } from '@core/domain/entities/Event';
 import type { EventsStackParamList } from '@app/navigation/EventsNavigator';
+import { EventTimelineCard } from './timeline/EventTimelineCard';
+import { EventTimelineSectionHeader } from './timeline/EventTimelineSectionHeader';
 
 type Props = NativeStackScreenProps<EventsStackParamList, 'EventList'>;
 
-const formatDate = (date: Date): string =>
-  date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+// ─── Section order ────────────────────────────────────────────────────────────
 
-interface EventCardProps {
-  event: Event;
-  canManage: boolean;
-  onPress: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}
+const SECTION_ORDER: EventStatus[] = ['ONGOING', 'UPCOMING', 'DONE'];
 
-const EventCard: React.FC<EventCardProps> = ({ event, canManage, onPress, onEdit, onDelete }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-    <Card style={styles.eventCard}>
-      <View style={styles.cardHeader}>
-        <AppText variant="bodyMd" style={styles.eventTitle} numberOfLines={2}>
-          {event.title}
-        </AppText>
-        {canManage ? (
-          <View style={styles.cardActions}>
-            <TouchableOpacity
-              onPress={e => {
-                e.stopPropagation();
-                onEdit();
-              }}
-              activeOpacity={0.7}
-            >
-              <AppText variant="bodySm" color={colors.primary[500]}>
-                Edit
-              </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={e => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              activeOpacity={0.7}
-            >
-              <AppText variant="bodySm" color={colors.danger.main}>
-                Hapus
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.dateRow}>
-        <AppText variant="bodySm" color={colors.primary[500]}>
-          {formatDate(event.startDate)}
-          {event.endDate ? ` — ${formatDate(event.endDate)}` : ''}
-        </AppText>
-      </View>
-
-      {event.location ? (
-        <AppText variant="bodySm" color={colors.text.secondary} numberOfLines={1}>
-          📍 {event.location}
-        </AppText>
-      ) : null}
-
-      {event.description ? (
-        <AppText variant="bodySm" color={colors.text.secondary} numberOfLines={2}>
-          {event.description}
-        </AppText>
-      ) : null}
-    </Card>
-  </TouchableOpacity>
-);
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export const EventListScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
@@ -92,26 +39,22 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
 
   const { data, isLoading, isError, refetch, isFetching } = useEventsQuery({
     search: search.trim() || undefined,
-    limit: 50,
+    limit: 100,
   });
 
   const { mutate: deleteEvent } = useDeleteEventMutation();
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
   const handlePress = useCallback(
-    (event: Event) => {
-      navigation.navigate('EventDetail', { eventId: event.id });
-    },
+    (event: Event) => navigation.navigate('EventDetail', { eventId: event.id }),
     [navigation],
   );
 
-  const handleCreate = useCallback(() => {
-    navigation.navigate('CreateEvent');
-  }, [navigation]);
+  const handleCreate = useCallback(() => navigation.navigate('CreateEvent'), [navigation]);
 
   const handleEdit = useCallback(
-    (event: Event) => {
-      navigation.navigate('EditEvent', { eventId: event.id });
-    },
+    (event: Event) => navigation.navigate('EditEvent', { eventId: event.id }),
     [navigation],
   );
 
@@ -125,48 +68,86 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
     [deleteEvent],
   );
 
-  const renderEvent = useCallback(
+  // ── Build sections ────────────────────────────────────────────────────────
+
+  const sections = useMemo(() => {
+    const events = data?.events ?? [];
+
+    const grouped: Record<EventStatus, Event[]> = {
+      ONGOING: [],
+      UPCOMING: [],
+      DONE: [],
+    };
+
+    for (const event of events) {
+      grouped[event.status].push(event);
+    }
+
+    // Sort UPCOMING ascending (soonest first), DONE descending (most recent first)
+    grouped.UPCOMING.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+    grouped.DONE.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+    grouped.ONGOING.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+
+    return SECTION_ORDER.filter(status => grouped[status].length > 0).map(status => ({
+      status,
+      data: grouped[status],
+    }));
+  }, [data?.events]);
+
+  // ── Render helpers ────────────────────────────────────────────────────────
+
+  const renderItem = useCallback(
     ({ item }: { item: Event }) => (
-      <EventCard
-        event={item}
-        canManage={canManage}
-        onPress={() => handlePress(item)}
-        onEdit={() => handleEdit(item)}
-        onDelete={() => handleDelete(item)}
-      />
+      <View style={styles.cardWrapper}>
+        <EventTimelineCard
+          event={item}
+          canManage={canManage}
+          onPress={() => handlePress(item)}
+          onEdit={() => handleEdit(item)}
+          onDelete={() => handleDelete(item)}
+        />
+      </View>
     ),
     [canManage, handlePress, handleEdit, handleDelete],
   );
 
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: { status: EventStatus; data: Event[] } }) => (
+      <EventTimelineSectionHeader status={section.status} count={section.data.length} />
+    ),
+    [],
+  );
+
   const keyExtractor = useCallback((item: Event) => item.id, []);
 
-  return (
-    <Screen padded>
-      <View style={styles.header}>
-        <AppText variant="h3">Acara</AppText>
-        {canManage ? (
-          <Button label="+ Buat" variant="primary" size="sm" onPress={handleCreate} />
-        ) : null}
-      </View>
+  // ── Render states ─────────────────────────────────────────────────────────
 
-      <Input
-        placeholder="Cari acara..."
-        value={search}
-        onChangeText={setSearch}
-        style={styles.searchInput}
-      />
-
-      {!isLoading && !isError && data ? (
-        <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.total} acara
-        </AppText>
-      ) : null}
-
-      {isLoading ? (
+  if (isLoading) {
+    return (
+      <Screen padded edges={['top']} tabScreen>
+        <View style={styles.header}>
+          <AppText variant="h3">Acara</AppText>
+        </View>
+        <View style={styles.searchWrapper}>
+          <Input placeholder="Cari acara." value={search} onChangeText={setSearch} />
+        </View>
         <SkeletonList count={5} />
-      ) : isError ? (
+      </Screen>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Screen padded edges={['top']} tabScreen>
+        <View style={styles.header}>
+          <AppText variant="h3">Acara</AppText>
+          {canManage ? (
+            <Button label="+ Buat" variant="primary" size="sm" onPress={handleCreate} />
+          ) : null}
+        </View>
         <View style={styles.centered}>
-          <AppText variant="bodySm" color={colors.danger.main}>
+          <Ionicons name="alert-circle-outline" size={32} color={colors.danger.main} />
+          <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
             Gagal memuat acara.
           </AppText>
           <Button
@@ -177,60 +158,108 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.retryButton}
           />
         </View>
-      ) : (
-        <FlatList
-          data={data?.events ?? []}
-          keyExtractor={keyExtractor}
-          renderItem={renderEvent}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={() => void refetch()}
-              tintColor={colors.primary[500]}
-            />
-          }
-          ListEmptyComponent={
-            <EmptyState
-              icon="📅"
-              title="Belum ada acara"
-              description="Buat acara pertama untuk tim Anda."
-              actionLabel={canManage ? '+ Buat Acara' : undefined}
-              onAction={canManage ? handleCreate : undefined}
-            />
-          }
-        />
-      )}
+      </Screen>
+    );
+  }
+
+  // ── Main render ───────────────────────────────────────────────────────────
+
+  return (
+    <Screen padded={false} edges={['top']} tabScreen>
+      {/* ── Header ── */}
+      <View style={styles.header}>
+        <AppText variant="h3">Acara</AppText>
+        {canManage ? (
+          <Button label="+ Buat" variant="primary" size="sm" onPress={handleCreate} />
+        ) : null}
+      </View>
+
+      {/* ── Search ── */}
+      <View style={styles.searchWrapper}>
+        <Input placeholder="Cari acara." value={search} onChangeText={setSearch} />
+      </View>
+
+      {/* ── Total ── */}
+      {data ? (
+        <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
+          {data.total} acara ditemukan
+        </AppText>
+      ) : null}
+
+      {/* ── Timeline ── */}
+      <SectionList
+        sections={sections}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={() => void refetch()}
+            tintColor={colors.primary[500]}
+          />
+        }
+        ListEmptyComponent={
+          <EmptyState
+            icon="calendar-outline"
+            title="Belum ada acara"
+            description="Buat acara pertama untuk tim Anda."
+            actionLabel={canManage ? '+ Buat Acara' : undefined}
+            onAction={canManage ? handleCreate : undefined}
+          />
+        }
+      />
     </Screen>
   );
 };
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[3],
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[2],
   },
-  searchInput: { marginBottom: spacing[2] },
-  totalText: { marginBottom: spacing[3] },
-  listContent: { gap: spacing[3], paddingBottom: spacing[6] },
-  eventCard: { gap: spacing[2] },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing[2],
+  searchWrapper: {
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[1],
   },
-  eventTitle: { flex: 1, fontWeight: fontWeight.semiBold },
-  cardActions: { flexDirection: 'row', gap: spacing[3] },
-  dateRow: { flexDirection: 'row' },
+  totalText: {
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[1],
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: spacing[6],
+    flexGrow: 1,
+  },
+  cardWrapper: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[1],
+  },
+
+  // Error / loading states
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing[10],
+    gap: spacing[2],
   },
-  retryButton: { marginTop: spacing[2] },
+  errorText: {
+    marginTop: spacing[1],
+  },
+  retryButton: {
+    marginTop: spacing[1],
+  },
 });

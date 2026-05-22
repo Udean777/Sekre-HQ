@@ -47,6 +47,24 @@ func (r *taskRepository) GetByID(ctx context.Context, orgID, taskID uuid.UUID) (
 	return mapper.TaskToEntity(&model), nil
 }
 
+func (r *taskRepository) GetByIDWithAssignee(ctx context.Context, orgID, taskID uuid.UUID) (*entity.TaskWithAssignee, error) {
+	var model models.Task
+	err := dbFor(ctx, r.db).
+		Preload("Assignee").
+		Where("id = ? AND organization_id = ?", taskID, orgID).
+		First(&model).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrTaskNotFound
+		}
+		return nil, domainerrors.Internal("get task with assignee", err)
+	}
+	return &entity.TaskWithAssignee{
+		Task:     *mapper.TaskToEntity(&model),
+		Assignee: mapper.UserToEntity(model.Assignee),
+	}, nil
+}
+
 func (r *taskRepository) List(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.Task, error) {
 	var models []models.Task
 	err := dbFor(ctx, r.db).
@@ -99,6 +117,9 @@ func (r *taskRepository) ListFiltered(ctx context.Context, orgID uuid.UUID, filt
 	if filters.Status != nil {
 		query = query.Where("status = ?", *filters.Status)
 	}
+	if filters.Search != nil && *filters.Search != "" {
+		query = query.Where("title ILIKE ?", "%"+*filters.Search+"%")
+	}
 
 	var rows []models.Task
 	if err := query.Order("created_at DESC").Find(&rows).Error; err != nil {
@@ -130,6 +151,9 @@ func (r *taskRepository) ListFilteredPaginated(ctx context.Context, orgID uuid.U
 	if filters.Status != nil {
 		baseQuery = baseQuery.Where("status = ?", *filters.Status)
 	}
+	if filters.Search != nil && *filters.Search != "" {
+		baseQuery = baseQuery.Where("title ILIKE ?", "%"+*filters.Search+"%")
+	}
 
 	// Get total count
 	var totalCount int64
@@ -150,6 +174,9 @@ func (r *taskRepository) ListFilteredPaginated(ctx context.Context, orgID uuid.U
 	}
 	if filters.Status != nil {
 		query = query.Where("status = ?", *filters.Status)
+	}
+	if filters.Search != nil && *filters.Search != "" {
+		query = query.Where("title ILIKE ?", "%"+*filters.Search+"%")
 	}
 
 	var rows []models.Task

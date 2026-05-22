@@ -7,12 +7,12 @@ import type {
 import type { Event, EventId, EventFilter, EventListResult } from '@core/domain/entities/Event';
 import { ENDPOINTS } from '@data/http/endpoints';
 import type {
-  EventDTO,
   EventListResponseDTO,
+  EventResponseDTO,
   CreateEventRequestDTO,
   UpdateEventRequestDTO,
 } from '@data/dto/event.dto';
-import { mapEventDTOToEntity, mapEventListDTOToResult } from '@data/mappers/event.mapper';
+import { mapEventListDTOToResult, mapEventResponseDTOToEntity } from '@data/mappers/event.mapper';
 
 export class EventRepositoryImpl implements IEventRepository {
   constructor(private readonly http: AxiosInstance) {}
@@ -28,8 +28,8 @@ export class EventRepositoryImpl implements IEventRepository {
   }
 
   async getEventById(id: EventId): Promise<Event> {
-    const { data } = await this.http.get<EventDTO>(ENDPOINTS.EVENTS.DETAIL(id));
-    return mapEventDTOToEntity(data);
+    const { data } = await this.http.get<EventResponseDTO>(ENDPOINTS.EVENTS.DETAIL(id));
+    return mapEventResponseDTOToEntity(data);
   }
 
   async createEvent(params: CreateEventParams): Promise<Event> {
@@ -40,8 +40,8 @@ export class EventRepositoryImpl implements IEventRepository {
       ...(params.location !== undefined && { location: params.location }),
       ...(params.endDate !== undefined && { end_date: params.endDate }),
     };
-    const { data } = await this.http.post<EventDTO>(ENDPOINTS.EVENTS.CREATE, payload);
-    return mapEventDTOToEntity(data);
+    const { data } = await this.http.post<EventResponseDTO>(ENDPOINTS.EVENTS.CREATE, payload);
+    return mapEventResponseDTOToEntity(data);
   }
 
   async updateEvent(id: EventId, params: UpdateEventParams): Promise<Event> {
@@ -52,8 +52,8 @@ export class EventRepositoryImpl implements IEventRepository {
       ...(params.startDate !== undefined && { start_date: params.startDate }),
       ...(params.endDate !== undefined && { end_date: params.endDate }),
     };
-    const { data } = await this.http.put<EventDTO>(ENDPOINTS.EVENTS.UPDATE(id), payload);
-    return mapEventDTOToEntity(data);
+    const { data } = await this.http.put<EventResponseDTO>(ENDPOINTS.EVENTS.UPDATE(id), payload);
+    return mapEventResponseDTOToEntity(data);
   }
 
   async deleteEvent(id: EventId): Promise<void> {

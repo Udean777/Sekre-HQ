@@ -499,6 +499,74 @@ func (_c *DivisionUsecase_ListPaginated_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
+// ListPaginatedFiltered provides a mock function with given fields: ctx, orgID, search, pagination
+func (_m *DivisionUsecase) ListPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.Division, int, error) {
+	ret := _m.Called(ctx, orgID, search, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPaginatedFiltered")
+	}
+
+	var r0 []entity.Division
+	var r1 int
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string, types.PaginationParams) ([]entity.Division, int, error)); ok {
+		return rf(ctx, orgID, search, pagination)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string, types.PaginationParams) []entity.Division); ok {
+		r0 = rf(ctx, orgID, search, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.Division)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, *string, types.PaginationParams) int); ok {
+		r1 = rf(ctx, orgID, search, pagination)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID, *string, types.PaginationParams) error); ok {
+		r2 = rf(ctx, orgID, search, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// DivisionUsecase_ListPaginatedFiltered_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPaginatedFiltered'
+type DivisionUsecase_ListPaginatedFiltered_Call struct {
+	*mock.Call
+}
+
+// ListPaginatedFiltered is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - search *string
+//   - pagination types.PaginationParams
+func (_e *DivisionUsecase_Expecter) ListPaginatedFiltered(ctx interface{}, orgID interface{}, search interface{}, pagination interface{}) *DivisionUsecase_ListPaginatedFiltered_Call {
+	return &DivisionUsecase_ListPaginatedFiltered_Call{Call: _e.mock.On("ListPaginatedFiltered", ctx, orgID, search, pagination)}
+}
+
+func (_c *DivisionUsecase_ListPaginatedFiltered_Call) Run(run func(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams)) *DivisionUsecase_ListPaginatedFiltered_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(*string), args[3].(types.PaginationParams))
+	})
+	return _c
+}
+
+func (_c *DivisionUsecase_ListPaginatedFiltered_Call) Return(_a0 []entity.Division, _a1 int, _a2 error) *DivisionUsecase_ListPaginatedFiltered_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *DivisionUsecase_ListPaginatedFiltered_Call) RunAndReturn(run func(context.Context, uuid.UUID, *string, types.PaginationParams) ([]entity.Division, int, error)) *DivisionUsecase_ListPaginatedFiltered_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RemoveMember provides a mock function with given fields: ctx, orgID, divisionID, userID
 func (_m *DivisionUsecase) RemoveMember(ctx context.Context, orgID uuid.UUID, divisionID uuid.UUID, userID uuid.UUID) error {
 	ret := _m.Called(ctx, orgID, divisionID, userID)

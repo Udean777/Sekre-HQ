@@ -1,5 +1,8 @@
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { DivisionListScreen } from '@presentation/screens/divisions/DivisionListScreen';
 import { DivisionDetailScreen } from '@presentation/screens/divisions/DivisionDetailScreen';
 import { CreateDivisionScreen } from '@presentation/screens/divisions/CreateDivisionScreen';
@@ -15,6 +18,18 @@ export type DivisionsStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<DivisionsStackParamList>();
+
+const BackButton: React.FC = () => {
+  const navigation = useNavigation();
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.goBack()}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
+      <Ionicons name="chevron-back" size={24} color={colors.primary[500]} />
+    </TouchableOpacity>
+  );
+};
 
 export const DivisionsNavigator: React.FC = () => {
   return (
@@ -32,7 +47,7 @@ export const DivisionsNavigator: React.FC = () => {
       <Stack.Screen
         name="DivisionList"
         component={DivisionListScreen}
-        options={{ headerShown: false }}
+        options={{ title: 'Divisi', headerLeft: () => <BackButton /> }}
       />
       <Stack.Screen
         name="DivisionDetail"

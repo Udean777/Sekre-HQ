@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Input } from '@presentation/components/Input';
@@ -20,7 +28,7 @@ export const EditDivisionScreen: React.FC<Props> = ({ navigation, route }) => {
   const { divisionId } = route.params;
   const [globalError, setGlobalError] = useState<string | null>(null);
 
-  const { data: division } = useDivisionQuery(divisionId);
+  const { data: division, isLoading } = useDivisionQuery(divisionId);
   const { mutate: updateDivision, isPending } = useUpdateDivisionMutation();
 
   const {
@@ -29,12 +37,7 @@ export const EditDivisionScreen: React.FC<Props> = ({ navigation, route }) => {
     formState: { errors },
   } = useForm<DivisionFormValues>({
     resolver: zodResolver(divisionSchema),
-    values: division
-      ? {
-          name: division.name,
-          description: division.description ?? '',
-        }
-      : undefined,
+    values: division ? { name: division.name, description: division.description ?? '' } : undefined,
   });
 
   const onSubmit = (values: DivisionFormValues): void => {
@@ -50,15 +53,24 @@ export const EditDivisionScreen: React.FC<Props> = ({ navigation, route }) => {
       {
         onSuccess: () => navigation.goBack(),
         onError: (error: Error) => {
-          if (isDomainError(error)) {
-            setGlobalError(error.message);
-          } else {
-            setGlobalError('Terjadi kesalahan. Coba lagi nanti.');
-          }
+          setGlobalError(
+            isDomainError(error) ? error.message : 'Terjadi kesalahan. Coba lagi nanti.',
+          );
         },
       },
     );
   };
+
+  // ── Loading data divisi ──
+  if (isLoading) {
+    return (
+      <Screen>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary[500]} />
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -71,18 +83,30 @@ export const EditDivisionScreen: React.FC<Props> = ({ navigation, route }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <AppText variant="h3" style={styles.title}>
-            Edit Divisi
-          </AppText>
+          {/* ── Header ── */}
+          <View style={styles.header}>
+            <View style={styles.headerIcon}>
+              <Ionicons name="pencil-outline" size={28} color={colors.primary[500]} />
+            </View>
+            <AppText variant="h3">Edit Divisi</AppText>
+            {division ? (
+              <AppText variant="bodyMd" color={colors.text.secondary} style={styles.subtitle}>
+                {division.name}
+              </AppText>
+            ) : null}
+          </View>
 
+          {/* ── Error banner ── */}
           {globalError ? (
             <View style={styles.errorBanner}>
-              <AppText variant="bodySm" color={colors.danger.main}>
+              <Ionicons name="alert-circle-outline" size={16} color={colors.danger.main} />
+              <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
                 {globalError}
               </AppText>
             </View>
           ) : null}
 
+          {/* ── Form ── */}
           <View style={styles.form}>
             <Controller
               control={control}
@@ -106,7 +130,7 @@ export const EditDivisionScreen: React.FC<Props> = ({ navigation, route }) => {
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
                   label="Deskripsi (opsional)"
-                  placeholder="Masukkan deskripsi divisi"
+                  placeholder="Jelaskan tujuan dan fungsi divisi ini"
                   multiline
                   numberOfLines={3}
                   value={value}
@@ -118,6 +142,7 @@ export const EditDivisionScreen: React.FC<Props> = ({ navigation, route }) => {
             />
           </View>
 
+          {/* ── Actions ── */}
           <Button
             label="Simpan Perubahan"
             variant="primary"
@@ -126,7 +151,6 @@ export const EditDivisionScreen: React.FC<Props> = ({ navigation, route }) => {
             loading={isPending}
             onPress={handleSubmit(onSubmit)}
           />
-
           <Button
             label="Batal"
             variant="ghost"
@@ -141,22 +165,65 @@ export const EditDivisionScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  keyboardView: { flex: 1 },
+  keyboardView: {
+    flex: 1,
+  },
   scrollContent: {
     padding: spacing[4],
     paddingBottom: spacing[10],
   },
-  title: { marginBottom: spacing[5] },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Header
+  header: {
+    alignItems: 'center',
+    gap: spacing[2],
+    marginBottom: spacing[6],
+    marginTop: spacing[2],
+  },
+  headerIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[1],
+  },
+  subtitle: {
+    textAlign: 'center',
+    color: colors.text.secondary,
+  },
+
+  // Error
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
     backgroundColor: colors.danger.light,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: spacing[3],
     marginBottom: spacing[4],
   },
+  errorText: {
+    flex: 1,
+  },
+
+  // Form
   form: {
     gap: spacing[4],
     marginBottom: spacing[6],
   },
-  cancelButton: { marginTop: spacing[2] },
+
+  // Actions
+  cancelButton: {
+    marginTop: spacing[2],
+  },
 });

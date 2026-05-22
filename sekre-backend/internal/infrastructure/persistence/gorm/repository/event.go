@@ -65,6 +65,10 @@ func (r *eventRepository) List(ctx context.Context, orgID, divisionID uuid.UUID)
 }
 
 func (r *eventRepository) ListPaginated(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, pagination types.PaginationParams) ([]entity.Event, int, error) {
+	return r.ListPaginatedFiltered(ctx, orgID, divisionID, nil, pagination)
+}
+
+func (r *eventRepository) ListPaginatedFiltered(ctx context.Context, orgID uuid.UUID, divisionID *uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.Event, int, error) {
 	// Build base query
 	baseQuery := dbFor(ctx, r.db).
 		Model(&models.Event{}).
@@ -72,6 +76,9 @@ func (r *eventRepository) ListPaginated(ctx context.Context, orgID uuid.UUID, di
 
 	if divisionID != nil {
 		baseQuery = baseQuery.Where("division_id = ?", *divisionID)
+	}
+	if search != nil && *search != "" {
+		baseQuery = baseQuery.Where("title ILIKE ?", "%"+*search+"%")
 	}
 
 	// Get total count
@@ -86,6 +93,9 @@ func (r *eventRepository) ListPaginated(ctx context.Context, orgID uuid.UUID, di
 
 	if divisionID != nil {
 		query = query.Where("division_id = ?", *divisionID)
+	}
+	if search != nil && *search != "" {
+		query = query.Where("title ILIKE ?", "%"+*search+"%")
 	}
 
 	var models []models.Event

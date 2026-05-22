@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/entity"
+	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/internal/test/mocks"
 )
@@ -98,15 +98,17 @@ func TestTaskUsecase_GetByID_Success(t *testing.T) {
 	orgID := uuid.New()
 	taskID := uuid.New()
 
-	expectedTask := &entity.Task{
-		ID:             taskID,
-		OrganizationID: orgID,
-		Title:          "Test Task",
-		Status:         types.TaskStatusTodo,
+	expectedTask := &entity.TaskWithAssignee{
+		Task: entity.Task{
+			ID:             taskID,
+			OrganizationID: orgID,
+			Title:          "Test Task",
+			Status:         types.TaskStatusTodo,
+		},
 	}
 
 	repo.EXPECT().
-		GetByID(ctx, orgID, taskID).
+		GetByIDWithAssignee(ctx, orgID, taskID).
 		Return(expectedTask, nil).
 		Once()
 
@@ -132,7 +134,7 @@ func TestTaskUsecase_GetByID_NotFound(t *testing.T) {
 	taskID := uuid.New()
 
 	repo.EXPECT().
-		GetByID(ctx, orgID, taskID).
+		GetByIDWithAssignee(ctx, orgID, taskID).
 		Return(nil, domainerrors.ErrTaskNotFound).
 		Once()
 

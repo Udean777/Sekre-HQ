@@ -13,6 +13,7 @@ import (
 type MemberUsecase interface {
 	ListMembers(ctx context.Context, orgID uuid.UUID) ([]entity.UserWithOrgRole, error)
 	ListMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
+	ListMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
 	UpdateMemberRole(ctx context.Context, orgID, userID uuid.UUID, role string) error
 	RemoveMember(ctx context.Context, orgID, userID uuid.UUID) error
 }
@@ -44,7 +45,17 @@ func (u *memberUsecase) ListMembersPaginated(ctx context.Context, orgID uuid.UUI
 	if err != nil {
 		return nil, 0, err
 	}
+	if members == nil {
+		return []entity.UserWithOrgRole{}, 0, nil
+	}
+	return members, total, nil
+}
 
+func (u *memberUsecase) ListMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+	members, total, err := u.memberRepo.GetOrganizationMembersPaginatedFiltered(ctx, orgID, search, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
 	if members == nil {
 		return []entity.UserWithOrgRole{}, 0, nil
 	}

@@ -32,4 +32,5 @@ type TaskFilters struct {
 	DivisionID *uuid.UUID
 	AssigneeID *uuid.UUID
 	Status     *string
+	Search     *string
 }

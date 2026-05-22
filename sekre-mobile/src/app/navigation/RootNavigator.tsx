@@ -5,6 +5,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import BootSplash from 'react-native-bootsplash';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
+import { MembersNavigator } from './MembersNavigator';
+import { DivisionsNavigator } from './DivisionsNavigator';
 import { useAppSelector, useAppDispatch } from '@store/hooks';
 import { clearSession } from '@store/slices/authSlice';
 import { tokenStorage } from '@data/storage/MmkvTokenStorage';
@@ -14,6 +16,8 @@ import { colors } from '@presentation/theme';
 export type RootStackParamList = {
   Auth: undefined;
   App: undefined;
+  Members: undefined;
+  Divisions: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -51,11 +55,15 @@ export const RootNavigator: React.FC = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         {isAuthenticated ? (
-          <Stack.Screen name="App" component={AppNavigator} />
+          <>
+            <Stack.Screen name="App" component={AppNavigator} options={{ animation: 'fade' }} />
+            <Stack.Screen name="Members" component={MembersNavigator} />
+            <Stack.Screen name="Divisions" component={DivisionsNavigator} />
+          </>
         ) : (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
+          <Stack.Screen name="Auth" component={AuthNavigator} options={{ animation: 'fade' }} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

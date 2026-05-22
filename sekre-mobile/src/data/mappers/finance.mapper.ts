@@ -8,6 +8,7 @@ import type {
 import type {
   TransactionDTO,
   TransactionListResponseDTO,
+  FinanceSummaryResponseDTO,
   FinanceSummaryDTO,
   MoneyDTO,
 } from '@data/dto/finance.dto';
@@ -36,13 +37,16 @@ export const mapTransactionDTOToEntity = (dto: TransactionDTO): Transaction => (
 export const mapTransactionListDTOToResult = (
   dto: TransactionListResponseDTO,
 ): TransactionListResult => ({
-  transactions: dto.data.map(mapTransactionDTOToEntity),
-  total: dto.pagination.total,
-  page: dto.pagination.page,
-  pageSize: dto.pagination.page_size,
+  transactions: dto.data.data.map(mapTransactionDTOToEntity),
+  total: dto.data.pagination.total_items,
+  page: dto.data.pagination.page,
+  pageSize: dto.data.pagination.page_size,
 });
 
-export const mapFinanceSummaryDTOToEntity = (dto: FinanceSummaryDTO): FinanceSummary => ({
+export const mapFinanceSummaryDTOToEntity = (dto: FinanceSummaryResponseDTO): FinanceSummary =>
+  mapFinanceSummaryDataToEntity(dto.data);
+
+export const mapFinanceSummaryDataToEntity = (dto: FinanceSummaryDTO): FinanceSummary => ({
   totalIncome: mapMoneyDTOToEntity(dto.total_income),
   totalExpense: mapMoneyDTOToEntity(dto.total_expense),
   balance: mapMoneyDTOToEntity(dto.balance),

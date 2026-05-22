@@ -28,17 +28,17 @@ export const mapOrganizationDTOToEntity = (dto: OrganizationDTO): Organization =
 });
 
 export const mapAuthSessionDTOToEntity = (dto: AuthSessionDTO): AuthSession => ({
-  accessToken: dto.access_token,
-  refreshToken: dto.refresh_token,
-  user: mapUserDTOToEntity(dto.user),
-  organization: mapOrganizationDTOToEntity(dto.organization),
-  role: dto.role as OrgRole,
+  accessToken: dto.data.tokens.access_token,
+  refreshToken: dto.data.tokens.refresh_token,
+  user: mapUserDTOToEntity(dto.data.user),
+  organization: mapOrganizationDTOToEntity(dto.data.organization),
+  role: dto.data.role as OrgRole,
 });
 
 export const mapGetMeResponseDTO = (
   dto: GetMeResponseDTO,
 ): Pick<AuthSession, 'user' | 'organization' | 'role'> => ({
-  user: mapUserDTOToEntity(dto.user),
-  organization: mapOrganizationDTOToEntity(dto.organization),
-  role: dto.role as OrgRole,
+  user: mapUserDTOToEntity(dto.data.user),
+  organization: mapOrganizationDTOToEntity(dto.data.organization),
+  role: dto.data.role as OrgRole,
 });

@@ -152,6 +152,74 @@ func (_c *MemberUsecase_ListMembersPaginated_Call) RunAndReturn(run func(context
 	return _c
 }
 
+// ListMembersPaginatedFiltered provides a mock function with given fields: ctx, orgID, search, pagination
+func (_m *MemberUsecase) ListMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+	ret := _m.Called(ctx, orgID, search, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListMembersPaginatedFiltered")
+	}
+
+	var r0 []entity.UserWithOrgRole
+	var r1 int
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string, types.PaginationParams) ([]entity.UserWithOrgRole, int, error)); ok {
+		return rf(ctx, orgID, search, pagination)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string, types.PaginationParams) []entity.UserWithOrgRole); ok {
+		r0 = rf(ctx, orgID, search, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.UserWithOrgRole)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, *string, types.PaginationParams) int); ok {
+		r1 = rf(ctx, orgID, search, pagination)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID, *string, types.PaginationParams) error); ok {
+		r2 = rf(ctx, orgID, search, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// MemberUsecase_ListMembersPaginatedFiltered_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListMembersPaginatedFiltered'
+type MemberUsecase_ListMembersPaginatedFiltered_Call struct {
+	*mock.Call
+}
+
+// ListMembersPaginatedFiltered is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - search *string
+//   - pagination types.PaginationParams
+func (_e *MemberUsecase_Expecter) ListMembersPaginatedFiltered(ctx interface{}, orgID interface{}, search interface{}, pagination interface{}) *MemberUsecase_ListMembersPaginatedFiltered_Call {
+	return &MemberUsecase_ListMembersPaginatedFiltered_Call{Call: _e.mock.On("ListMembersPaginatedFiltered", ctx, orgID, search, pagination)}
+}
+
+func (_c *MemberUsecase_ListMembersPaginatedFiltered_Call) Run(run func(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams)) *MemberUsecase_ListMembersPaginatedFiltered_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(*string), args[3].(types.PaginationParams))
+	})
+	return _c
+}
+
+func (_c *MemberUsecase_ListMembersPaginatedFiltered_Call) Return(_a0 []entity.UserWithOrgRole, _a1 int, _a2 error) *MemberUsecase_ListMembersPaginatedFiltered_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *MemberUsecase_ListMembersPaginatedFiltered_Call) RunAndReturn(run func(context.Context, uuid.UUID, *string, types.PaginationParams) ([]entity.UserWithOrgRole, int, error)) *MemberUsecase_ListMembersPaginatedFiltered_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RemoveMember provides a mock function with given fields: ctx, orgID, userID
 func (_m *MemberUsecase) RemoveMember(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) error {
 	ret := _m.Called(ctx, orgID, userID)

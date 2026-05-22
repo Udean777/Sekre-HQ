@@ -1,160 +1,65 @@
-import React, { useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
-import { Card } from '@presentation/components/Card';
-import { Badge, taskStatusVariant, taskPriorityVariant } from '@presentation/components/Badge';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
 import { SkeletonList } from '@presentation/components/Skeleton';
-import { EmptyState } from '@presentation/components/EmptyState';
-import { colors, spacing, fontWeight, fontSize } from '@presentation/theme';
+import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useTasksQuery } from '@hooks/tasks/useTasksQuery';
-import type { Task, TaskStatus, TaskPriority } from '@core/domain/entities/Task';
+import { useUpdateTaskStatusMutation } from '@hooks/tasks/useUpdateTaskStatusMutation';
+import { useAppSelector } from '@store/hooks';
+import type { Task, TaskId, TaskStatus } from '@core/domain/entities/Task';
 import type { TasksStackParamList } from '@app/navigation/TasksNavigator';
+import { KanbanBoard } from './kanban/KanbanBoard';
 
 type Props = NativeStackScreenProps<TasksStackParamList, 'TaskList'>;
 
-const STATUS_OPTIONS: Array<{ label: string; value: TaskStatus | undefined }> = [
-  { label: 'Semua', value: undefined },
-  { label: 'Belum Mulai', value: 'TODO' },
-  { label: 'Berjalan', value: 'IN_PROGRESS' },
-  { label: 'Selesai', value: 'DONE' },
-  { label: 'Batal', value: 'CANCELLED' },
-];
-
-const STATUS_LABEL: Record<TaskStatus, string> = {
-  TODO: 'Belum Mulai',
-  IN_PROGRESS: 'Berjalan',
-  DONE: 'Selesai',
-  CANCELLED: 'Dibatalkan',
-};
-
-const PRIORITY_LABEL: Record<TaskPriority, string> = {
-  LOW: 'Rendah',
-  MEDIUM: 'Sedang',
-  HIGH: 'Tinggi',
-  URGENT: 'Mendesak',
-};
-
-interface TaskCardProps {
-  task: Task;
-  onPress: () => void;
-}
-
-const TaskCard: React.FC<TaskCardProps> = ({ task, onPress }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-    <Card style={styles.taskCard}>
-      <View style={styles.taskCardHeader}>
-        <AppText variant="bodyMd" style={styles.taskTitle} numberOfLines={2}>
-          {task.title}
-        </AppText>
-        <Badge label={PRIORITY_LABEL[task.priority]} variant={taskPriorityVariant(task.priority)} />
-      </View>
-
-      {task.description ? (
-        <AppText
-          variant="bodySm"
-          color={colors.text.secondary}
-          numberOfLines={2}
-          style={styles.taskDescription}
-        >
-          {task.description}
-        </AppText>
-      ) : null}
-
-      <View style={styles.taskCardFooter}>
-        <Badge label={STATUS_LABEL[task.status]} variant={taskStatusVariant(task.status)} />
-        <View style={styles.taskMeta}>
-          {task.assigneeName ? (
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              {task.assigneeName}
-            </AppText>
-          ) : null}
-          {task.dueDate ? (
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              {task.dueDate.toLocaleDateString('id-ID', {
-                day: 'numeric',
-                month: 'short',
-              })}
-            </AppText>
-          ) : null}
-        </View>
-      </View>
-    </Card>
-  </TouchableOpacity>
-);
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
-  const [activeStatus, setActiveStatus] = useState<TaskStatus | undefined>(undefined);
+
+  const role = useAppSelector(state => state.auth.role);
+  const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data, isLoading, isError, refetch, isFetching } = useTasksQuery({
-    status: activeStatus,
     search: search.trim() || undefined,
-    limit: 50,
+    limit: 100,
   });
 
+  const { mutate: updateStatus } = useUpdateTaskStatusMutation();
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
   const handleTaskPress = useCallback(
-    (task: Task) => {
-      navigation.navigate('TaskDetail', { taskId: task.id });
-    },
+    (task: Task) => navigation.navigate('TaskDetail', { taskId: task.id }),
     [navigation],
   );
 
-  const handleCreatePress = useCallback(() => {
-    navigation.navigate('CreateTask');
-  }, [navigation]);
+  const handleCreate = useCallback(() => navigation.navigate('CreateTask'), [navigation]);
 
-  const renderTask = useCallback(
-    ({ item }: { item: Task }) => <TaskCard task={item} onPress={() => handleTaskPress(item)} />,
-    [handleTaskPress],
+  const handleStatusChange = useCallback(
+    (taskId: TaskId, newStatus: TaskStatus) => {
+      updateStatus({ id: taskId, status: newStatus });
+    },
+    [updateStatus],
   );
 
-  const keyExtractor = useCallback((item: Task) => item.id, []);
+  // ── Render states ─────────────────────────────────────────────────────────
 
-  return (
-    <Screen padded>
-      {/* Header */}
-      <View style={styles.header}>
-        <AppText variant="h3">Tugas</AppText>
-        <Button label="+ Buat" variant="primary" size="sm" onPress={handleCreatePress} />
-      </View>
+  const renderContent = useCallback(() => {
+    if (isLoading) {
+      return <SkeletonList count={5} />;
+    }
 
-      {/* Search */}
-      <Input
-        placeholder="Cari tugas..."
-        value={search}
-        onChangeText={setSearch}
-        style={styles.searchInput}
-      />
-
-      {/* Status filter */}
-      <View style={styles.filterRow}>
-        {STATUS_OPTIONS.map(opt => (
-          <TouchableOpacity
-            key={String(opt.value)}
-            onPress={() => setActiveStatus(opt.value)}
-            style={[styles.filterChip, activeStatus === opt.value && styles.filterChipActive]}
-            activeOpacity={0.7}
-          >
-            <AppText
-              variant="bodySm"
-              color={activeStatus === opt.value ? colors.text.inverse : colors.text.secondary}
-            >
-              {opt.label}
-            </AppText>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* List */}
-      {isLoading ? (
-        <SkeletonList count={5} />
-      ) : isError ? (
+    if (isError) {
+      return (
         <View style={styles.centered}>
-          <AppText variant="bodySm" color={colors.danger.main}>
+          <Ionicons name="alert-circle-outline" size={32} color={colors.danger.main} />
+          <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
             Gagal memuat tugas.
           </AppText>
           <Button
@@ -165,13 +70,41 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.retryButton}
           />
         </View>
-      ) : (
-        <FlatList
-          data={data?.tasks ?? []}
-          keyExtractor={keyExtractor}
-          renderItem={renderTask}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+      );
+    }
+
+    return (
+      <KanbanBoard
+        tasks={data?.tasks ?? []}
+        onTaskPress={handleTaskPress}
+        onStatusChange={handleStatusChange}
+        canManage={canManage}
+      />
+    );
+  }, [isLoading, isError, data, refetch, handleTaskPress, handleStatusChange, canManage]);
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  return (
+    <Screen padded={false} edges={['top']} tabScreen>
+      {/* ── Header ── */}
+      <View style={styles.header}>
+        <AppText variant="h3">Tugas</AppText>
+        {canManage ? (
+          <Button label="+ Buat" variant="primary" size="sm" onPress={handleCreate} />
+        ) : null}
+      </View>
+
+      {/* ── Search ── */}
+      <View style={styles.searchWrapper}>
+        <Input placeholder="Cari tugas..." value={search} onChangeText={setSearch} />
+      </View>
+
+      {/* ── Pull to refresh wrapper ── */}
+      {!isLoading && !isError ? (
+        <ScrollView
+          style={styles.refreshWrapper}
+          contentContainerStyle={styles.refreshContent}
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !isLoading}
@@ -179,91 +112,54 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
               tintColor={colors.primary[500]}
             />
           }
-          ListEmptyComponent={
-            <EmptyState
-              icon="📋"
-              title="Belum ada tugas"
-              description="Buat tugas pertama untuk mulai melacak pekerjaan tim."
-              actionLabel="+ Buat Tugas"
-              onAction={handleCreatePress}
-            />
-          }
-        />
+          scrollEnabled={false}
+        >
+          {renderContent()}
+        </ScrollView>
+      ) : (
+        <View style={styles.stateWrapper}>{renderContent()}</View>
       )}
     </Screen>
   );
 };
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[3],
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[2],
   },
-  searchInput: {
-    marginBottom: spacing[3],
+  searchWrapper: {
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[3],
   },
-  filterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-    marginBottom: spacing[3],
-  },
-  filterChip: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.card,
-  },
-  filterChipActive: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  listContent: {
-    gap: spacing[3],
-    paddingBottom: spacing[6],
-  },
-  taskCard: {
-    gap: spacing[2],
-  },
-  taskCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing[2],
-  },
-  taskTitle: {
+  refreshWrapper: {
     flex: 1,
-    fontWeight: fontWeight.semiBold,
   },
-  taskDescription: {
-    marginTop: spacing[1],
+  refreshContent: {
+    flex: 1,
   },
-  taskCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing[1],
+  stateWrapper: {
+    flex: 1,
   },
-  taskMeta: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    alignItems: 'center',
-  },
+
+  // Error state
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing[10],
+    gap: spacing[2],
+  },
+  errorText: {
+    marginTop: spacing[1],
   },
   retryButton: {
-    marginTop: spacing[2],
-  },
-  statCount: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
+    marginTop: spacing[1],
   },
 });

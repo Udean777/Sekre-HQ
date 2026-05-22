@@ -22,6 +22,7 @@ import (
 	"github.com/username/sekre-backend/internal/infrastructure/auth"
 	gormRepo "github.com/username/sekre-backend/internal/infrastructure/persistence/gorm/repository"
 	sharedRepo "github.com/username/sekre-backend/internal/repository"
+	"github.com/username/sekre-backend/internal/scheduler"
 	"github.com/username/sekre-backend/pkg/audit"
 	"github.com/username/sekre-backend/pkg/database"
 	"github.com/username/sekre-backend/pkg/logger"
@@ -66,6 +67,11 @@ func main() {
 		Str("port", cfg.Database.Port).
 		Str("dbname", cfg.Database.DBName).
 		Msg("✓ Database connected successfully")
+
+	// Initialize and start scheduler
+	sched := scheduler.New(db, cfg.Scheduler)
+	sched.Start()
+	logger.Info("✓ Scheduler started")
 
 	// Initialize token manager
 	tokenManager := token.NewManager(
@@ -196,7 +202,7 @@ func main() {
 	protected.Handle("/members/create",
 		middleware.RequireAdmin()(http.HandlerFunc(memberCreationHandler.CreateMember)),
 	).Methods("POST")
-	
+
 	// Bulk import with stricter rate limiting (1 request/minute)
 	protected.Handle("/members/bulk-import",
 		middleware.RateLimit(middleware.BulkImportRateLimitConfig())(
@@ -270,21 +276,27 @@ func main() {
 			Err(err).
 			Msg("❌ Server forced to shutdown")
 		shutdownCancel()
-		
+
+		// Stop scheduler
+		sched.Stop()
+
 		// Shutdown audit service
 		auditService.Shutdown(5 * time.Second)
-		
+
 		database.Close(db)
 		os.Exit(1)
 	}
 
 	shutdownCancel()
-	
+
+	// Stop scheduler gracefully
+	sched.Stop()
+
 	// Shutdown audit service gracefully
 	if err := auditService.Shutdown(10 * time.Second); err != nil {
 		logger.Logger.Warn().Err(err).Msg("Audit service shutdown had issues")
 	}
-	
+
 	database.Close(db)
 	logger.Logger.Info().Msg("✓ Server gracefully stopped")
 }

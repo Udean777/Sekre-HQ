@@ -58,6 +58,7 @@ type UserOrganizationRepository interface {
 type MemberRepository interface {
 	GetOrganizationMembers(ctx context.Context, orgID uuid.UUID) ([]entity.UserWithOrgRole, error)
 	GetOrganizationMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
+	GetOrganizationMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
 	UpdateMemberRole(ctx context.Context, orgID, userID uuid.UUID, role types.Role) error
 	RemoveMember(ctx context.Context, orgID, userID uuid.UUID) error
 	IsMember(ctx context.Context, orgID, userID uuid.UUID) (bool, error)

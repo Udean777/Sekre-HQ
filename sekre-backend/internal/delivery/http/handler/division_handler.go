@@ -117,11 +117,17 @@ func (h *DivisionHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse optional search
+	var search *string
+	if s := r.URL.Query().Get("search"); s != "" {
+		search = &s
+	}
+
 	// Parse pagination params
 	paginationParams := pagination.ParseParams(r)
 	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
 
-	divisions, total, err := h.usecase.ListPaginated(r.Context(), orgID, domainPagination)
+	divisions, total, err := h.usecase.ListPaginatedFiltered(r.Context(), orgID, search, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return
