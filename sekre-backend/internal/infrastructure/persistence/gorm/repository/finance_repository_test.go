@@ -81,6 +81,7 @@ func TestTransactionRepository_GetSummary(t *testing.T) {
 				WithType(types.TransactionTypeIncome).
 				WithAmountCents(100000).
 				WithRequestedBy(userModel.ID).
+				WithStatus(types.TransactionStatusApproved).
 				Build()
 			require.NoError(t, tx.Create(&txModel).Error)
 		}
@@ -93,6 +94,7 @@ func TestTransactionRepository_GetSummary(t *testing.T) {
 				WithType(types.TransactionTypeExpense).
 				WithAmountCents(50000).
 				WithRequestedBy(userModel.ID).
+				WithStatus(types.TransactionStatusApproved).
 				Build()
 			require.NoError(t, tx.Create(&txModel).Error)
 		}
@@ -135,6 +137,7 @@ func TestTransactionRepository_GetSummary_ByDivision(t *testing.T) {
 			WithType(types.TransactionTypeIncome).
 			WithAmountCents(100000).
 			WithRequestedBy(userModel.ID).
+			WithStatus(types.TransactionStatusApproved).
 			Build()
 		require.NoError(t, tx.Create(&txA).Error)
 
@@ -145,6 +148,7 @@ func TestTransactionRepository_GetSummary_ByDivision(t *testing.T) {
 			WithType(types.TransactionTypeIncome).
 			WithAmountCents(200000).
 			WithRequestedBy(userModel.ID).
+			WithStatus(types.TransactionStatusApproved).
 			Build()
 		require.NoError(t, tx.Create(&txB).Error)
 

@@ -181,13 +181,14 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 	}
 
 	// Set column widths
-	colWidths := []struct{ col, width string }{
-		{"A", "25"}, {"B", "20"}, {"C", "12"}, {"D", "15"}, {"E", "15"},
+	colWidths := []struct {
+		col   string
+		width float64
+	}{
+		{"A", 25}, {"B", 20}, {"C", 12}, {"D", 15}, {"E", 15},
 	}
 	for _, cw := range colWidths {
-		w := 0.0
-		fmt.Sscanf(cw.width, "%f", &w)
-		if err := f.SetColWidth(sheetName, cw.col, cw.col, w); err != nil {
+		if err := f.SetColWidth(sheetName, cw.col, cw.col, cw.width); err != nil {
 			logger.Logger.Warn().Err(err).Str("col", cw.col).Msg("failed to set column width")
 		}
 	}
