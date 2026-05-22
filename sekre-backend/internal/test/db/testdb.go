@@ -32,7 +32,7 @@ func Shared(t *testing.T) *gorm.DB {
 	t.Helper()
 
 	sharedOnce.Do(func() {
-		sharedDB, sharedErr = startPostgresOnce(t)
+		sharedDB, sharedErr = startPostgresOnce()
 	})
 
 	if sharedErr != nil {
@@ -61,9 +61,7 @@ func RunInTx(t *testing.T, fn func(tx *gorm.DB)) {
 	fn(tx)
 }
 
-func startPostgresOnce(t *testing.T) (*gorm.DB, error) {
-	t.Helper()
-
+func startPostgresOnce() (*gorm.DB, error) {
 	ctx := context.Background()
 
 	req := testcontainers.ContainerRequest{
@@ -87,12 +85,10 @@ func startPostgresOnce(t *testing.T) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to start container: %w", err)
 	}
 
-	// Cleanup container when tests finish
-	t.Cleanup(func() {
-		if err := container.Terminate(ctx); err != nil {
-			t.Logf("failed to terminate container: %v", err)
-		}
-	})
+	// Container cleanup is handled by Ryuk (testcontainers reaper).
+	// Do NOT register t.Cleanup here — the *testing.T from the first caller
+	// would terminate the container as soon as that test finishes, killing
+	// the shared DB while other parallel tests are still running.
 
 	host, err := container.Host(ctx)
 	if err != nil {
@@ -108,13 +104,12 @@ func startPostgresOnce(t *testing.T) (*gorm.DB, error) {
 		host, port.Port())
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent), // Quiet logs in tests
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Run migrations
 	if err := runMigrations(db); err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
@@ -123,15 +118,10 @@ func startPostgresOnce(t *testing.T) (*gorm.DB, error) {
 }
 
 func runMigrations(db *gorm.DB) error {
-	// Enable UUID extension
 	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"").Error; err != nil {
 		return fmt.Errorf("failed to enable uuid extension: %w", err)
 	}
 
-	// For test environment, use GORM AutoMigrate instead of migration files
-	// This is simpler and avoids issues with RLS policies and other production-specific features
-	
-	// Import all models
 	err := db.AutoMigrate(
 		&models.User{},
 		&models.Organization{},
