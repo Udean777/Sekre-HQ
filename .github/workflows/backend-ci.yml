@@ -38,7 +38,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          version: v2.12.2
           working-directory: sekre-backend
 
   # ─────────────────────────────────────────────
@@ -61,6 +61,9 @@ jobs:
         run: make test-unit
 
       - name: Run integration tests
+        env:
+          DOCKER_HOST: unix:///var/run/docker.sock
+          TESTCONTAINERS_RYUK_DISABLED: true
         run: make test-integration
 
   # ─────────────────────────────────────────────
