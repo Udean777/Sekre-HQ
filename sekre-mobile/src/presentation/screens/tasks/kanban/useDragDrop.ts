@@ -31,14 +31,23 @@ export const useDragDrop = () => {
   const sourceColumnShared = useSharedValue('');
   const targetColumnShared = useSharedValue('');
 
+  // ── Drag origin shared values — used on UI thread during pan ─────────────
+  // These are set once at drag start and read on the UI thread in onUpdate,
+  // eliminating the need for runOnJS on every pan frame.
+  const dragOriginX = useSharedValue(0);
+  const dragOriginY = useSharedValue(0);
+  const boardOffsetYShared = useSharedValue(0);
+  const cardWidthShared = useSharedValue(0);
+
   // ── Board container offset ────────────────────────────────────────────────
-  // boardOffsetY = Y position of boardWrapper relative to screen top.
-  // Used to convert screen-absolute cardY (from measureInWindow) to
-  // container-relative Y for FloatingCard (which is absolute inside boardWrapper).
   const boardOffsetY = useRef(0);
-  const setBoardOffsetY = useCallback((y: number) => {
-    boardOffsetY.current = y;
-  }, []);
+  const setBoardOffsetY = useCallback(
+    (y: number) => {
+      boardOffsetY.current = y;
+      boardOffsetYShared.value = y;
+    },
+    [boardOffsetYShared],
+  );
 
   // ── Column layouts ────────────────────────────────────────────────────────
   const columnLayouts = useRef<ColumnLayout[]>([]);
@@ -50,6 +59,7 @@ export const useDragDrop = () => {
     ].sort((a, b) => a.x - b.x);
   }, []);
 
+  // Called from UI thread worklet — must only access shared values, not refs
   const getColumnAtX = useCallback((absoluteX: number): TaskStatus | null => {
     for (const col of columnLayouts.current) {
       if (absoluteX >= col.x && absoluteX <= col.x + col.width) {
@@ -59,7 +69,6 @@ export const useDragDrop = () => {
     return null;
   }, []);
 
-  // ── Start drag ────────────────────────────────────────────────────────────
   // ── Start drag ────────────────────────────────────────────────────────────
   const startDrag = useCallback(
     (params: {
@@ -77,8 +86,12 @@ export const useDragDrop = () => {
       cardWidthRef.current = params.cardWidth;
       cardHeightRef.current = params.cardHeight;
 
-      // Convert screen-absolute cardX/Y to container-relative for FloatingCard
-      // (FloatingCard is absolute inside boardWrapper, not screen root)
+      // Store origin for UI-thread pan updates
+      dragOriginX.value = params.cardX;
+      dragOriginY.value = params.cardY;
+      cardWidthShared.value = params.cardWidth;
+
+      // Position floating card (container-relative)
       floatingX.value = params.cardX;
       floatingY.value = params.cardY - boardOffsetY.current;
       floatingOpacity.value = 1;
@@ -90,6 +103,9 @@ export const useDragDrop = () => {
       targetColumnShared.value = params.sourceColumn;
     },
     [
+      dragOriginX,
+      dragOriginY,
+      cardWidthShared,
       floatingX,
       floatingY,
       floatingOpacity,
@@ -101,23 +117,18 @@ export const useDragDrop = () => {
     ],
   );
 
-  // ── Update drag position ──────────────────────────────────────────────────
-  // cardX/Y: new floating card top-left position (computed from translationX/Y in KanbanCard)
-  // absoluteX: finger absolute X for column detection
-  const updateDragPosition = useCallback(
-    (params: { cardX: number; cardY: number; absoluteX: number }) => {
-      floatingX.value = params.cardX;
-      floatingY.value = params.cardY - boardOffsetY.current;
-
-      // Detect target column using card center X
-      const cardCenterX = params.cardX + cardWidthRef.current / 2;
+  // ── Update drag position (JS thread fallback) ─────────────────────────────
+  // Only used for column detection — position is now updated on UI thread directly.
+  const updateTargetColumn = useCallback(
+    (absoluteX: number) => {
+      const cardCenterX = absoluteX;
       const target = getColumnAtX(cardCenterX);
       if (target && target !== targetColumnRef.current) {
         targetColumnRef.current = target;
         targetColumnShared.value = target;
       }
     },
-    [floatingX, floatingY, getColumnAtX, targetColumnShared],
+    [getColumnAtX, targetColumnShared],
   );
 
   // ── End drag ──────────────────────────────────────────────────────────────
@@ -183,6 +194,7 @@ export const useDragDrop = () => {
   );
 
   return {
+    // Shared values (UI thread)
     floatingX,
     floatingY,
     floatingOpacity,
@@ -191,12 +203,18 @@ export const useDragDrop = () => {
     draggedTaskIdShared,
     sourceColumnShared,
     targetColumnShared,
+    dragOriginX,
+    dragOriginY,
+    boardOffsetYShared,
+    cardWidthShared,
+    // Actions
     registerColumnLayout,
     getColumnAtX,
     startDrag,
-    updateDragPosition,
+    updateTargetColumn,
     endDrag,
     cancelDrag,
+    // Getters
     getIsDragging,
     getDraggedTaskId,
     getCardSize,

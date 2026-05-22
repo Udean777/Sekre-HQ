@@ -1,0 +1,121 @@
+name: Backend CD
+
+on:
+  workflow_run:
+    workflows:
+      - Backend CI
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    # Only deploy if CI passed
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Create GitHub Deployment (shows in PR/commit timeline) ──
+      - name: Create GitHub deployment
+        id: deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.workflow_run.head_sha,
+              environment: 'production',
+              description: 'Deploy sekre-backend to Render',
+              auto_merge: false,
+              required_contexts: [],
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+
+      # ── Mark deployment as in_progress ──
+      - name: Set deployment status — in progress
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+              state: 'in_progress',
+              description: 'Deploying to Render...',
+            });
+
+      # ── Trigger Render deploy hook ──
+      - name: Deploy to Render
+        id: deploy
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+          if [ "$RESPONSE" != "200" ] && [ "$RESPONSE" != "201" ]; then
+            echo "Deploy hook returned HTTP $RESPONSE"
+            exit 1
+          fi
+          echo "url=${{ secrets.RENDER_SERVICE_URL }}" >> $GITHUB_OUTPUT
+
+      # ── Mark deployment as success ──
+      - name: Set deployment status — success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+              state: 'success',
+              description: 'Deployed successfully to Render',
+              environment_url: '${{ steps.deploy.outputs.url }}',
+            });
+
+      # ── Mark deployment as failure ──
+      - name: Set deployment status — failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Deployment to Render failed',
+            });
+
+# ─────────────────────────────────────────────────────────────────
+# MIGRASI KE VPS (future)
+# ─────────────────────────────────────────────────────────────────
+# Untuk migrasi ke VPS, ganti job "deploy" di atas dengan:
+#
+#   deploy-vps:
+#     name: Deploy to VPS
+#     runs-on: ubuntu-latest
+#     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+#     steps:
+#       - name: Deploy via SSH
+#         uses: appleboy/ssh-action@v1
+#         with:
+#           host: ${{ secrets.VPS_HOST }}
+#           username: ${{ secrets.VPS_USER }}
+#           key: ${{ secrets.VPS_SSH_KEY }}
+#           script: |
+#             docker pull ghcr.io/${{ github.repository }}/sekre-backend:latest
+#             docker compose -f /opt/sekre/docker-compose.yml up -d --no-deps --force-recreate app
+#
+# Secrets yang perlu ditambahkan untuk VPS:
+#   - VPS_HOST      : IP atau domain VPS
+#   - VPS_USER      : SSH username (misal: ubuntu / deploy)
+#   - VPS_SSH_KEY   : Private key SSH
+# ─────────────────────────────────────────────────────────────────

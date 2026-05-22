@@ -1,6 +1,8 @@
 // Branded types untuk type safety
 export type EventId = string & { __brand: 'EventId' };
 
+export type EventStatus = 'UPCOMING' | 'ONGOING' | 'DONE';
+
 export interface Event {
   id: EventId;
   title: string;
@@ -8,6 +10,7 @@ export interface Event {
   location: string | null;
   startDate: Date;
   endDate: Date | null;
+  status: EventStatus;
   createdAt: Date;
   updatedAt: Date;
 }

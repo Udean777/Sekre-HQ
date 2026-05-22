@@ -44,7 +44,7 @@ const processQueue = (error: unknown, token: string | null): void => {
  * errorInterceptor mengubah error sebelum kita bisa handle.
  */
 const refreshClient = axios.create({
-  baseURL: `${Config.API_BASE_URL ?? 'http://192.168.1.4:8080'}/api/v1`,
+  baseURL: `${Config.API_BASE_URL ?? 'http://192.168.40.153:8080'}/api/v1`,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

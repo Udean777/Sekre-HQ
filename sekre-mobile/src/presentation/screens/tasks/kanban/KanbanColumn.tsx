@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet, ScrollView, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -52,114 +52,125 @@ interface KanbanColumnProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const KanbanColumn: React.FC<KanbanColumnProps> = ({
-  config,
-  tasks,
-  onTaskPress,
-  onDrop,
-  dragDrop,
-  canManage,
-  boardScrollOffsetX,
-}) => {
-  const { isDraggingShared, sourceColumnShared, targetColumnShared, registerColumnLayout } =
-    dragDrop;
-  const columnRef = useRef<View>(null);
+export const KanbanColumn: React.FC<KanbanColumnProps> = React.memo(
+  ({ config, tasks, onTaskPress, onDrop, dragDrop, canManage, boardScrollOffsetX }) => {
+    const { isDraggingShared, sourceColumnShared, targetColumnShared, registerColumnLayout } =
+      dragDrop;
+    const columnRef = useRef<View>(null);
 
-  // ── Register column layout for drop detection ─────────────────────────────
+    // ── Register column layout for drop detection ───────────────────────────
 
-  const measureAndRegister = useCallback(() => {
-    columnRef.current?.measureInWindow((x, _y, width) => {
-      if (width > 0) {
-        registerColumnLayout({ status: config.status, x, width });
-      }
+    const measureAndRegister = useCallback(() => {
+      columnRef.current?.measureInWindow((x, _y, width) => {
+        if (width > 0) {
+          registerColumnLayout({ status: config.status, x, width });
+        }
+      });
+    }, [config.status, registerColumnLayout]);
+
+    const onLayout = useCallback(
+      (_e: LayoutChangeEvent) => {
+        setTimeout(measureAndRegister, 50);
+      },
+      [measureAndRegister],
+    );
+
+    // Re-measure when board scrolls (columns shift in screen space)
+    useEffect(() => {
+      measureAndRegister();
+    }, [boardScrollOffsetX, measureAndRegister]);
+
+    // ── Drop zone highlight ─────────────────────────────────────────────────
+
+    const dropZoneStyle = useAnimatedStyle(() => {
+      const isTarget =
+        isDraggingShared.value &&
+        targetColumnShared.value === config.status &&
+        sourceColumnShared.value !== config.status;
+
+      return {
+        borderColor: withTiming(isTarget ? colors.primary[500] : colors.border.default, {
+          duration: 150,
+        }),
+        backgroundColor: withTiming(isTarget ? colors.primary[50] : colors.surface.background, {
+          duration: 150,
+        }),
+      };
     });
-  }, [config.status, registerColumnLayout]);
 
-  const onLayout = useCallback(
-    (_e: LayoutChangeEvent) => {
-      // Small delay to ensure layout is committed before measuring
-      setTimeout(measureAndRegister, 50);
-    },
-    [measureAndRegister],
-  );
+    const headerStyle = useAnimatedStyle(() => {
+      const isSource = isDraggingShared.value && sourceColumnShared.value === config.status;
+      return {
+        opacity: withTiming(isSource ? 0.5 : 1, { duration: 150 }),
+      };
+    });
 
-  // Re-measure when board scrolls (columns shift in screen space)
-  useEffect(() => {
-    measureAndRegister();
-  }, [boardScrollOffsetX, measureAndRegister]);
+    // ── Memo-ize card list — only re-renders when tasks array changes ────────
 
-  // ── Drop zone highlight ───────────────────────────────────────────────────
+    const cardList = useMemo(
+      () =>
+        tasks.map(task => (
+          <KanbanCard
+            key={task.id}
+            task={task}
+            columnStatus={config.status}
+            onPress={onTaskPress}
+            onDrop={onDrop}
+            dragDrop={dragDrop}
+            disabled={!canManage}
+          />
+        )),
+      // dragDrop is stable (same object ref from useDragDrop), safe to include
+      [tasks, config.status, onTaskPress, onDrop, dragDrop, canManage],
+    );
 
-  const dropZoneStyle = useAnimatedStyle(() => {
-    const isTarget =
-      isDraggingShared.value &&
-      targetColumnShared.value === config.status &&
-      sourceColumnShared.value !== config.status;
+    // ── Render ──────────────────────────────────────────────────────────────
 
-    return {
-      borderColor: withTiming(isTarget ? colors.primary[500] : colors.border.default, {
-        duration: 150,
-      }),
-      backgroundColor: withTiming(isTarget ? colors.primary[50] : colors.surface.background, {
-        duration: 150,
-      }),
-    };
-  });
+    return (
+      <View ref={columnRef} style={styles.container} onLayout={onLayout}>
+        {/* Header */}
+        <Animated.View style={[styles.header, headerStyle]}>
+          <View style={styles.headerLeft}>
+            <Ionicons name={config.icon} size={16} color={config.color} />
+            <AppText variant="bodyMd" style={[styles.headerLabel, { color: config.color }]}>
+              {config.label}
+            </AppText>
+          </View>
+          <View style={[styles.countBadge, { backgroundColor: config.color + '20' }]}>
+            <AppText variant="bodySm" style={[styles.countText, { color: config.color }]}>
+              {tasks.length}
+            </AppText>
+          </View>
+        </Animated.View>
 
-  const headerStyle = useAnimatedStyle(() => {
-    const isSource = isDraggingShared.value && sourceColumnShared.value === config.status;
-    return {
-      opacity: withTiming(isSource ? 0.5 : 1, { duration: 150 }),
-    };
-  });
-
-  // ── Render ────────────────────────────────────────────────────────────────
-
-  return (
-    <View ref={columnRef} style={styles.container} onLayout={onLayout}>
-      {/* Header */}
-      <Animated.View style={[styles.header, headerStyle]}>
-        <View style={styles.headerLeft}>
-          <Ionicons name={config.icon} size={16} color={config.color} />
-          <AppText variant="bodyMd" style={[styles.headerLabel, { color: config.color }]}>
-            {config.label}
-          </AppText>
-        </View>
-        <View style={[styles.countBadge, { backgroundColor: config.color + '20' }]}>
-          <AppText variant="bodySm" style={[styles.countText, { color: config.color }]}>
-            {tasks.length}
-          </AppText>
-        </View>
-      </Animated.View>
-
-      {/* Drop zone */}
-      <Animated.View style={[styles.dropZone, dropZoneStyle]}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
-        >
-          {tasks.length === 0 ? (
-            <EmptyColumn status={config.status} dragDrop={dragDrop} />
-          ) : (
-            tasks.map(task => (
-              <KanbanCard
-                key={task.id}
-                task={task}
-                columnStatus={config.status}
-                onPress={onTaskPress}
-                onDrop={onDrop}
-                dragDrop={dragDrop}
-                disabled={!canManage}
-              />
-            ))
-          )}
-        </ScrollView>
-      </Animated.View>
-    </View>
-  );
-};
+        {/* Drop zone */}
+        <Animated.View style={[styles.dropZone, dropZoneStyle]}>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            {tasks.length === 0 ? (
+              <EmptyColumn status={config.status} dragDrop={dragDrop} />
+            ) : (
+              cardList
+            )}
+          </ScrollView>
+        </Animated.View>
+      </View>
+    );
+  },
+  // Re-render only when tasks, scroll offset, or manage permission changes.
+  // dragDrop object ref is stable — safe to skip.
+  (prev, next) =>
+    prev.tasks === next.tasks &&
+    prev.boardScrollOffsetX === next.boardScrollOffsetX &&
+    prev.canManage === next.canManage &&
+    prev.onTaskPress === next.onTaskPress &&
+    prev.onDrop === next.onDrop &&
+    prev.dragDrop === next.dragDrop,
+);
 
 // ─── Empty column placeholder ─────────────────────────────────────────────────
 
@@ -168,7 +179,7 @@ interface EmptyColumnProps {
   dragDrop: UseDragDropReturn;
 }
 
-const EmptyColumn: React.FC<EmptyColumnProps> = ({ status, dragDrop }) => {
+const EmptyColumn: React.FC<EmptyColumnProps> = React.memo(({ status, dragDrop }) => {
   const { isDraggingShared, targetColumnShared, sourceColumnShared } = dragDrop;
 
   const style = useAnimatedStyle(() => {
@@ -189,7 +200,7 @@ const EmptyColumn: React.FC<EmptyColumnProps> = ({ status, dragDrop }) => {
       </AppText>
     </Animated.View>
   );
-};
+});
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import {
   View,
   ScrollView,
@@ -22,110 +22,129 @@ interface KanbanBoardProps {
   canManage: boolean;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const getTasksForColumn = (tasks: Task[], status: TaskStatus): Task[] =>
-  tasks.filter(t => t.status === status);
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const KanbanBoard: React.FC<KanbanBoardProps> = ({
-  tasks,
-  onTaskPress,
-  onStatusChange,
-  canManage,
-}) => {
-  const dragDrop = useDragDrop();
-  const { draggedTaskIdShared, setBoardOffsetY } = dragDrop;
+export const KanbanBoard: React.FC<KanbanBoardProps> = React.memo(
+  ({ tasks, onTaskPress, onStatusChange, canManage }) => {
+    const dragDrop = useDragDrop();
+    const { draggedTaskIdShared, setBoardOffsetY } = dragDrop;
 
-  const [boardScrollOffsetX, setBoardScrollOffsetX] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
-  const boardWrapperRef = useRef<View>(null);
+    // Use a ref for scroll offset — avoids re-rendering KanbanBoard on every scroll event.
+    // KanbanColumn reads it via the prop only when it needs to re-measure.
+    const boardScrollOffsetXRef = useRef(0);
+    const [boardScrollOffsetX, setBoardScrollOffsetX] = React.useState(0);
 
-  // ── Floating card task ────────────────────────────────────────────────────
-  const [floatingTask, setFloatingTask] = React.useState<Task | null>(null);
-  const tasksRef = useRef(tasks);
-  tasksRef.current = tasks;
+    const scrollRef = useRef<ScrollView>(null);
+    const boardWrapperRef = useRef<View>(null);
 
-  const syncFloatingTask = useCallback((taskId: string) => {
-    if (!taskId) {
-      setFloatingTask(null);
-      return;
-    }
-    const found = tasksRef.current.find(t => t.id === taskId) ?? null;
-    setFloatingTask(found);
-  }, []);
+    // ── Floating card task ────────────────────────────────────────────────────
+    const [floatingTask, setFloatingTask] = React.useState<Task | null>(null);
+    const tasksRef = useRef(tasks);
+    tasksRef.current = tasks;
 
-  // Listen to shared value changes on UI thread, sync to React state via runOnJS
-  useAnimatedReaction(
-    () => draggedTaskIdShared.value,
-    (current, previous) => {
-      if (current !== previous) {
-        runOnJS(syncFloatingTask)(current);
+    const syncFloatingTask = useCallback((taskId: string) => {
+      if (!taskId) {
+        setFloatingTask(null);
+        return;
       }
-    },
-    [syncFloatingTask],
-  );
+      const found = tasksRef.current.find(t => t.id === taskId) ?? null;
+      setFloatingTask(found);
+    }, []);
 
-  // ── Handle drop ───────────────────────────────────────────────────────────
+    useAnimatedReaction(
+      () => draggedTaskIdShared.value,
+      (current, previous) => {
+        if (current !== previous) {
+          runOnJS(syncFloatingTask)(current);
+        }
+      },
+      [syncFloatingTask],
+    );
 
-  const handleDrop = useCallback(
-    (taskId: TaskId, _sourceColumn: TaskStatus, targetColumn: TaskStatus) => {
-      onStatusChange(taskId, targetColumn);
-    },
-    [onStatusChange],
-  );
+    // ── Handle drop ───────────────────────────────────────────────────────────
 
-  // ── Board scroll ──────────────────────────────────────────────────────────
+    const handleDrop = useCallback(
+      (taskId: TaskId, _sourceColumn: TaskStatus, targetColumn: TaskStatus) => {
+        onStatusChange(taskId, targetColumn);
+      },
+      [onStatusChange],
+    );
 
-  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setBoardScrollOffsetX(e.nativeEvent.contentOffset.x);
-  }, []);
+    // ── Board scroll ──────────────────────────────────────────────────────────
+    // Throttle state update — only propagate to columns when scroll settles,
+    // not on every 16ms frame. Columns re-measure on scroll end.
 
-  // ── Render ────────────────────────────────────────────────────────────────
+    const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      boardScrollOffsetXRef.current = e.nativeEvent.contentOffset.x;
+    }, []);
 
-  return (
-    <View style={styles.root}>
-      <View
-        ref={boardWrapperRef}
-        style={styles.boardWrapper}
-        onLayout={() => {
-          boardWrapperRef.current?.measureInWindow((_x, y) => {
-            setBoardOffsetY(y);
-          });
-        }}
-      >
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.boardContent}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          decelerationRate="fast"
+    const onScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      setBoardScrollOffsetX(e.nativeEvent.contentOffset.x);
+    }, []);
+
+    // ── Memo-ize tasks per column ─────────────────────────────────────────────
+    // Avoids re-filtering on every render when unrelated state changes.
+
+    const tasksByColumn = useMemo(() => {
+      const map: Record<TaskStatus, Task[]> = {
+        TODO: [],
+        IN_PROGRESS: [],
+        DONE: [],
+        CANCELLED: [],
+      };
+      for (const task of tasks) {
+        map[task.status]?.push(task);
+      }
+      return map;
+    }, [tasks]);
+
+    // ── Render ────────────────────────────────────────────────────────────────
+
+    return (
+      <View style={styles.root}>
+        <View
+          ref={boardWrapperRef}
+          style={styles.boardWrapper}
+          onLayout={() => {
+            boardWrapperRef.current?.measureInWindow((_x, y) => {
+              setBoardOffsetY(y);
+            });
+          }}
         >
-          {KANBAN_COLUMNS.map((col, index) => (
-            <React.Fragment key={col.status}>
-              <KanbanColumn
-                config={col}
-                tasks={getTasksForColumn(tasks, col.status)}
-                onTaskPress={onTaskPress}
-                onDrop={handleDrop}
-                dragDrop={dragDrop}
-                canManage={canManage}
-                boardScrollOffsetX={boardScrollOffsetX}
-              />
-              {index < KANBAN_COLUMNS.length - 1 ? <View style={styles.columnSeparator} /> : null}
-            </React.Fragment>
-          ))}
-        </ScrollView>
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.boardContent}
+            onScroll={onScroll}
+            onScrollEndDrag={onScrollEnd}
+            onMomentumScrollEnd={onScrollEnd}
+            scrollEventThrottle={32}
+            decelerationRate="fast"
+          >
+            {KANBAN_COLUMNS.map((col, index) => (
+              <React.Fragment key={col.status}>
+                <KanbanColumn
+                  config={col}
+                  tasks={tasksByColumn[col.status]}
+                  onTaskPress={onTaskPress}
+                  onDrop={handleDrop}
+                  dragDrop={dragDrop}
+                  canManage={canManage}
+                  boardScrollOffsetX={boardScrollOffsetX}
+                />
+                {index < KANBAN_COLUMNS.length - 1 ? <View style={styles.columnSeparator} /> : null}
+              </React.Fragment>
+            ))}
+          </ScrollView>
 
-        {/* Floating drag clone — absolute overlay above board */}
-        {floatingTask ? <FloatingCard task={floatingTask} dragDrop={dragDrop} /> : null}
+          {/* Floating drag clone — absolute overlay above board */}
+          {floatingTask ? <FloatingCard task={floatingTask} dragDrop={dragDrop} /> : null}
+        </View>
       </View>
-    </View>
-  );
-};
+    );
+  },
+);
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 

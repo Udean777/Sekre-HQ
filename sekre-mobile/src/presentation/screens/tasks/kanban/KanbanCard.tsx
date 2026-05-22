@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -25,7 +25,6 @@ const PRIORITY_LABEL: Record<Task['priority'], string> = {
   URGENT: 'Mendesak',
 };
 
-// Left border accent color per status — subtle visual indicator
 const STATUS_ACCENT: Record<TaskStatus, string> = {
   TODO: colors.neutral[300],
   IN_PROGRESS: colors.warning.main,
@@ -33,11 +32,10 @@ const STATUS_ACCENT: Record<TaskStatus, string> = {
   CANCELLED: colors.danger.main,
 };
 
-// Card background tint per status
 const STATUS_BG: Record<TaskStatus, string> = {
   TODO: colors.surface.card,
-  IN_PROGRESS: '#FFFBEB', // warning tint
-  DONE: '#F0FDF4', // success tint
+  IN_PROGRESS: '#FFFBEB',
+  DONE: '#F0FDF4',
   CANCELLED: colors.surface.card,
 };
 
@@ -56,154 +54,164 @@ interface KanbanCardProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const KanbanCard: React.FC<KanbanCardProps> = ({
-  task,
-  columnStatus,
-  onPress,
-  onDrop,
-  dragDrop,
-  disabled = false,
-}) => {
-  const {
-    isDraggingShared,
-    draggedTaskIdShared,
-    startDrag,
-    updateDragPosition,
-    endDrag,
-    cancelDrag,
-  } = dragDrop;
+export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
+  ({ task, columnStatus, onPress, onDrop, dragDrop, disabled = false }) => {
+    const {
+      isDraggingShared,
+      draggedTaskIdShared,
+      dragOriginX,
+      dragOriginY,
+      boardOffsetYShared,
+      cardWidthShared,
+      floatingX,
+      floatingY,
+      startDrag,
+      updateTargetColumn,
+      endDrag,
+      cancelDrag,
+    } = dragDrop;
 
-  const cardRef = useRef<View>(null);
+    const cardRef = useRef<View>(null);
+    const activatedRef = useRef(false);
 
-  // Captured at long press moment
-  const dragStartRef = useRef({
-    activated: false,
-    cardX: 0,
-    cardY: 0,
-  });
+    // ── Handlers (JS thread) ───────────────────────────────────────────────
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+    const handleLongPressStart = useCallback(() => {
+      if (!cardRef.current) return;
+      cardRef.current.measureInWindow((cardX, cardY, cardW, cardH) => {
+        activatedRef.current = true;
+        startDrag({
+          taskId: task.id as TaskId,
+          sourceColumn: columnStatus,
+          cardX,
+          cardY,
+          cardWidth: cardW,
+          cardHeight: cardH,
+        });
+      });
+    }, [startDrag, task.id, columnStatus]);
 
-  const handleLongPressStart = useCallback(() => {
-    if (!cardRef.current) return;
-    cardRef.current.measureInWindow((cardX, cardY, cardW, cardH) => {
-      dragStartRef.current = {
-        activated: true,
-        cardX,
-        cardY,
+    const handlePanEnd = useCallback(() => {
+      if (!activatedRef.current) return;
+      activatedRef.current = false;
+      const result = endDrag();
+      if (
+        result.taskId &&
+        result.sourceColumn &&
+        result.targetColumn &&
+        result.sourceColumn !== result.targetColumn
+      ) {
+        onDrop(result.taskId, result.sourceColumn, result.targetColumn);
+      }
+    }, [endDrag, onDrop]);
+
+    const handlePanCancel = useCallback(() => {
+      if (!activatedRef.current) return;
+      activatedRef.current = false;
+      cancelDrag();
+    }, [cancelDrag]);
+
+    const handleTap = useCallback(() => {
+      onPress(task);
+    }, [onPress, task]);
+
+    // Column detection still needs JS thread (reads ref array)
+    const handleColumnDetect = useCallback(
+      (absoluteX: number) => {
+        updateTargetColumn(absoluteX);
+      },
+      [updateTargetColumn],
+    );
+
+    // ── Gestures ──────────────────────────────────────────────────────────
+    // Pan position update runs entirely on UI thread via shared values.
+    // Only column detection and lifecycle events cross to JS thread.
+
+    const gesture = useMemo(() => {
+      if (disabled) {
+        return Gesture.Tap().onEnd(() => {
+          'worklet';
+          runOnJS(handleTap)();
+        });
+      }
+
+      const longPress = Gesture.LongPress()
+        .minDuration(LONG_PRESS_DURATION)
+        .onStart(() => {
+          'worklet';
+          runOnJS(handleLongPressStart)();
+        });
+
+      const pan = Gesture.Pan()
+        .minDistance(0)
+        .onUpdate(e => {
+          'worklet';
+          // Update floating card position directly on UI thread — zero JS bridge cost
+          floatingX.value = dragOriginX.value + e.translationX;
+          floatingY.value = dragOriginY.value + e.translationY - boardOffsetYShared.value;
+          // Column detection uses finger absoluteX (screen-absolute, matches col.x from measureInWindow)
+          // Card center X = finger position + half card width
+          const cardCenterX = dragOriginX.value + e.translationX + cardWidthShared.value / 2;
+          runOnJS(handleColumnDetect)(cardCenterX);
+        })
+        .onEnd(() => {
+          'worklet';
+          runOnJS(handlePanEnd)();
+        })
+        .onTouchesCancelled(() => {
+          'worklet';
+          runOnJS(handlePanCancel)();
+        });
+
+      return Gesture.Simultaneous(longPress, pan);
+    }, [
+      disabled,
+      handleTap,
+      handleLongPressStart,
+      handlePanEnd,
+      handlePanCancel,
+      handleColumnDetect,
+      floatingX,
+      floatingY,
+      dragOriginX,
+      dragOriginY,
+      boardOffsetYShared,
+      cardWidthShared,
+    ]);
+
+    // ── Animated styles ────────────────────────────────────────────────────
+
+    const animatedStyle = useAnimatedStyle(() => {
+      const isThisCardDragging = isDraggingShared.value && draggedTaskIdShared.value === task.id;
+      return {
+        opacity: withTiming(isThisCardDragging ? 0.2 : 1, { duration: 150 }),
       };
-
-      startDrag({
-        taskId: task.id as TaskId,
-        sourceColumn: columnStatus,
-        cardX,
-        cardY,
-        cardWidth: cardW,
-        cardHeight: cardH,
-      });
-    });
-  }, [startDrag, task.id, columnStatus]);
-
-  const handlePanUpdate = useCallback(
-    (translationX: number, translationY: number, absoluteX: number) => {
-      const ds = dragStartRef.current;
-      if (!ds.activated) return;
-
-      // translationX/Y is delta from touch start point.
-      // boardOffsetY correction is handled inside useDragDrop.
-      updateDragPosition({
-        cardX: ds.cardX + translationX,
-        cardY: ds.cardY + translationY,
-        absoluteX,
-      });
-    },
-    [updateDragPosition],
-  );
-
-  const handlePanEnd = useCallback(() => {
-    if (!dragStartRef.current.activated) return;
-    dragStartRef.current.activated = false;
-
-    const result = endDrag();
-    if (
-      result.taskId &&
-      result.sourceColumn &&
-      result.targetColumn &&
-      result.sourceColumn !== result.targetColumn
-    ) {
-      onDrop(result.taskId, result.sourceColumn, result.targetColumn);
-    }
-  }, [endDrag, onDrop]);
-
-  const handlePanCancel = useCallback(() => {
-    if (!dragStartRef.current.activated) return;
-    dragStartRef.current.activated = false;
-    cancelDrag();
-  }, [cancelDrag]);
-
-  const handleTap = useCallback(() => {
-    onPress(task);
-  }, [onPress, task]);
-
-  // ── Gestures ──────────────────────────────────────────────────────────────
-  //
-  // LongPress + Pan Simultaneous.
-  // Pan events are gated by dragStartRef.activated.
-  // onTouchesCancelled handles system interruptions (calls, notifications).
-
-  const longPress = Gesture.LongPress()
-    .minDuration(LONG_PRESS_DURATION)
-    .onStart(() => {
-      'worklet';
-      runOnJS(handleLongPressStart)();
     });
 
-  const pan = Gesture.Pan()
-    .minDistance(0)
-    .onUpdate(e => {
-      'worklet';
-      runOnJS(handlePanUpdate)(e.translationX, e.translationY, e.absoluteX);
-    })
-    .onEnd(() => {
-      'worklet';
-      runOnJS(handlePanEnd)();
-    })
-    .onTouchesCancelled(() => {
-      'worklet';
-      runOnJS(handlePanCancel)();
-    });
+    // ── Render ─────────────────────────────────────────────────────────────
 
-  const gesture = disabled
-    ? Gesture.Tap().onEnd(() => {
-        'worklet';
-        runOnJS(handleTap)();
-      })
-    : Gesture.Simultaneous(longPress, pan);
-
-  // ── Animated styles ───────────────────────────────────────────────────────
-
-  const animatedStyle = useAnimatedStyle(() => {
-    const isThisCardDragging = isDraggingShared.value && draggedTaskIdShared.value === task.id;
-    return {
-      opacity: withTiming(isThisCardDragging ? 0.2 : 1, { duration: 150 }),
-    };
-  });
-
-  // ── Render ────────────────────────────────────────────────────────────────
-
-  return (
-    <GestureDetector gesture={gesture}>
-      <Animated.View style={animatedStyle}>
-        {/* collapsable=false ensures measureInWindow works reliably on Android */}
-        <View ref={cardRef} collapsable={false}>
-          <TouchableOpacity onPress={handleTap} activeOpacity={0.75}>
-            <CardContent task={task} />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-    </GestureDetector>
-  );
-};
+    return (
+      <GestureDetector gesture={gesture}>
+        <Animated.View style={animatedStyle}>
+          {/* collapsable=false ensures measureInWindow works reliably on Android */}
+          <View ref={cardRef} collapsable={false}>
+            <TouchableOpacity onPress={handleTap} activeOpacity={0.75}>
+              <CardContent task={task} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </GestureDetector>
+    );
+  },
+  // Custom comparator — only re-render if task data or drag-relevant props change
+  (prev, next) =>
+    prev.task === next.task &&
+    prev.columnStatus === next.columnStatus &&
+    prev.disabled === next.disabled &&
+    prev.onPress === next.onPress &&
+    prev.onDrop === next.onDrop &&
+    prev.dragDrop === next.dragDrop,
+);
 
 // ─── Card content ─────────────────────────────────────────────────────────────
 
@@ -212,7 +220,7 @@ interface CardContentProps {
   floating?: boolean;
 }
 
-export const CardContent: React.FC<CardContentProps> = ({ task, floating = false }) => (
+export const CardContent: React.FC<CardContentProps> = React.memo(({ task, floating = false }) => (
   <View
     style={[
       styles.card,
@@ -282,7 +290,7 @@ export const CardContent: React.FC<CardContentProps> = ({ task, floating = false
       </View>
     ) : null}
   </View>
-);
+));
 
 // ─── Floating Clone ───────────────────────────────────────────────────────────
 
@@ -291,15 +299,14 @@ interface FloatingCardProps {
   dragDrop: UseDragDropReturn;
 }
 
-export const FloatingCard: React.FC<FloatingCardProps> = ({ task, dragDrop }) => {
-  const { floatingX, floatingY, floatingOpacity, floatingScale, getCardSize } = dragDrop;
-  const { width } = getCardSize();
+export const FloatingCard: React.FC<FloatingCardProps> = React.memo(({ task, dragDrop }) => {
+  const { floatingX, floatingY, floatingOpacity, floatingScale, cardWidthShared } = dragDrop;
 
   const animatedStyle = useAnimatedStyle(() => ({
     position: 'absolute',
     left: floatingX.value,
     top: floatingY.value,
-    width: width > 0 ? width : 200,
+    width: cardWidthShared.value > 0 ? cardWidthShared.value : 200,
     opacity: floatingOpacity.value,
     transform: [{ scale: withSpring(floatingScale.value, { damping: 15, stiffness: 200 }) }],
     zIndex: 9999,
@@ -315,7 +322,7 @@ export const FloatingCard: React.FC<FloatingCardProps> = ({ task, dragDrop }) =>
       <CardContent task={task} floating />
     </Animated.View>
   );
-};
+});
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 

@@ -240,6 +240,66 @@ func (_c *TaskRepository_GetByID_Call) RunAndReturn(run func(context.Context, uu
 	return _c
 }
 
+// GetByIDWithAssignee provides a mock function with given fields: ctx, orgID, taskID
+func (_m *TaskRepository) GetByIDWithAssignee(ctx context.Context, orgID uuid.UUID, taskID uuid.UUID) (*entity.TaskWithAssignee, error) {
+	ret := _m.Called(ctx, orgID, taskID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetByIDWithAssignee")
+	}
+
+	var r0 *entity.TaskWithAssignee
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (*entity.TaskWithAssignee, error)); ok {
+		return rf(ctx, orgID, taskID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) *entity.TaskWithAssignee); ok {
+		r0 = rf(ctx, orgID, taskID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.TaskWithAssignee)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, orgID, taskID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// TaskRepository_GetByIDWithAssignee_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetByIDWithAssignee'
+type TaskRepository_GetByIDWithAssignee_Call struct {
+	*mock.Call
+}
+
+// GetByIDWithAssignee is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - taskID uuid.UUID
+func (_e *TaskRepository_Expecter) GetByIDWithAssignee(ctx interface{}, orgID interface{}, taskID interface{}) *TaskRepository_GetByIDWithAssignee_Call {
+	return &TaskRepository_GetByIDWithAssignee_Call{Call: _e.mock.On("GetByIDWithAssignee", ctx, orgID, taskID)}
+}
+
+func (_c *TaskRepository_GetByIDWithAssignee_Call) Run(run func(ctx context.Context, orgID uuid.UUID, taskID uuid.UUID)) *TaskRepository_GetByIDWithAssignee_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *TaskRepository_GetByIDWithAssignee_Call) Return(_a0 *entity.TaskWithAssignee, _a1 error) *TaskRepository_GetByIDWithAssignee_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *TaskRepository_GetByIDWithAssignee_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID) (*entity.TaskWithAssignee, error)) *TaskRepository_GetByIDWithAssignee_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // List provides a mock function with given fields: ctx, orgID, divisionID
 func (_m *TaskRepository) List(ctx context.Context, orgID uuid.UUID, divisionID uuid.UUID) ([]entity.Task, error) {
 	ret := _m.Called(ctx, orgID, divisionID)

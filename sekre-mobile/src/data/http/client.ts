@@ -4,7 +4,7 @@ import { authInterceptor } from './interceptors/authInterceptor';
 import { refreshInterceptor } from './interceptors/refreshInterceptor';
 import { errorInterceptor } from './interceptors/errorInterceptor';
 
-const BASE_URL = Config.API_BASE_URL ?? 'http://192.168.1.4:8080';
+const BASE_URL = Config.API_BASE_URL ?? 'http://192.168.40.153:8080';
 
 export const httpClient = axios.create({
   baseURL: `${BASE_URL}/api/v1`,

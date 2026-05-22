@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -11,11 +12,18 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	JWT      JWTConfig
-	Log      LogConfig
-	CORS     CORSConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	JWT       JWTConfig
+	Log       LogConfig
+	CORS      CORSConfig
+	Scheduler SchedulerConfig
+}
+
+type SchedulerConfig struct {
+	RefreshSessionRetentionDays int
+	AuditLogRetentionDays       int
+	SelfPingURL                 string
 }
 
 type LogConfig struct {
@@ -61,6 +69,12 @@ func Load() (*Config, error) {
 	// Load .env file if exists
 	_ = godotenv.Load()
 
+	// Resolve database config — DATABASE_URL takes priority over individual DB_* vars
+	dbCfg, err := loadDatabaseConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	config := &Config{
 		Server: ServerConfig{
 			Port:            getEnv("SERVER_PORT", "8080"),
@@ -69,17 +83,7 @@ func Load() (*Config, error) {
 			WriteTimeout:    time.Duration(getEnvAsInt("SERVER_WRITE_TIMEOUT", 15)) * time.Second,
 			ShutdownTimeout: time.Duration(getEnvAsInt("SERVER_SHUTDOWN_TIMEOUT", 30)) * time.Second,
 		},
-		Database: DatabaseConfig{
-			Host:            getEnv("DB_HOST", "localhost"),
-			Port:            getEnv("DB_PORT", "5432"),
-			User:            getEnv("DB_USER", "postgres"),
-			Password:        getEnv("DB_PASSWORD", ""),
-			DBName:          getEnv("DB_NAME", "sekre_db"),
-			SSLMode:         getEnv("DB_SSLMODE", "disable"),
-			MaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
-			MaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
-			ConnMaxLifetime: time.Duration(getEnvAsInt("DB_CONN_MAX_LIFETIME", 3600)) * time.Second,
-		},
+		Database: dbCfg,
 		JWT: JWTConfig{
 			Secret:        getEnv("JWT_SECRET", ""),
 			AccessExpiry:  time.Duration(getEnvAsInt("JWT_ACCESS_EXPIRY", 15)) * time.Minute,
@@ -96,6 +100,11 @@ func Load() (*Config, error) {
 			AllowCredentials: getEnvAsBool("CORS_ALLOW_CREDENTIALS", true),
 			MaxAge:           getEnvAsInt("CORS_MAX_AGE", 3600),
 		},
+		Scheduler: SchedulerConfig{
+			RefreshSessionRetentionDays: getEnvAsInt("CLEANUP_REFRESH_SESSION_RETENTION_DAYS", 7),
+			AuditLogRetentionDays:       getEnvAsInt("CLEANUP_AUDIT_LOG_RETENTION_DAYS", 90),
+			SelfPingURL:                 getEnv("SELF_PING_URL", ""),
+		},
 	}
 
 	// Validate required fields
@@ -105,10 +114,6 @@ func Load() (*Config, error) {
 
 	if len(config.JWT.Secret) < 32 {
 		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters")
-	}
-
-	if config.Database.Password == "" {
-		return nil, fmt.Errorf("DB_PASSWORD is required")
 	}
 
 	// Validate log level
@@ -143,6 +148,79 @@ func Load() (*Config, error) {
 	}
 
 	return config, nil
+}
+
+// loadDatabaseConfig resolves database config.
+// DATABASE_URL takes priority over individual DB_* env vars.
+func loadDatabaseConfig() (DatabaseConfig, error) {
+	rawURL := getEnv("DATABASE_URL", "")
+	if rawURL != "" {
+		return parseDatabaseURL(rawURL)
+	}
+
+	// Fallback: individual DB_* vars (local dev)
+	password := getEnv("DB_PASSWORD", "")
+	if password == "" {
+		return DatabaseConfig{}, fmt.Errorf("DB_PASSWORD is required (or set DATABASE_URL)")
+	}
+
+	return DatabaseConfig{
+		Host:            getEnv("DB_HOST", "localhost"),
+		Port:            getEnv("DB_PORT", "5432"),
+		User:            getEnv("DB_USER", "postgres"),
+		Password:        password,
+		DBName:          getEnv("DB_NAME", "sekre_db"),
+		SSLMode:         getEnv("DB_SSLMODE", "disable"),
+		MaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
+		MaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
+		ConnMaxLifetime: time.Duration(getEnvAsInt("DB_CONN_MAX_LIFETIME", 3600)) * time.Second,
+	}, nil
+}
+
+// parseDatabaseURL parses a PostgreSQL connection URL into DatabaseConfig.
+// Supports formats:
+//   - postgresql://user:password@host:port/dbname?sslmode=require
+//   - postgres://user:password@host:port/dbname
+func parseDatabaseURL(rawURL string) (DatabaseConfig, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return DatabaseConfig{}, fmt.Errorf("invalid DATABASE_URL: %w", err)
+	}
+
+	if u.Scheme != "postgres" && u.Scheme != "postgresql" {
+		return DatabaseConfig{}, fmt.Errorf("invalid DATABASE_URL scheme: %q (expected postgres or postgresql)", u.Scheme)
+	}
+
+	host := u.Hostname()
+	port := u.Port()
+	if port == "" {
+		port = "5432"
+	}
+
+	var user, password string
+	if u.User != nil {
+		user = u.User.Username()
+		password, _ = u.User.Password()
+	}
+
+	dbName := strings.TrimPrefix(u.Path, "/")
+
+	sslMode := u.Query().Get("sslmode")
+	if sslMode == "" {
+		sslMode = "require" // default safe for Railway
+	}
+
+	return DatabaseConfig{
+		Host:            host,
+		Port:            port,
+		User:            user,
+		Password:        password,
+		DBName:          dbName,
+		SSLMode:         sslMode,
+		MaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
+		MaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
+		ConnMaxLifetime: time.Duration(getEnvAsInt("DB_CONN_MAX_LIFETIME", 3600)) * time.Second,
+	}, nil
 }
 
 func (c *DatabaseConfig) ConnectionString() string {

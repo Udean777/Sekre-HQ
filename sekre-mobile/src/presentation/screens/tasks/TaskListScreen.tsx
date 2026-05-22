@@ -50,7 +50,7 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
 
   // ── Render states ─────────────────────────────────────────────────────────
 
-  const renderContent = () => {
+  const renderContent = useCallback(() => {
     if (isLoading) {
       return <SkeletonList count={5} />;
     }
@@ -81,7 +81,7 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
         canManage={canManage}
       />
     );
-  };
+  }, [isLoading, isError, data, refetch, handleTaskPress, handleStatusChange, canManage]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
