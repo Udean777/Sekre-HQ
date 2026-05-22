@@ -2,6 +2,7 @@ services:
   - type: web
     name: sekre-backend
     runtime: docker
+    rootDir: sekre-backend
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free

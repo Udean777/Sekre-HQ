@@ -1,4 +1,4 @@
-# 📱 Sekre Mobile
+# Sekre Mobile
 
 **React Native app untuk platform manajemen organisasi kampus Sekre.**
 
@@ -8,22 +8,22 @@
 
 ---
 
-## ✨ Fitur
+## Fitur
 
 | Modul        | Fitur                                               |
 | ------------ | --------------------------------------------------- |
-| 🔐 Auth      | Login, Register, Refresh token otomatis, Logout     |
-| 📊 Dashboard | Statistik organisasi, info plan, ringkasan tugas    |
-| 📋 Tasks     | CRUD tugas, filter status/prioritas, advance status |
-| 👥 Members   | Undang anggota, kelola peran, hapus anggota         |
-| 🏢 Divisions | CRUD divisi, kelola anggota divisi                  |
-| 📅 Events    | CRUD acara, filter & search                         |
-| 💰 Finance   | Transaksi CRUD, summary income/expense/balance      |
-| ⚙️ Settings  | Edit profil, ganti password, pengaturan organisasi  |
+| Auth         | Login, Register, Refresh token otomatis, Logout     |
+| Dashboard    | Statistik organisasi, info plan, ringkasan tugas    |
+| Tasks        | CRUD tugas, filter status/prioritas, advance status |
+| Members      | Undang anggota, kelola peran, hapus anggota         |
+| Divisions    | CRUD divisi, kelola anggota divisi                  |
+| Events       | CRUD acara, filter & search                         |
+| Finance      | Transaksi CRUD, summary income/expense/balance      |
+| Settings     | Edit profil, ganti password, pengaturan organisasi  |
 
 ---
 
-## 🏗️ Arsitektur
+## Arsitektur
 
 Clean Architecture dengan 4 layer:
 
@@ -55,7 +55,7 @@ presentation → hooks → usecases → ports ← data
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Framework:** React Native 0.85.3 (Community CLI)
 - **Language:** TypeScript 5.7.3 (strict mode)
@@ -72,7 +72,7 @@ presentation → hooks → usecases → ports ← data
 
 ---
 
-## 📁 Struktur Direktori
+## Struktur Direktori
 
 ```
 src/
@@ -115,12 +115,12 @@ src/
 
 ---
 
-## 🚀 Setup
+## Setup
 
 ### Prerequisites
 
 ```bash
-✓ Node.js 18+
+✓ Node.js 22+
 ✓ bun
 ✓ Android Studio (untuk Android)
 ✓ Xcode 15+ (untuk iOS, macOS only)
@@ -142,9 +142,16 @@ cd ios && pod install && cd ..
 Buat file `.env` di root `sekre-mobile/`:
 
 ```env
-API_BASE_URL=http://10.0.2.2:8080/api/v1   # Android emulator
-# API_BASE_URL=http://127.0.0.1:8080/api/v1  # iOS simulator
+# Local development
+API_BASE_URL=http://10.0.2.2:1000/api/v1     # Android emulator
+# API_BASE_URL=http://127.0.0.1:1000/api/v1   # iOS simulator
+# API_BASE_URL=http://192.168.1.x:1000/api/v1 # Device fisik (ganti IP lokal)
+
+# Production (Render deployment)
+# API_BASE_URL=https://sekre-backend.onrender.com/api/v1
 ```
+
+> Backend lokal jalan di port `1000`. Pastikan backend sudah running sebelum start mobile app.
 
 ### Jalankan
 
@@ -161,15 +168,16 @@ bun ios
 
 ---
 
-## 🔑 Konfigurasi Penting
+## Konfigurasi Penting
 
 ### API Base URL
 
-| Platform         | URL                                                        |
+| Environment      | URL                                                        |
 | ---------------- | ---------------------------------------------------------- |
-| Android emulator | `http://10.0.2.2:8080/api/v1`                              |
-| iOS simulator    | `http://127.0.0.1:8080/api/v1`                             |
-| Device fisik     | IP lokal mesin dev, misal `http://192.168.1.x:8080/api/v1` |
+| Android emulator | `http://10.0.2.2:1000/api/v1`                              |
+| iOS simulator    | `http://127.0.0.1:1000/api/v1`                             |
+| Device fisik     | IP lokal mesin dev, misal `http://192.168.1.x:1000/api/v1` |
+| Production       | `https://sekre-backend.onrender.com/api/v1`                |
 
 ### Token Storage
 
@@ -179,9 +187,18 @@ Token disimpan di MMKV terenkripsi. Encryption key diambil dari:
 2. **Android** — Android Keystore (via `react-native-keychain`)
 3. **Fallback** — hardcoded key (development only, tidak aman untuk production)
 
+### Cold Start Backend (Render Free Tier)
+
+Backend production di Render free tier akan masuk ke sleep mode setelah idle 15 menit. Backend punya self-ping job setiap 14 menit untuk mencegah ini, tapi pada request pertama setelah server baru bangun, response bisa lebih lambat (~30 detik).
+
+Mobile app sebaiknya:
+- Tampilkan loading state yang jelas saat request pertama
+- Set Axios timeout cukup panjang untuk request awal (misal 60 detik)
+- Implement retry pada network error
+
 ---
 
-## 🧩 Komponen Shared
+## Komponen Shared
 
 | Komponen         | Deskripsi                                                             |
 | ---------------- | --------------------------------------------------------------------- |
@@ -199,7 +216,7 @@ Token disimpan di MMKV terenkripsi. Encryption key diambil dari:
 
 ---
 
-## 🔐 RBAC
+## RBAC
 
 | Role     | Akses                                              |
 | -------- | -------------------------------------------------- |
@@ -211,7 +228,7 @@ Role disimpan di JWT dan di Redux state (`auth.role`). UI menyembunyikan action 
 
 ---
 
-## 📝 Type Check
+## Type Check
 
 ```bash
 bunx tsc --noEmit
@@ -221,7 +238,16 @@ Harus 0 error sebelum commit.
 
 ---
 
-## 🔄 Conventional Commits
+## Testing
+
+```bash
+bun test           # Run Jest tests
+bun lint           # Run ESLint
+```
+
+---
+
+## Conventional Commits
 
 Format: `type(scope): description`
 
@@ -230,3 +256,38 @@ feat(mobile): implement finance module
 fix(mobile): resolve token refresh race condition
 refactor(mobile): extract skeleton to shared component
 ```
+
+Commit hooks via `husky` + `lint-staged` akan otomatis menjalankan lint dan format sebelum commit.
+
+---
+
+## Build untuk Release
+
+### Android
+
+```bash
+cd android
+./gradlew assembleRelease    # APK
+./gradlew bundleRelease      # AAB (untuk Play Store)
+```
+
+Output APK: `android/app/build/outputs/apk/release/app-release.apk`
+Output AAB: `android/app/build/outputs/bundle/release/app-release.aab`
+
+### iOS
+
+Build via Xcode dengan scheme `Release`, atau via CLI:
+
+```bash
+cd ios
+xcodebuild -workspace SekreMobile.xcworkspace \
+  -scheme SekreMobile \
+  -configuration Release \
+  -archivePath build/SekreMobile.xcarchive archive
+```
+
+---
+
+## License
+
+Internal project — Arah Baru Selayar.
