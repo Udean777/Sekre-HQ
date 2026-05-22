@@ -101,7 +101,7 @@ func FuzzValidateSubdomain(f *testing.F) {
 			lowered := strings.ToLower(strings.TrimSpace(subdomain))
 			// Should only contain a-z, 0-9, -
 			for _, r := range lowered {
-				if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-') {
+				if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
 					t.Errorf("valid subdomain contains invalid char %q in %q", r, subdomain)
 				}
 			}

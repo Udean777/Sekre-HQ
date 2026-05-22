@@ -22,7 +22,7 @@ func TestTimeout_HandlerCompletesBeforeTimeout(t *testing.T) {
 	// Handler that completes quickly
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	})
 
 	// Wrap with timeout middleware (1 second)
@@ -63,7 +63,7 @@ func TestTimeout_HandlerExceedsTimeout(t *testing.T) {
 			return
 		default:
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("should not reach here"))
+			_, _ = w.Write([]byte("should not reach here"))
 		}
 	})
 
@@ -129,7 +129,7 @@ func TestTimeout_LongTimeout(t *testing.T) {
 	// Handler that completes quickly
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	})
 
 	// Wrap with very long timeout (1 hour)

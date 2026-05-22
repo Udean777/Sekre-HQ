@@ -281,9 +281,11 @@ func main() {
 		sched.Stop()
 
 		// Shutdown audit service
-		auditService.Shutdown(5 * time.Second)
+		auditService.Shutdown(5 * time.Second) //nolint:errcheck
 
-		database.Close(db)
+		if err := database.Close(db); err != nil {
+			logger.Logger.Error().Err(err).Msg("Failed to close database")
+		}
 		os.Exit(1)
 	}
 
@@ -297,6 +299,8 @@ func main() {
 		logger.Logger.Warn().Err(err).Msg("Audit service shutdown had issues")
 	}
 
-	database.Close(db)
+	if err := database.Close(db); err != nil {
+		logger.Logger.Error().Err(err).Msg("Failed to close database")
+	}
 	logger.Logger.Info().Msg("✓ Server gracefully stopped")
 }

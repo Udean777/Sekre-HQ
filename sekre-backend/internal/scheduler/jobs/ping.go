@@ -43,7 +43,7 @@ func (j *PingJob) Ping() {
 			Msg("scheduler: self-ping failed")
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		logger.Logger.Warn().

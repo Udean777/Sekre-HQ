@@ -69,7 +69,7 @@ func NotFound(resource string, id interface{}) *DomainError {
 	e := New(CodeNotFound, fmt.Sprintf("%s not found", resource)).
 		WithDetail("resource", resource)
 	if id != nil {
-		e.WithDetail("id", id)
+		e.WithDetail("id", id) //nolint:errcheck
 	}
 	return e
 }

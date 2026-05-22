@@ -60,7 +60,7 @@ test-unit:
 
 test-integration:
 	@echo "Running integration tests..."
-	go test -v -race -tags=integration ./...
+	go test -v -race -tags=integration -p 1 ./...
 
 test-e2e:
 	@echo "Running end-to-end tests..."
