@@ -1,142 +1,153 @@
-name: Frontend CI
-
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'sekre-frontend/**'
-      - '.github/workflows/frontend-ci.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'sekre-frontend/**'
-      - '.github/workflows/frontend-ci.yml'
-
-defaults:
-  run:
-    working-directory: sekre-frontend
-
-jobs:
-  # ─────────────────────────────────────────────
-  # Job 1: Type-check + Build
-  # ─────────────────────────────────────────────
-  ci:
-    name: Type-check & Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Type-check (svelte-check)
-        run: bun run check
-
-      - name: Build
-        run: bun run build
-
-  # ─────────────────────────────────────────────
-  # Job 2: Deploy to Render
-  # ─────────────────────────────────────────────
-  deploy:
-    name: Deploy to Render
-    runs-on: ubuntu-latest
-    needs: [ci]
-    if: github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      deployments: write
-    environment:
-      name: production
-      url: ${{ steps.deploy.outputs.url }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # ── Create GitHub Deployment ──
-      - name: Create GitHub deployment
-        id: deployment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const deployment = await github.rest.repos.createDeployment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              environment: 'production',
-              description: 'Deploy sekre-frontend to Render',
-              auto_merge: false,
-              required_contexts: [],
-            });
-            core.setOutput('deployment_id', deployment.data.id);
-
-      # ── Mark deployment as in_progress ──
-      - name: Set deployment status — in progress
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
-              state: 'in_progress',
-              description: 'Deploying to Render...',
-            });
-
-      # ── Trigger Render deploy hook ──
-      - name: Deploy to Render
-        id: deploy
-        env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL_FRONTEND }}
-          RENDER_SERVICE_URL: ${{ secrets.RENDER_SERVICE_URL_FRONTEND }}
-        run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "⚠️  RENDER_DEPLOY_HOOK_URL_FRONTEND secret is not set — skipping deploy trigger."
-            echo "url=${RENDER_SERVICE_URL}" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST "$RENDER_DEPLOY_HOOK_URL")
-          if [ "$RESPONSE" != "200" ] && [ "$RESPONSE" != "201" ]; then
-            echo "Deploy hook returned HTTP $RESPONSE"
-            exit 1
-          fi
-          echo "url=${RENDER_SERVICE_URL}" >> $GITHUB_OUTPUT
-
-      # ── Mark deployment as success ──
-      - name: Set deployment status — success
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
-              state: 'success',
-              description: 'Deployed successfully to Render',
-              environment_url: '${{ steps.deploy.outputs.url }}',
-            });
-
-      # ── Mark deployment as failure ──
-      - name: Set deployment status — failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
-              state: 'failure',
-              description: 'Deployment to Render failed',
-            });
+# Frontend CI/CD — DISABLED
+#
+# Workflow ini sengaja di-disable sementara dengan cara comment seluruh isi file.
+# Untuk mengaktifkan kembali: hapus karakter '#' di awal setiap baris (kecuali
+# header dokumentasi ini).
+#
+# Reason: pengembangan frontend belum siap untuk auto-deploy ke Render.
+# Hapus block komentar ini setelah workflow diaktifkan kembali.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# name: Frontend CI
+#
+# on:
+#   push:
+#     branches:
+#       - main
+#     paths:
+#       - 'sekre-frontend/**'
+#       - '.github/workflows/frontend-ci.yml'
+#   pull_request:
+#     branches:
+#       - main
+#     paths:
+#       - 'sekre-frontend/**'
+#       - '.github/workflows/frontend-ci.yml'
+#
+# defaults:
+#   run:
+#     working-directory: sekre-frontend
+#
+# jobs:
+#   # ─────────────────────────────────────────────
+#   # Job 1: Type-check + Build
+#   # ─────────────────────────────────────────────
+#   ci:
+#     name: Type-check & Build
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#
+#       - name: Setup Bun
+#         uses: oven-sh/setup-bun@v2
+#         with:
+#           bun-version: latest
+#
+#       - name: Install dependencies
+#         run: bun install --frozen-lockfile
+#
+#       - name: Type-check (svelte-check)
+#         run: bun run check
+#
+#       - name: Build
+#         run: bun run build
+#
+#   # ─────────────────────────────────────────────
+#   # Job 2: Deploy to Render
+#   # ─────────────────────────────────────────────
+#   deploy:
+#     name: Deploy to Render
+#     runs-on: ubuntu-latest
+#     needs: [ci]
+#     if: github.ref == 'refs/heads/main'
+#     permissions:
+#       contents: read
+#       deployments: write
+#     environment:
+#       name: production
+#       url: ${{ steps.deploy.outputs.url }}
+#
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#
+#       # ── Create GitHub Deployment ──
+#       - name: Create GitHub deployment
+#         id: deployment
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             const deployment = await github.rest.repos.createDeployment({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               ref: context.sha,
+#               environment: 'production',
+#               description: 'Deploy sekre-frontend to Render',
+#               auto_merge: false,
+#               required_contexts: [],
+#             });
+#             core.setOutput('deployment_id', deployment.data.id);
+#
+#       # ── Mark deployment as in_progress ──
+#       - name: Set deployment status — in progress
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+#               state: 'in_progress',
+#               description: 'Deploying to Render...',
+#             });
+#
+#       # ── Trigger Render deploy hook ──
+#       - name: Deploy to Render
+#         id: deploy
+#         env:
+#           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL_FRONTEND }}
+#           RENDER_SERVICE_URL: ${{ secrets.RENDER_SERVICE_URL_FRONTEND }}
+#         run: |
+#           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+#             echo "⚠️  RENDER_DEPLOY_HOOK_URL_FRONTEND secret is not set — skipping deploy trigger."
+#             echo "url=${RENDER_SERVICE_URL}" >> $GITHUB_OUTPUT
+#             exit 0
+#           fi
+#           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+#             -X POST "$RENDER_DEPLOY_HOOK_URL")
+#           if [ "$RESPONSE" != "200" ] && [ "$RESPONSE" != "201" ]; then
+#             echo "Deploy hook returned HTTP $RESPONSE"
+#             exit 1
+#           fi
+#           echo "url=${RENDER_SERVICE_URL}" >> $GITHUB_OUTPUT
+#
+#       # ── Mark deployment as success ──
+#       - name: Set deployment status — success
+#         if: success()
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+#               state: 'success',
+#               description: 'Deployed successfully to Render',
+#               environment_url: '${{ steps.deploy.outputs.url }}',
+#             });
+#
+#       # ── Mark deployment as failure ──
+#       - name: Set deployment status — failure
+#         if: failure()
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+#               state: 'failure',
+#               description: 'Deployment to Render failed',
+#             });
