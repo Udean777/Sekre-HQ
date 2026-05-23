@@ -48,7 +48,11 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*entity.
 	err := dbFor(ctx, r.db).Where("email = ?", email).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domainerrors.ErrInvalidCredentials
+			// Return ErrUserNotFound so callers (e.g. seed, usecase) can
+			// distinguish "user does not exist" from a real DB error.
+			// The auth usecase maps this to ErrInvalidCredentials via
+			// isCredentialMissError(), preserving the anti-enumeration behaviour.
+			return nil, domainerrors.ErrUserNotFound
 		}
 		return nil, domainerrors.Internal("get user by email", err)
 	}
