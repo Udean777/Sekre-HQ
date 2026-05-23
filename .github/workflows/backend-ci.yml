@@ -97,11 +97,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # GHCR requires the image path to be lowercase. Repo names like
+      # "Udean777/Sekre-HQ" would otherwise be rejected with "Bad credentials".
+      - name: Compute lowercase image name
+        id: image
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "name=ghcr.io/${REPO_LOWER}/sekre-backend" >> "$GITHUB_OUTPUT"
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/sekre-backend
+          images: ${{ steps.image.outputs.name }}
           tags: |
             type=sha,prefix=sha-,format=short
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
