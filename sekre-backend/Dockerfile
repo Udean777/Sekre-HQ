@@ -28,6 +28,9 @@ COPY --from=builder /app/bin/api .
 # Copy OpenAPI docs (served at /docs)
 COPY --from=builder /app/docs ./docs
 
+# Copy SQL migration files (consumed by auto-migrate at startup)
+COPY --from=builder /app/migrations ./migrations
+
 EXPOSE 1000
 
 CMD ["./api"]

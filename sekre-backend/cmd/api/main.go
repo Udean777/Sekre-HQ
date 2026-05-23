@@ -26,6 +26,7 @@ import (
 	"github.com/username/sekre-backend/pkg/audit"
 	"github.com/username/sekre-backend/pkg/database"
 	"github.com/username/sekre-backend/pkg/logger"
+	dbmigrate "github.com/username/sekre-backend/pkg/migrate"
 	"github.com/username/sekre-backend/pkg/observability"
 	"github.com/username/sekre-backend/pkg/token"
 )
@@ -67,6 +68,15 @@ func main() {
 		Str("port", cfg.Database.Port).
 		Str("dbname", cfg.Database.DBName).
 		Msg("✓ Database connected successfully")
+
+	// Auto-run pending database migrations on startup. This is required for
+	// Render/Railway deploys where there is no separate job runner.
+	// Idempotent: a no-op when there are no pending migrations.
+	logger.Info("Running database migrations...")
+	if err := dbmigrate.Up(db, "file://migrations"); err != nil {
+		logger.Fatalf("Failed to run migrations: %v", err)
+	}
+	logger.Info("✓ Database migrations applied")
 
 	// Initialize and start scheduler
 	sched := scheduler.New(db, cfg.Scheduler)
