@@ -39,6 +39,15 @@ jobs:
         with:
           bun-version: latest
 
+      # ── Cache node_modules ──
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: sekre-mobile/node_modules
+          key: node-modules-${{ hashFiles('sekre-mobile/bun.lock') }}
+          restore-keys: |
+            node-modules-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -78,6 +87,15 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      # ── Cache node_modules ──
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: sekre-mobile/node_modules
+          key: node-modules-${{ hashFiles('sekre-mobile/bun.lock') }}
+          restore-keys: |
+            node-modules-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
