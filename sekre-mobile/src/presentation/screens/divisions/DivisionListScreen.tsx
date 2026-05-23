@@ -126,7 +126,7 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
         {
           text: 'Hapus',
           style: 'destructive',
-          onPress: () => deleteDivision(division.id),
+          onPress: (): void => deleteDivision(division.id),
         },
       ]);
     },
@@ -186,7 +186,9 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
             label="Coba Lagi"
             variant="ghost"
             size="sm"
-            onPress={() => void refetch()}
+            onPress={() => {
+              refetch();
+            }}
             style={styles.retryButton}
           />
         </View>
@@ -201,7 +203,9 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !isLoading}
-              onRefresh={() => void refetch()}
+              onRefresh={() => {
+                refetch();
+              }}
               tintColor={colors.primary[500]}
             />
           }

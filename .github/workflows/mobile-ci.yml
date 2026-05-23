@@ -1,0 +1,184 @@
+name: Mobile CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'sekre-mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'sekre-mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+
+defaults:
+  run:
+    working-directory: sekre-mobile
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Lint + Type-check
+  # ─────────────────────────────────────────────
+  ci:
+    name: Lint & Type-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Type-check
+        run: bunx tsc --noEmit
+
+  # ─────────────────────────────────────────────
+  # Job 2: Build Android (APK + AAB)
+  # ─────────────────────────────────────────────
+  build-android:
+    name: Build Android Release
+    runs-on: ubuntu-latest
+    needs: [ci]
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # ── Decode keystore dari secret ──
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode \
+            > android/app/sekre-release.keystore
+
+      # ── Inject signing config ke gradle.properties ──
+      - name: Inject signing config
+        run: |
+          cat >> android/gradle.properties << EOF
+          MYAPP_UPLOAD_STORE_FILE=sekre-release.keystore
+          MYAPP_UPLOAD_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}
+          MYAPP_UPLOAD_STORE_PASSWORD=${{ secrets.ANDROID_STORE_PASSWORD }}
+          MYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      # ── Cache Gradle ──
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('sekre-mobile/android/**/*.gradle*', 'sekre-mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-
+
+      - name: Make gradlew executable
+        working-directory: sekre-mobile/android
+        run: chmod +x ./gradlew
+
+      # ── Build AAB FIRST ──
+      # bundleRelease must run before assembleRelease because:
+      # - bundleRelease produces 1 shrunk-resources file (splits disabled by build.gradle conditional)
+      # - assembleRelease produces 2 shrunk-resources files (one per ABI split)
+      # Running assemble first would cause bundle to fail with "Multiple shrunk-resources files found".
+      - name: Build AAB (bundleRelease)
+        working-directory: sekre-mobile/android
+        run: ./gradlew bundleRelease --no-daemon
+
+      # ── Build APK splits ──
+      - name: Build APK (assembleRelease)
+        working-directory: sekre-mobile/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      # ── Get versionName + short SHA ──
+      - name: Get version name
+        id: version
+        run: |
+          VERSION=$(grep -m1 'versionName' android/app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "name=${VERSION}" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      # ── Upload artifact ──
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sekre-release-apk
+          path: sekre-mobile/android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sekre-release-aab
+          path: sekre-mobile/android/app/build/outputs/bundle/release/*.aab
+          retention-days: 30
+
+      # ── Buat GitHub Release ──
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mobile-v${{ steps.version.outputs.name }}-${{ steps.version.outputs.short_sha }}
+          name: "Mobile v${{ steps.version.outputs.name }} (${{ steps.version.outputs.short_sha }})"
+          body: |
+            ## Sekre Mobile v${{ steps.version.outputs.name }}
+
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            **Built at:** ${{ github.event.head_commit.timestamp }}
+
+            ### Artifacts
+
+            **APK (direct install / sideload):**
+            - `app-arm64-v8a-release.apk` — modern 64-bit ARM devices (recommended)
+            - `app-armeabi-v7a-release.apk` — older 32-bit ARM devices
+
+            **AAB (Google Play Store):**
+            - `app-release.aab` — upload ke Play Console untuk per-device APK delivery
+
+            ### Build Info
+            - Minified with ProGuard/R8 + resource shrinking
+            - Signed with release keystore
+            - ABI: `armeabi-v7a`, `arm64-v8a` (no x86)
+          files: |
+            sekre-mobile/android/app/build/outputs/apk/release/*.apk
+            sekre-mobile/android/app/build/outputs/bundle/release/*.aab
+          draft: false
+          prerelease: false

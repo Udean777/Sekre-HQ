@@ -1,12 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import {
-  View,
-  SectionList,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  RefreshControl,
-} from 'react-native';
+import { View, SectionList, StyleSheet, Alert, RefreshControl } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
@@ -62,7 +55,7 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
     (event: Event) => {
       Alert.alert('Hapus Acara', `Hapus acara "${event.title}"?`, [
         { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus', style: 'destructive', onPress: () => deleteEvent(event.id) },
+        { text: 'Hapus', style: 'destructive', onPress: (): void => deleteEvent(event.id) },
       ]);
     },
     [deleteEvent],
@@ -154,7 +147,9 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
             label="Coba Lagi"
             variant="ghost"
             size="sm"
-            onPress={() => void refetch()}
+            onPress={() => {
+              refetch();
+            }}
             style={styles.retryButton}
           />
         </View>
@@ -199,7 +194,9 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}
-            onRefresh={() => void refetch()}
+            onRefresh={() => {
+              refetch();
+            }}
             tintColor={colors.primary[500]}
           />
         }

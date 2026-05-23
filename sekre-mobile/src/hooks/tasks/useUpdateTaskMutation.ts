@@ -1,11 +1,15 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { UpdateTaskUseCase } from '@core/usecases/tasks/UpdateTaskUseCase';
 import { getTaskRepository } from '@di/container';
 import type { Task, TaskId } from '@core/domain/entities/Task';
 import type { UpdateTaskParams } from '@core/ports/ITaskRepository';
 import { TASKS_QUERY_KEY } from './useTasksQuery';
 
-export const useUpdateTaskMutation = () => {
+export const useUpdateTaskMutation = (): UseMutationResult<
+  Task,
+  Error,
+  { id: TaskId; params: UpdateTaskParams }
+> => {
   const queryClient = useQueryClient();
 
   return useMutation<Task, Error, { id: TaskId; params: UpdateTaskParams }>({

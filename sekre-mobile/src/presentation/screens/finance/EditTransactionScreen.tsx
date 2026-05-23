@@ -165,7 +165,7 @@ export const EditTransactionScreen: React.FC<Props> = ({ navigation, route }) =>
                       ]}
                     >
                       <Ionicons
-                        name={opt.icon as any}
+                        name={opt.icon}
                         size={18}
                         color={active ? colors.neutral[0] : opt.color}
                       />

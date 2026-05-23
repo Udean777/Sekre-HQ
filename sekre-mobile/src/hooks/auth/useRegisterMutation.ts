@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 import { useAppDispatch } from '@store/hooks';
 import { setSession } from '@store/slices/authSlice';
 import { RegisterUseCase } from '@core/usecases/auth/RegisterUseCase';
@@ -13,7 +13,7 @@ interface RegisterParams {
   password: string;
 }
 
-export const useRegisterMutation = () => {
+export const useRegisterMutation = (): UseMutationResult<AuthSession, Error, RegisterParams> => {
   const dispatch = useAppDispatch();
 
   return useMutation<AuthSession, Error, RegisterParams>({

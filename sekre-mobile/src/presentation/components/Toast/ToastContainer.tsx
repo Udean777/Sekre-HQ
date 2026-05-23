@@ -81,7 +81,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
       ]).start(() => onDismiss(toast.id));
     }, duration);
 
-    return () => clearTimeout(timer);
+    return (): void => clearTimeout(timer);
   }, [toast.id, duration, opacity, translateY, onDismiss]);
 
   return (

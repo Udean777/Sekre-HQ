@@ -1,11 +1,11 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { DeleteTransactionUseCase } from '@core/usecases/finance/DeleteTransactionUseCase';
 import { getFinanceRepository } from '@di/container';
 import type { TransactionId } from '@core/domain/entities/Transaction';
 import { TRANSACTIONS_QUERY_KEY } from './useTransactionsQuery';
 import { FINANCE_SUMMARY_QUERY_KEY } from './useFinanceSummaryQuery';
 
-export const useDeleteTransactionMutation = () => {
+export const useDeleteTransactionMutation = (): UseMutationResult<void, Error, TransactionId> => {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, TransactionId>({

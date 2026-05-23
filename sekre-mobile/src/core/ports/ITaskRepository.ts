@@ -4,7 +4,6 @@ import type {
   TaskFilter,
   TaskListResult,
   TaskStatus,
-  TaskPriority,
 } from '@core/domain/entities/Task';
 
 export interface CreateTaskParams {

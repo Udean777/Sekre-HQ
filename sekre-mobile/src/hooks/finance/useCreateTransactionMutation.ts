@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { CreateTransactionUseCase } from '@core/usecases/finance/CreateTransactionUseCase';
 import { getFinanceRepository } from '@di/container';
 import type { Transaction } from '@core/domain/entities/Transaction';
@@ -6,7 +6,11 @@ import type { CreateTransactionParams } from '@core/ports/IFinanceRepository';
 import { TRANSACTIONS_QUERY_KEY } from './useTransactionsQuery';
 import { FINANCE_SUMMARY_QUERY_KEY } from './useFinanceSummaryQuery';
 
-export const useCreateTransactionMutation = () => {
+export const useCreateTransactionMutation = (): UseMutationResult<
+  Transaction,
+  Error,
+  CreateTransactionParams
+> => {
   const queryClient = useQueryClient();
 
   return useMutation<Transaction, Error, CreateTransactionParams>({

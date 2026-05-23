@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+import { View, StyleSheet, RefreshControl, ScrollView } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
@@ -7,7 +7,7 @@ import { AppText } from '@presentation/components/Text';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
 import { SkeletonList } from '@presentation/components/Skeleton';
-import { colors, spacing, fontWeight } from '@presentation/theme';
+import { colors, spacing } from '@presentation/theme';
 import { useTasksQuery } from '@hooks/tasks/useTasksQuery';
 import { useUpdateTaskStatusMutation } from '@hooks/tasks/useUpdateTaskStatusMutation';
 import { useAppSelector } from '@store/hooks';
@@ -66,7 +66,9 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
             label="Coba Lagi"
             variant="ghost"
             size="sm"
-            onPress={() => void refetch()}
+            onPress={() => {
+              refetch();
+            }}
             style={styles.retryButton}
           />
         </View>
@@ -108,7 +110,9 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !isLoading}
-              onRefresh={() => void refetch()}
+              onRefresh={() => {
+                refetch();
+              }}
               tintColor={colors.primary[500]}
             />
           }

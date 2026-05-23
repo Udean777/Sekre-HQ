@@ -57,7 +57,21 @@ react {
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
+
+/**
+ * Set this to true to enable resource shrinking on Release builds.
+ * Removes unused resources (drawables, layouts, strings, etc) detected by R8.
+ * Requires minifyEnabled = true.
+ */
+def enableShrinkResourcesInReleaseBuilds = true
+
+/**
+ * Set this to true to generate per-ABI APKs (one APK per architecture).
+ * Each split APK is ~30-40% smaller than the universal APK.
+ * The AAB build is unaffected — Play Store always serves per-device APKs.
+ */
+def enableSeparateBuildPerCPUArchitecture = true
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -72,6 +86,48 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+// Release signing properties are loaded from:
+// 1. Gradle project properties (CI injects into android/gradle.properties)
+// 2. android/local.properties (recommended for local development, gitignored)
+// 3. Environment variables
+//
+// Expected keys:
+// - MYAPP_UPLOAD_STORE_FILE
+// - MYAPP_UPLOAD_KEY_ALIAS
+// - MYAPP_UPLOAD_STORE_PASSWORD
+// - MYAPP_UPLOAD_KEY_PASSWORD
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { stream ->
+        localProperties.load(stream)
+    }
+}
+
+def signingProperty = { name ->
+    def value = project.findProperty(name)
+    if (value != null) {
+        return value.toString()
+    }
+
+    value = localProperties.getProperty(name)
+    if (value != null) {
+        return value
+    }
+
+    value = System.getenv(name)
+    if (value != null) {
+        return value
+    }
+
+    return null
+}
+
+def releaseStoreFile = signingProperty('MYAPP_UPLOAD_STORE_FILE')
+def releaseKeyAlias = signingProperty('MYAPP_UPLOAD_KEY_ALIAS')
+def releaseStorePassword = signingProperty('MYAPP_UPLOAD_STORE_PASSWORD')
+def releaseKeyPassword = signingProperty('MYAPP_UPLOAD_KEY_PASSWORD')
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -85,6 +141,24 @@ android {
         versionCode 1
         versionName "1.0"
     }
+
+    // Generate per-ABI APKs to drastically reduce APK size.
+    // Each user only needs the APK matching their device architecture.
+    // Only ARM architectures — x86/x86_64 dropped (emulator-only, not real devices).
+    //
+    // NOTE: ABI splits are automatically disabled when building an AAB
+    // (`bundleRelease`). Play Store handles per-device delivery from the AAB,
+    // so splits are only needed for direct APK distribution.
+    def isBundleTask = gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") }
+    splits {
+        abi {
+            reset()
+            enable enableSeparateBuildPerCPUArchitecture && !isBundleTask
+            universalApk false  // set true if you also want a fat APK
+            include "armeabi-v7a", "arm64-v8a"
+        }
+    }
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -92,17 +166,39 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            storeFile file(releaseStoreFile)
+            storePassword releaseStorePassword
+            keyAlias releaseKeyAlias
+            keyPassword releaseKeyPassword
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
+            shrinkResources (enableProguardInReleaseBuilds && enableShrinkResourcesInReleaseBuilds)
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+
+    // Map each per-ABI APK to a unique versionCode so Play Store can
+    // distinguish between them. Order must match the include list above.
+    project.ext.versionCodes = [
+        "armeabi-v7a": 1,
+        "arm64-v8a"  : 2
+    ]
+
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            def abi = output.getFilter(com.android.build.OutputFile.ABI)
+            if (abi != null) {
+                output.versionCodeOverride =
+                    project.ext.versionCodes.get(abi) * 1048576 + defaultConfig.versionCode
+            }
         }
     }
 }

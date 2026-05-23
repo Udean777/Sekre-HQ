@@ -3,7 +3,17 @@ import { useAppDispatch } from '@store/hooks';
 import { showToast, dismissToast, clearToasts } from '@store/slices/uiSlice';
 import type { ToastType } from '@store/slices/uiSlice';
 
-export const useToast = () => {
+interface UseToastReturn {
+  toast: (message: string, type?: ToastType, duration?: number) => void;
+  success: (message: string, duration?: number) => void;
+  error: (message: string, duration?: number) => void;
+  warning: (message: string, duration?: number) => void;
+  info: (message: string, duration?: number) => void;
+  dismiss: (id: string) => void;
+  clear: () => void;
+}
+
+export const useToast = (): UseToastReturn => {
   const dispatch = useAppDispatch();
 
   const toast = useCallback(

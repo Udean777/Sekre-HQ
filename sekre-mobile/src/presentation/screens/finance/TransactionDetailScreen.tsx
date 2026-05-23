@@ -52,7 +52,7 @@ const InfoRow: React.FC<{ icon: string; label: string; value: string; valueColor
 }) => (
   <View style={styles.infoRow}>
     <View style={styles.infoIcon}>
-      <Ionicons name={icon as any} size={16} color={colors.primary[500]} />
+      <Ionicons name={icon} size={16} color={colors.primary[500]} />
     </View>
     <View style={styles.infoContent}>
       <AppText variant="bodySm" color={colors.text.secondary}>
@@ -87,7 +87,8 @@ export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) 
       {
         text: 'Hapus',
         style: 'destructive',
-        onPress: () => deleteTransaction(transactionId, { onSuccess: () => navigation.goBack() }),
+        onPress: (): void =>
+          deleteTransaction(transactionId, { onSuccess: () => navigation.goBack() }),
       },
     ]);
   }, [deleteTransaction, transactionId, navigation]);

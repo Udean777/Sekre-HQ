@@ -1,10 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { DeleteMemberUseCase } from '@core/usecases/members/DeleteMemberUseCase';
 import { getMemberRepository } from '@di/container';
 import type { MemberId } from '@core/domain/entities/Member';
 import { MEMBERS_QUERY_KEY } from './useMembersQuery';
 
-export const useDeleteMemberMutation = () => {
+export const useDeleteMemberMutation = (): UseMutationResult<void, Error, MemberId> => {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, MemberId>({

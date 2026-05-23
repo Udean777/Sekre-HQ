@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Animated, StyleSheet, type ViewStyle } from 'react-native';
 import { colors, radius } from '@presentation/theme';
 
 interface SkeletonBoxProps {
@@ -33,7 +33,7 @@ export const SkeletonBox: React.FC<SkeletonBoxProps> = ({
       ]),
     );
     animation.start();
-    return () => animation.stop();
+    return (): void => animation.stop();
   }, [opacity]);
 
   return (

@@ -12,6 +12,11 @@ export interface ColumnLayout {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
+// Return type is the shape of `return { ... }` at the bottom of this hook.
+// We expose it via `UseDragDropReturn = ReturnType<typeof useDragDrop>` below;
+// writing it inline here would be a circular reference, so we disable the
+// explicit-return-type rule for this single line.
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export const useDragDrop = () => {
   // ── Drag state in refs — no re-render on pan update ───────────────────────
   const isDraggingRef = useRef(false);

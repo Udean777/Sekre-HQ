@@ -4,7 +4,6 @@ import RNDateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AppText } from '../Text/Text';
 import { BottomSheet } from '../BottomSheet';
-import { Button } from '../Button';
 import { colors, spacing, radius, fontSize, fontWeight } from '@presentation/theme';
 
 type Mode = 'date' | 'datetime';
@@ -59,20 +58,20 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
       : formatDate(value)
     : null;
 
-  const handlePress = () => {
+  const handlePress = (): void => {
     setTempDate(value ?? new Date());
     setIosStep('date');
     setOpen(true);
   };
 
-  const handleClear = () => onChange(null);
+  const handleClear = (): void => onChange(null);
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     setOpen(false);
     setIosStep('date');
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = (): void => {
     if (mode === 'datetime' && iosStep === 'date') {
       setIosStep('time');
       return;
@@ -83,7 +82,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   };
 
   // Android: native dialog langsung
-  const handleAndroidChange = (_: unknown, selected?: Date) => {
+  const handleAndroidChange = (_: unknown, selected?: Date): void => {
     if (!selected) {
       setOpen(false);
       return;

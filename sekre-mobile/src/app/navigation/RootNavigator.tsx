@@ -34,7 +34,7 @@ export const RootNavigator: React.FC = () => {
       dispatch(clearSession());
     });
 
-    return () => subscription.remove();
+    return (): void => subscription.remove();
   }, [dispatch]);
 
   // Hide splash screen setelah bootstrap selesai
