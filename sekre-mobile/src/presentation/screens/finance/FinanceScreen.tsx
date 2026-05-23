@@ -7,7 +7,7 @@ import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
-import { Badge, txTypeVariant, txStatusVariant } from '@presentation/components/Badge';
+import { Badge, txStatusVariant } from '@presentation/components/Badge';
 import { SkeletonList } from '@presentation/components/Skeleton';
 import { EmptyState } from '@presentation/components/EmptyState';
 import { colors, spacing, fontWeight } from '@presentation/theme';
@@ -52,7 +52,7 @@ interface SummaryCardProps {
 const SummaryCard: React.FC<SummaryCardProps> = ({ label, icon, money, color }) => (
   <Card style={styles.summaryCard}>
     <View style={[styles.summaryIcon, { backgroundColor: `${color}18` }]}>
-      <Ionicons name={icon as any} size={18} color={color} />
+      <Ionicons name={icon} size={18} color={color} />
     </View>
     <AppText variant="bodySm" color={colors.text.secondary}>
       {label}
@@ -175,7 +175,7 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
     (tx: Transaction) => {
       Alert.alert('Hapus Transaksi', `Hapus transaksi "${tx.description}"?`, [
         { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus', style: 'destructive', onPress: () => deleteTransaction(tx.id) },
+        { text: 'Hapus', style: 'destructive', onPress: (): void => deleteTransaction(tx.id) },
       ]);
     },
     [deleteTransaction],
@@ -282,7 +282,9 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
             label="Coba Lagi"
             variant="ghost"
             size="sm"
-            onPress={() => void refetch()}
+            onPress={() => {
+              refetch();
+            }}
             style={styles.retryButton}
           />
         </View>
@@ -297,7 +299,9 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !isLoading}
-              onRefresh={() => void refetch()}
+              onRefresh={() => {
+                refetch();
+              }}
               tintColor={colors.primary[500]}
             />
           }

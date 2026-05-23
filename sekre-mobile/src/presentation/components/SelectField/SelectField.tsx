@@ -39,7 +39,7 @@ export function SelectField<T = string>({
   const hasError = Boolean(error);
   const selected = options.find(o => o.value === value);
 
-  const handleSelect = (opt: SelectOption<T>) => {
+  const handleSelect = (opt: SelectOption<T>): void => {
     onChange(opt.value);
     setOpen(false);
   };

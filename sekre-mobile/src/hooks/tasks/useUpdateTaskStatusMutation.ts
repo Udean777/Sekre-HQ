@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
 import { UpdateTaskStatusUseCase } from '@core/usecases/tasks/UpdateTaskStatusUseCase';
 import { getTaskRepository } from '@di/container';
@@ -19,7 +19,12 @@ interface MutationContext {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export const useUpdateTaskStatusMutation = () => {
+export const useUpdateTaskStatusMutation = (): UseMutationResult<
+  Task,
+  Error,
+  MutationVariables,
+  MutationContext
+> => {
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
 

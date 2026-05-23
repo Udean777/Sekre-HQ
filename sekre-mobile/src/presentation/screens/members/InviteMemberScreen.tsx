@@ -144,7 +144,7 @@ export const InviteMemberScreen: React.FC<Props> = ({ navigation }) => {
                         >
                           <View style={[styles.roleIconBox, active && styles.roleIconBoxActive]}>
                             <Ionicons
-                              name={opt.icon as any}
+                              name={opt.icon}
                               size={20}
                               color={active ? colors.primary[600] : colors.text.secondary}
                             />

@@ -36,7 +36,7 @@ const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({
 }) => (
   <View style={styles.infoRow}>
     <View style={styles.infoIcon}>
-      <Ionicons name={icon as any} size={18} color={colors.primary[500]} />
+      <Ionicons name={icon} size={18} color={colors.primary[500]} />
     </View>
     <View style={styles.infoContent}>
       <AppText variant="bodySm" color={colors.text.secondary}>
@@ -69,7 +69,7 @@ export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
       {
         text: 'Hapus',
         style: 'destructive',
-        onPress: () => deleteEvent(eventId, { onSuccess: () => navigation.goBack() }),
+        onPress: (): void => deleteEvent(eventId, { onSuccess: () => navigation.goBack() }),
       },
     ]);
   }, [deleteEvent, eventId, navigation]);

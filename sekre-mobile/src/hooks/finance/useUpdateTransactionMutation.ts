@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { UpdateTransactionUseCase } from '@core/usecases/finance/UpdateTransactionUseCase';
 import { getFinanceRepository } from '@di/container';
 import type { Transaction, TransactionId } from '@core/domain/entities/Transaction';
@@ -12,7 +12,11 @@ interface UpdateTransactionVariables {
   params: UpdateTransactionParams;
 }
 
-export const useUpdateTransactionMutation = () => {
+export const useUpdateTransactionMutation = (): UseMutationResult<
+  Transaction,
+  Error,
+  UpdateTransactionVariables
+> => {
   const queryClient = useQueryClient();
 
   return useMutation<Transaction, Error, UpdateTransactionVariables>({

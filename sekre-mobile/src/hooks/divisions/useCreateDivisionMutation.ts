@@ -1,11 +1,15 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { CreateDivisionUseCase } from '@core/usecases/divisions/CreateDivisionUseCase';
 import { getDivisionRepository } from '@di/container';
 import type { Division } from '@core/domain/entities/Division';
 import type { CreateDivisionParams } from '@core/ports/IDivisionRepository';
 import { DIVISIONS_QUERY_KEY } from './useDivisionsQuery';
 
-export const useCreateDivisionMutation = () => {
+export const useCreateDivisionMutation = (): UseMutationResult<
+  Division,
+  Error,
+  CreateDivisionParams
+> => {
   const queryClient = useQueryClient();
 
   return useMutation<Division, Error, CreateDivisionParams>({

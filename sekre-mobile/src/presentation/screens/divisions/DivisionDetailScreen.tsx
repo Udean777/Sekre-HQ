@@ -107,7 +107,7 @@ export const DivisionDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         {
           text: 'Hapus',
           style: 'destructive',
-          onPress: () => removeMember({ id: divisionId, userId: member.userId }),
+          onPress: (): void => removeMember({ id: divisionId, userId: member.userId }),
         },
       ]);
     },

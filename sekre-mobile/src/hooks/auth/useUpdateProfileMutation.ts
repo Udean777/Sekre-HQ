@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 import { useAppDispatch } from '@store/hooks';
 import { updateUser } from '@store/slices/authSlice';
 import { UpdateProfileUseCase } from '@core/usecases/auth/UpdateProfileUseCase';
@@ -6,7 +6,7 @@ import { getAuthRepository } from '@di/container';
 import type { User } from '@core/domain/entities/User';
 import type { UpdateProfileParams } from '@core/usecases/auth/UpdateProfileUseCase';
 
-export const useUpdateProfileMutation = () => {
+export const useUpdateProfileMutation = (): UseMutationResult<User, Error, UpdateProfileParams> => {
   const dispatch = useAppDispatch();
 
   return useMutation<User, Error, UpdateProfileParams>({

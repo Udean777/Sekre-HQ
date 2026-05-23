@@ -11,11 +11,7 @@ import type {
   MemberListResult,
 } from '@core/domain/entities/Member';
 import { ENDPOINTS } from '@data/http/endpoints';
-import type {
-  MemberListResponseDTO,
-  CreateMemberRequestDTO,
-  UpdateMemberRequestDTO,
-} from '@data/dto/member.dto';
+import type { MemberListResponseDTO } from '@data/dto/member.dto';
 import { mapMemberListDTOToResult } from '@data/mappers/member.mapper';
 
 export class MemberRepositoryImpl implements IMemberRepository {

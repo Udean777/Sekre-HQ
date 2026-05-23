@@ -44,11 +44,6 @@ const NEXT_STATUS_LABEL: Partial<Record<TaskStatus, string>> = {
   IN_PROGRESS: 'Tandai Selesai',
 };
 
-const NEXT_STATUS_ICON: Partial<Record<TaskStatus, string>> = {
-  TODO: 'play-circle-outline',
-  IN_PROGRESS: 'checkmark-circle-outline',
-};
-
 // ─── Info Row ─────────────────────────────────────────────────────────────────
 
 const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({
@@ -58,7 +53,7 @@ const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({
 }) => (
   <View style={styles.infoRow}>
     <View style={styles.infoIcon}>
-      <Ionicons name={icon as any} size={18} color={colors.primary[500]} />
+      <Ionicons name={icon} size={18} color={colors.primary[500]} />
     </View>
     <View style={styles.infoContent}>
       <AppText variant="bodySm" color={colors.text.secondary}>
@@ -94,7 +89,7 @@ export const TaskDetailScreen: React.FC<Props> = ({ navigation, route }) => {
       {
         text: 'Hapus',
         style: 'destructive',
-        onPress: () => deleteTask(taskId, { onSuccess: () => navigation.goBack() }),
+        onPress: (): void => deleteTask(taskId, { onSuccess: () => navigation.goBack() }),
       },
     ]);
   }, [deleteTask, navigation, taskId]);

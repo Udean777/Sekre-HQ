@@ -124,7 +124,7 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
     (member: Member) => {
       Alert.alert('Hapus Anggota', `Hapus ${member.fullName} dari organisasi?`, [
         { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus', style: 'destructive', onPress: () => deleteMember(member.id) },
+        { text: 'Hapus', style: 'destructive', onPress: (): void => deleteMember(member.id) },
       ]);
     },
     [deleteMember],
@@ -201,7 +201,9 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
             label="Coba Lagi"
             variant="ghost"
             size="sm"
-            onPress={() => void refetch()}
+            onPress={() => {
+              refetch();
+            }}
             style={styles.retryButton}
           />
         </View>
@@ -216,7 +218,9 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !isLoading}
-              onRefresh={() => void refetch()}
+              onRefresh={() => {
+                refetch();
+              }}
               tintColor={colors.primary[500]}
             />
           }

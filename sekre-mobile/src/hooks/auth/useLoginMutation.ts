@@ -1,11 +1,15 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 import { useAppDispatch } from '@store/hooks';
 import { setSession } from '@store/slices/authSlice';
 import { LoginUseCase } from '@core/usecases/auth/LoginUseCase';
 import { getAuthRepository, getTokenStorage } from '@di/container';
 import type { AuthSession } from '@core/ports/IAuthRepository';
 
-export const useLoginMutation = () => {
+export const useLoginMutation = (): UseMutationResult<
+  AuthSession,
+  Error,
+  { email: string; password: string }
+> => {
   const dispatch = useAppDispatch();
 
   return useMutation<AuthSession, Error, { email: string; password: string }>({

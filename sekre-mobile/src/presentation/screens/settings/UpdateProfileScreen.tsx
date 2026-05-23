@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -27,7 +20,6 @@ type Props = NativeStackScreenProps<SettingsStackParamList, 'UpdateProfile'>;
 export const UpdateProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [showFields, setShowFields] = useState({ fullName: false, email: false });
 
   const user = useAppSelector(state => state.auth.user);
   const { mutate: updateProfile, isPending } = useUpdateProfileMutation();

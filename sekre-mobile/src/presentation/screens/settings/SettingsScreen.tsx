@@ -4,7 +4,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
-import { Button } from '@presentation/components/Button';
 import { Card } from '@presentation/components/Card';
 import { Badge, type BadgeVariant } from '@presentation/components/Badge';
 import { colors, spacing, fontWeight, fontSize } from '@presentation/theme';
@@ -35,7 +34,7 @@ const MenuRow: React.FC<MenuRowProps> = ({ icon, label, onPress, destructive = f
   <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.menuRow}>
     <View style={[styles.menuIcon, destructive && styles.menuIconDestructive]}>
       <Ionicons
-        name={icon as any}
+        name={icon}
         size={18}
         color={destructive ? colors.danger.main : colors.primary[500]}
       />
@@ -80,7 +79,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const handleLogout = useCallback((): void => {
     Alert.alert('Keluar', 'Apakah Anda yakin ingin keluar?', [
       { text: 'Batal', style: 'cancel' },
-      { text: 'Keluar', style: 'destructive', onPress: () => logout() },
+      { text: 'Keluar', style: 'destructive', onPress: (): void => logout() },
     ]);
   }, [logout]);
 

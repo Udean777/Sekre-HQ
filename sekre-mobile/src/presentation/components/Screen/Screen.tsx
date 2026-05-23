@@ -34,7 +34,7 @@ export const Screen: React.FC<ScreenProps> = ({
   contentStyle,
   edges = [],
   tabScreen = false,
-  noTabBar = false,
+  noTabBar: _noTabBar = false,
   ...rest
 }) => {
   const insets = useSafeAreaInsets();

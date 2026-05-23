@@ -9,7 +9,7 @@ import { getAuthRepository, getTokenStorage } from '@di/container';
  * - Jika access token ada di storage → call /auth/me → populate Redux
  * - Jika gagal (token expired/invalid) → clear session → redirect ke Login
  */
-export const useBootstrapAuth = () => {
+export const useBootstrapAuth = (): { isBootstrapping: boolean } => {
   const dispatch = useAppDispatch();
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 

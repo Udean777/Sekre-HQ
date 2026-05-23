@@ -224,9 +224,9 @@ export const CardContent: React.FC<CardContentProps> = React.memo(({ task, float
   <View
     style={[
       styles.card,
+      !floating && styles.cardStatusBorder,
       !floating && {
         backgroundColor: STATUS_BG[task.status],
-        borderLeftWidth: 3,
         borderLeftColor: STATUS_ACCENT[task.status],
       },
       floating && styles.floatingCard,
@@ -339,6 +339,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
+  },
+  cardStatusBorder: {
+    borderLeftWidth: 3,
   },
   floatingCard: {
     borderColor: colors.primary[400],

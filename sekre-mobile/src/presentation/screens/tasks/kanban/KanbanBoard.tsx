@@ -7,7 +7,7 @@ import {
   type NativeScrollEvent,
 } from 'react-native';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
-import { colors, spacing } from '@presentation/theme';
+import { spacing } from '@presentation/theme';
 import type { Task, TaskId, TaskStatus } from '@core/domain/entities/Task';
 import { KanbanColumn, KANBAN_COLUMNS } from './KanbanColumn';
 import { FloatingCard } from './KanbanCard';

@@ -1,10 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { useAppDispatch } from '@store/hooks';
 import { clearSession } from '@store/slices/authSlice';
 import { LogoutUseCase } from '@core/usecases/auth/LogoutUseCase';
 import { getAuthRepository, getTokenStorage } from '@di/container';
 
-export const useLogoutMutation = () => {
+export const useLogoutMutation = (): UseMutationResult<void, Error, void> => {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
 

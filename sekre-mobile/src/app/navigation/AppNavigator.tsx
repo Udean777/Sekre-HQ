@@ -61,7 +61,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
           const config = TAB_CONFIG[route.name];
           if (!config) return null;
 
-          const onPress = () => {
+          const onPress = (): void => {
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,

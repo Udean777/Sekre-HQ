@@ -1,10 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { DeleteTaskUseCase } from '@core/usecases/tasks/DeleteTaskUseCase';
 import { getTaskRepository } from '@di/container';
 import type { TaskId } from '@core/domain/entities/Task';
 import { TASKS_QUERY_KEY } from './useTasksQuery';
 
-export const useDeleteTaskMutation = () => {
+export const useDeleteTaskMutation = (): UseMutationResult<void, Error, TaskId> => {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, TaskId>({

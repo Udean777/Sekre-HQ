@@ -86,11 +86,6 @@ const TaskRow: React.FC<{ task: Task }> = ({ task }) => (
 );
 
 const EventRow: React.FC<{ event: Event }> = ({ event }) => {
-  const dateStr = event.startDate.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
   const timeStr = event.startDate.toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit',
@@ -128,7 +123,7 @@ const MenuShortcut: React.FC<{
   <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.shortcutItem}>
     <Card style={styles.shortcutCard}>
       <View style={styles.shortcutIcon}>
-        <Ionicons name={icon as any} size={22} color={colors.primary[500]} />
+        <Ionicons name={icon} size={22} color={colors.primary[500]} />
       </View>
       <View style={styles.shortcutText}>
         <AppText variant="bodyMd" style={styles.shortcutLabel}>
