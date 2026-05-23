@@ -8,3 +8,6 @@ local.properties
 
 # Temporary planning / implementation notes
 docs-local/
+
+# OpenCode
+.opencode
