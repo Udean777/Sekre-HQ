@@ -28,6 +28,7 @@ import (
 	"github.com/username/sekre-backend/pkg/logger"
 	dbmigrate "github.com/username/sekre-backend/pkg/migrate"
 	"github.com/username/sekre-backend/pkg/observability"
+	"github.com/username/sekre-backend/pkg/seed"
 	"github.com/username/sekre-backend/pkg/token"
 )
 
@@ -110,6 +111,24 @@ func main() {
 	eventRepo := gormRepo.NewEventRepository(db)
 	financeRepo := gormRepo.NewTransactionRepository(db)
 	auditLogRepo := gormRepo.NewAuditLogRepository(db)
+
+	// Bootstrap default admin account if it doesn't exist yet. Safe to run
+	// on every boot — EnsureAdmin is idempotent (no-op when the user is
+	// already there). Login credentials: sekre@admin.com / password123.
+	if err := seed.EnsureAdmin(
+		context.Background(),
+		seed.AdminConfig{
+			Email:            "sekre@admin.com",
+			Password:         "password123",
+			FullName:         "Sekre Admin",
+			OrganizationName: "Sekre",
+			Subdomain:        "sekre",
+		},
+		userRepo, orgRepo, userOrgRepo, txRunner, passwordHasher,
+	); err != nil {
+		logger.Fatalf("Failed to ensure admin user: %v", err)
+	}
+	logger.Info("✓ Admin user ensured (sekre@admin.com)")
 
 	// Initialize audit service
 	auditService := audit.NewService(auditLogRepo, audit.DefaultConfig())
