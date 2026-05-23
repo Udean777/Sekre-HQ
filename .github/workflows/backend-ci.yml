@@ -4,14 +4,12 @@ on:
   push:
     branches:
       - main
-      - dev
     paths:
       - 'sekre-backend/**'
       - '.github/workflows/backend-ci.yml'
   pull_request:
     branches:
       - main
-      - dev
     paths:
       - 'sekre-backend/**'
       - '.github/workflows/backend-ci.yml'
