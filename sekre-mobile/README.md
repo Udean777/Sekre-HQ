@@ -1,293 +1,183 @@
-# Sekre Mobile
+# 📱 Sekre Mobile
 
-**React Native app untuk platform manajemen organisasi kampus Sekre.**
+**Aplikasi Mobile Lintas Platform (Android & iOS) Sekre berbasis React Native & Clean Architecture**
 
-[![React Native](https://img.shields.io/badge/React_Native-0.85.3-61DAFB?style=flat&logo=react)](https://reactnative.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org/)
-[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green?style=flat)](https://reactnative.dev/)
+[![React Native](https://img.shields.io/badge/React_Native-0.85.3-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactnative.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Sentry](https://img.shields.io/badge/Sentry-Monitoring-6C5B7B?style=for-the-badge&logo=sentry&logoColor=white)](https://sentry.io/)
+[![Platforms](https://img.shields.io/badge/Platform-Android_%7C_iOS-green?style=for-the-badge)](https://reactnative.dev/)
 
----
-
-## Fitur
-
-| Modul        | Fitur                                               |
-| ------------ | --------------------------------------------------- |
-| Auth         | Login, Register, Refresh token otomatis, Logout     |
-| Dashboard    | Statistik organisasi, info plan, ringkasan tugas    |
-| Tasks        | CRUD tugas, filter status/prioritas, advance status |
-| Members      | Undang anggota, kelola peran, hapus anggota         |
-| Divisions    | CRUD divisi, kelola anggota divisi                  |
-| Events       | CRUD acara, filter & search                         |
-| Finance      | Transaksi CRUD, summary income/expense/balance      |
-| Settings     | Edit profil, ganti password, pengaturan organisasi  |
+Sekre Mobile adalah aplikasi mobile klien utama untuk platform Sekre, dibangun menggunakan **React Native 0.85.3** dan **TypeScript**. Aplikasi ini mempermudah seluruh anggota organisasi kemahasiswaan untuk tetap terhubung, melaporkan transaksi kas, merubah progres tugas kepanitiaan, serta melihat jadwal acara organisasi secara instan kapan saja dan di mana saja.
 
 ---
 
-## Arsitektur
+## 🛠️ Fitur Teknis Utama (Mobile-Specific)
 
-Clean Architecture dengan 4 layer:
+### 1. Sistem Offline-First & Cache Persistence
+Untuk mengantisipasi koneksi internet seluler mahasiswa yang tidak stabil, aplikasi menerapkan arsitektur offline-first:
+* **TanStack Query v5 + MMKV Persister**: Menggunakan `@tanstack/react-query-persist-client` yang digabungkan dengan `@tanstack/query-sync-storage-persister` untuk menyimpan seluruh respon API langsung ke dalam memori ultra-cepat **MMKV**.
+* **Instant Recovery**: Saat aplikasi dibuka kembali tanpa koneksi internet, data cache langsung dimuat dari penyimpanan lokal MMKV dalam hitungan milidetik sehingga antarmuka tidak membeku di layar kosong.
+* **Smart Refetching**: Saat terdeteksi koneksi internet pulih (via `@react-native-community/netinfo`), aplikasi secara otomatis memperbarui data di latar belakang.
 
-```
-core/domain        ← Entities, branded types, domain errors
-core/usecases      ← Business logic, use case classes
-core/ports         ← Repository interfaces (contracts)
-data               ← DTOs, mappers, repository implementations, HTTP client
-presentation       ← Screens, components, theme
-```
+### 2. Penyimpanan Kunci Kriptografi & Token Aman
+Keamanan data kredensial adalah prioritas utama aplikasi Sekre Mobile:
+* **MMKV Encrypted Storage**: Sesi token JWT disimpan lokal di instansi MMKV yang terenkripsi.
+* **Keychain Service Integration**: Kunci enkripsi MMKV digenerate secara dinamis dan disimpan di area paling aman pada perangkat:
+  * **iOS**: Secure Enclave Keychain (via `react-native-keychain`).
+  * **Android**: Android Keystore Provider (via `react-native-keychain`).
+  * **Fallback System**: Jika hardware enkripsi perangkat tidak mendukung, sistem menggunakan fallback key khusus untuk lingkungan development.
 
-### Dependency flow
+### 3. Rendering FlatList Ultra Cepat dengan Shopify FlashList
+* Mengganti komponen bawaan React Native `FlatList` dengan `@shopify/flash-list`.
+* Melakukan daur ulang cell layout (*cell recycling*) untuk menghemat komputasi CPU.
+* Menghasilkan frame-rate yang sangat mulus (konstan 60 FPS) tanpa ada lag visual saat melakukan scroll pada daftar tugas panjang maupun ledger kas transaksi organisasi.
 
-```
-presentation → hooks → usecases → ports ← data
-                                        ↑
-                                    di/container
-```
+### 4. Animasi Mikro & Splash Screen Halus
+* **React Native BootSplash**: Menangani masa transisi *cold start* aplikasi (saat inisialisasi modul native) dengan memudar halus (fade-out) ke dashboard tanpa layar putih berkedip.
+* **React Native Reanimated v4**: Menggerakkan elemen visual interaktif, feedback animasi klik tombol, notifikasi toast melayang, serta drawer layout secara halus menggunakan perhitungan thread UI native.
 
-### State management
+### 5. Integrasi Sentry Monitoring & Crash Reporting
+* Terintegrasi dengan `@sentry/react-native` untuk melacak galat aplikasi (crashes) secara real-time di produksi.
+* Menyediakan script build otomatis (`sentry:upload-android` & `sentry:upload-ios`) untuk mengunggah berkas Source Maps sehingga debug log di dashboard Sentry terbaca dalam kode baris TypeScript murni (bukan kode yang ter-minify).
 
-| Concern                    | Tool                             |
-| -------------------------- | -------------------------------- |
-| Server state (fetch/cache) | TanStack Query v5                |
-| Client state (auth, UI)    | Redux Toolkit                    |
-| Persistence                | redux-persist + MMKV             |
-| Token storage              | react-native-mmkv v3 (encrypted) |
-| Encryption key             | react-native-keychain            |
-
----
-
-## Tech Stack
-
-- **Framework:** React Native 0.85.3 (Community CLI)
-- **Language:** TypeScript 5.7.3 (strict mode)
-- **Package manager:** bun
-- **Navigation:** React Navigation v7 (native-stack + bottom-tabs)
-- **State:** Redux Toolkit + TanStack Query v5
-- **Storage:** react-native-mmkv v3 + redux-persist
-- **Security:** react-native-keychain (iOS Keychain / Android Keystore)
-- **Forms:** react-hook-form + Zod v4
-- **HTTP:** Axios (dengan auth + refresh interceptors)
-- **i18n:** i18next + react-i18next (id-ID default)
-- **Animations:** react-native-reanimated v4
-- **Splash:** react-native-bootsplash
+### 6. Kontrol Anggaran Ukuran Bundle (Bundle Budget System)
+Aplikasi memelihara performa startup awal lewat pengawasan ukuran kode:
+* **Bundle Budget Checker**: Script custom di `scripts/check-bundle-budget.js` secara otomatis membandingkan ukuran bundle javascript kompilasi rilis terhadap batas anggaran (budget) yang disepakati.
+* **Bundle Visualizer**: Terintegrasi `source-map-explorer` untuk merender peta visual distribusi modul aplikasi (`bundle-visualizer-output/android.html` & `ios.html`) guna mengidentifikasi pustaka eksternal yang terlalu besar secara visual.
 
 ---
 
-## Struktur Direktori
+## 🏗️ Pembagian Arsitektur Kode (Clean Architecture)
+
+Aplikasi mobile ini secara ketat membagi komponen kodenya ke dalam 4 lapisan guna menjaga kemudahan penulisan pengujian unit dan penggantian pustaka eksternal:
 
 ```
 src/
-├── app/
-│   ├── navigation/          # RootNavigator, AppNavigator, stack navigators
-│   └── providers/           # ReduxProvider, QueryProvider
 ├── core/
-│   ├── domain/
-│   │   ├── entities/        # User, Organization, Task, Member, Division, Event, Transaction
-│   │   └── errors/          # DomainError hierarchy
-│   ├── ports/               # IAuthRepository, ITaskRepository, ...
-│   └── usecases/            # auth/, tasks/, members/, divisions/, events/, finance/
+│   ├── domain/              # Murni JavaScript/TypeScript: Model Entitas (User, Task), Branded Types, Domain Errors
+│   ├── usecases/            # Logika interaksi bisnis (misalnya: Melakukan checkout tugas, Menambah dana kas)
+│   └── ports/               # Kontrak antarmuka (Interface) repositori
+│
 ├── data/
-│   ├── dto/                 # Request/response DTO shapes (snake_case)
-│   ├── http/                # Axios client, endpoints, interceptors
-│   ├── mappers/             # DTO ↔ entity mappers
-│   ├── repositories/        # Repository implementations
-│   └── storage/             # MmkvTokenStorage, KeychainService
-├── di/
-│   └── container.ts         # Repository singletons
-├── hooks/
-│   ├── auth/                # useLoginMutation, useUpdateProfileMutation, ...
-│   ├── tasks/               # useTasksQuery, useCreateTaskMutation, ...
-│   ├── members/             # ...
-│   ├── divisions/           # ...
-│   ├── events/              # ...
-│   ├── finance/             # useTransactionsQuery, useFinanceSummaryQuery, ...
-│   └── ui/                  # useToast
+│   ├── dto/                 # Representasi format JSON snake_case dari Server API
+│   ├── http/                # Klien Axios dengan interceptor auto-refresh token
+│   ├── mappers/             # Parser konverter DTO ➔ Entitas Domain (begitu pula sebaliknya)
+│   ├── repositories/        # Implementasi repositori konkret pemanggil API / Storage
+│   └── storage/             # Pengelola Keychain & MMKV lokal
+│
 ├── presentation/
-│   ├── components/          # Button, Input, Card, Badge, Skeleton, EmptyState, Toast, ...
-│   ├── screens/             # auth/, dashboard/, tasks/, members/, divisions/, events/, finance/, settings/
-│   └── theme/               # colors, spacing, typography, radius
-├── shared/
-│   ├── i18n/                # i18next setup, translations
-│   └── utils/               # Zod schemas (auth, task, member, division, event, finance, settings)
-└── store/
-    ├── slices/              # authSlice, uiSlice
-    └── index.ts             # Redux store + persist config
+│   ├── theme/               # Palet warna premium, tipografi kustom, dan ukuran sudut radius
+│   ├── components/          # Tombol, input teks, toast, skeleton loader reusable
+│   └── screens/             # Layar tampilan antarmuka (Auth, Dashboard, Tasks, Finance, dll)
+│
+└── store/                   # Pengaturan Redux Toolkit untuk state UI global
 ```
 
 ---
 
-## Setup
+## 📁 Detail Struktur Modul & Layar Aplikasi
 
-### Prerequisites
+Aplikasi mobile mencakup modul layar interaktif sebagai berikut:
+
+* **Auth Module (`presentation/screens/auth`)**: Layar masuk (Login) dan daftar organisasi (Register) yang tervalidasi skema Zod secara ketat.
+* **Dashboard (`presentation/screens/dashboard`)**: Menampilkan visualisasi ringkasan tugas dan saldo dana organisasi dengan interaksi data TanStack Query.
+* **Tasks Module (`presentation/screens/tasks`)**: CRUD tugas organisasi dengan filter status dinamis, level prioritas, dan input assignees.
+* **Members Module (`presentation/screens/members`)**: Undangan anggota baru, pengaturan level peran pengurus, dan opsi pelepasan anggota.
+* **Divisions Module (`presentation/screens/divisions`)**: Pengorganisasian struktur divisi kerja kepengurusan kampus.
+* **Finance Module (`presentation/screens/finance`)**: Layar input laporan buku kas keluar-masuk organisasi dengan pemuatan list transaksi super mulus berbasis FlashList.
+* **Settings Module (`presentation/screens/settings`)**: Layar pengaturan profil pengguna, ubah kata sandi, serta info lisensi ruang kerja organisasi.
+
+---
+
+## 🚀 Panduan Setup & Menjalankan Lokal
+
+### Prasyarat Perangkat
+* **Node.js**: Versi `>= 22.11.0`.
+* **Package Manager**: **Bun**.
+* **Android Development**: Android Studio, Android SDK terbaru, Emulator (atau perangkat Android fisik).
+* **iOS Development (Khusus macOS)**: Xcode 15+, Command Line Tools, CocoaPods, Simulator iOS.
+
+### Langkah Memulai Pengembangan
+1. **Pasang Dependensi**:
+   ```bash
+   bun install
+   ```
+2. **Pasang CocoaPods (Khusus iOS)**:
+   ```bash
+   cd ios && pod install && cd ..
+   # Atau gunakan shortcut script:
+   bun run pods
+   ```
+3. **Konfigurasi File Variabel Lingkungan (`.env`)**:
+   Buat file `.env` di direktori `sekre-mobile/`:
+   ```env
+   # Ganti IP sesuai dengan alamat IP lokal mesin dev Anda jika menggunakan perangkat fisik
+   API_BASE_URL=http://10.0.2.2:8080/api/v1     # Default untuk Emulator Android
+   # API_BASE_URL=http://127.0.0.1:8080/api/v1   # Default untuk Simulator iOS
+   ```
+4. **Jalankan Metro Bundler**:
+   ```bash
+   bun start
+   ```
+5. **Jalankan Aplikasi pada Target Perangkat (Di terminal terpisah)**:
+   * **Android**:
+     ```bash
+     bun android
+     ```
+   * **iOS**:
+     ```bash
+     bun ios
+     ```
+
+---
+
+## 🧪 Validasi Kualitas Kode & Analisis
+
+Sebelum melakukan integrasi kode ke git commit, pastikan seluruh perkakas validasi berjalan sukses:
 
 ```bash
-✓ Node.js 22+
-✓ bun
-✓ Android Studio (untuk Android)
-✓ Xcode 15+ (untuk iOS, macOS only)
-✓ CocoaPods (untuk iOS)
-```
-
-### Install dependencies
-
-```bash
-cd sekre-mobile
-bun install
-
-# iOS only
-cd ios && pod install && cd ..
-```
-
-### Environment
-
-Buat file `.env` di root `sekre-mobile/`:
-
-```env
-# Local development
-API_BASE_URL=http://10.0.2.2:1000/api/v1     # Android emulator
-# API_BASE_URL=http://127.0.0.1:1000/api/v1   # iOS simulator
-# API_BASE_URL=http://192.168.1.x:1000/api/v1 # Device fisik (ganti IP lokal)
-
-# Production (Render deployment)
-# API_BASE_URL=https://sekre-backend.onrender.com/api/v1
-```
-
-> Backend lokal jalan di port `1000`. Pastikan backend sudah running sebelum start mobile app.
-
-### Jalankan
-
-```bash
-# Start Metro bundler
-bun start
-
-# Android
-bun android
-
-# iOS
-bun ios
-```
-
----
-
-## Konfigurasi Penting
-
-### API Base URL
-
-| Environment      | URL                                                        |
-| ---------------- | ---------------------------------------------------------- |
-| Android emulator | `http://10.0.2.2:1000/api/v1`                              |
-| iOS simulator    | `http://127.0.0.1:1000/api/v1`                             |
-| Device fisik     | IP lokal mesin dev, misal `http://192.168.1.x:1000/api/v1` |
-| Production       | `https://sekre-backend.onrender.com/api/v1`                |
-
-### Token Storage
-
-Token disimpan di MMKV terenkripsi. Encryption key diambil dari:
-
-1. **iOS** — Keychain (via `react-native-keychain`)
-2. **Android** — Android Keystore (via `react-native-keychain`)
-3. **Fallback** — hardcoded key (development only, tidak aman untuk production)
-
-### Cold Start Backend (Render Free Tier)
-
-Backend production di Render free tier akan masuk ke sleep mode setelah idle 15 menit. Backend punya self-ping job setiap 14 menit untuk mencegah ini, tapi pada request pertama setelah server baru bangun, response bisa lebih lambat (~30 detik).
-
-Mobile app sebaiknya:
-- Tampilkan loading state yang jelas saat request pertama
-- Set Axios timeout cukup panjang untuk request awal (misal 60 detik)
-- Implement retry pada network error
-
----
-
-## Komponen Shared
-
-| Komponen         | Deskripsi                                                             |
-| ---------------- | --------------------------------------------------------------------- |
-| `Button`         | Primary, secondary, ghost, danger — dengan loading state              |
-| `Input`          | Text input dengan label, error, dan secure entry                      |
-| `Card`           | Container dengan shadow dan border                                    |
-| `AppText`        | Typography dengan variant (h1–h4, bodyMd, bodySm, label)              |
-| `Badge`          | Status badge dengan variant (success, warning, danger, info, primary) |
-| `Screen`         | Safe area wrapper dengan optional scroll dan padding                  |
-| `Divider`        | Horizontal separator                                                  |
-| `SkeletonList`   | Loading placeholder dengan shimmer animation                          |
-| `EmptyState`     | Empty list state dengan icon, title, description, dan CTA             |
-| `ToastContainer` | Animated toast notifications (success/error/warning/info)             |
-| `ErrorBoundary`  | Global error boundary dengan fallback UI                              |
-
----
-
-## RBAC
-
-| Role     | Akses                                              |
-| -------- | -------------------------------------------------- |
-| `OWNER`  | Full access — semua fitur termasuk edit organisasi |
-| `ADMIN`  | Kelola member, divisi, tugas, acara, transaksi     |
-| `MEMBER` | Read-only di sebagian besar fitur, bisa buat tugas |
-
-Role disimpan di JWT dan di Redux state (`auth.role`). UI menyembunyikan action button berdasarkan role.
-
----
-
-## Type Check
-
-```bash
+# Menjalankan static typecheck TypeScript secara ketat
 bunx tsc --noEmit
-```
 
-Harus 0 error sebelum commit.
+# Menjalankan Linter ESLint
+bun run lint
 
----
+# Menjalankan Unit Testing dengan Jest
+bun run test
 
-## Testing
-
-```bash
-bun test           # Run Jest tests
-bun lint           # Run ESLint
-```
-
----
-
-## Conventional Commits
-
-Format: `type(scope): description`
-
-```bash
-feat(mobile): implement finance module
-fix(mobile): resolve token refresh race condition
-refactor(mobile): extract skeleton to shared component
-```
-
-Commit hooks via `husky` + `lint-staged` akan otomatis menjalankan lint dan format sebelum commit.
-
----
-
-## Build untuk Release
-
-### Android
-
-```bash
-cd android
-./gradlew assembleRelease    # APK
-./gradlew bundleRelease      # AAB (untuk Play Store)
-```
-
-Output APK: `android/app/build/outputs/apk/release/app-release.apk`
-Output AAB: `android/app/build/outputs/bundle/release/app-release.aab`
-
-### iOS
-
-Build via Xcode dengan scheme `Release`, atau via CLI:
-
-```bash
-cd ios
-xcodebuild -workspace SekreMobile.xcworkspace \
-  -scheme SekreMobile \
-  -configuration Release \
-  -archivePath build/SekreMobile.xcarchive archive
+# Menjalankan Analisis Visual Ukuran Bundle JavaScript
+bun run analyze-bundle
 ```
 
 ---
 
-## License
+## 📦 Panduan Membuat Build Rilis Produksi
 
-Internal project — Arah Baru Selayar.
+### Android (Menghasilkan APK / AAB)
+1. Buka folder Android dan jalankan Gradle:
+   ```bash
+   cd android
+   # Membuat berkas APK untuk instalasi langsung
+   ./gradlew assembleRelease
+   
+   # Membuat berkas AAB untuk diunggah ke Google Play Store
+   ./gradlew bundleRelease
+   ```
+2. Berkas keluaran rilis akan tersedia di:
+   * **APK**: `android/app/build/outputs/apk/release/app-release.apk`
+   * **AAB**: `android/app/build/outputs/bundle/release/app-release.aab`
+
+### iOS (Menghasilkan Xcode Archive)
+1. Lakukan instalasi pods rilis:
+   ```bash
+   cd ios && pod install && cd ..
+   ```
+2. Lakukan pengarsipan lewat terminal:
+   ```bash
+   cd ios
+   xcodebuild -workspace SekreMobile.xcworkspace \
+     -scheme SekreMobile \
+     -configuration Release \
+     -archivePath build/SekreMobile.xcarchive archive
+   ```
+3. Buka **Organizer** di Xcode untuk mengunggah arsip ke Apple TestFlight atau App Store Connect.

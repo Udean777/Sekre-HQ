@@ -39,3 +39,5 @@ export { SelectField } from './SelectField';
 export type { SelectOption } from './SelectField';
 
 export { BottomSheet } from './BottomSheet';
+
+export { CurrencyInput } from './CurrencyInput';

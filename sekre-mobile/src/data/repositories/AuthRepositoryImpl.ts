@@ -38,7 +38,7 @@ export class AuthRepositoryImpl implements IAuthRepository {
     password: string;
   }): Promise<AuthSession> {
     const payload: RegisterRequestDTO = {
-      org_name: params.orgName,
+      organization_name: params.orgName,
       subdomain: params.subdomain,
       full_name: params.fullName,
       email: params.email,

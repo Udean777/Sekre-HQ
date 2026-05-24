@@ -35,17 +35,19 @@ export interface EventResponseDTO {
 
 // Request shapes
 export interface CreateEventRequestDTO {
+  division_id: string;
   title: string;
   description?: string;
   location?: string;
-  start_date: string;
-  end_date?: string;
+  start_time: string;  // RFC3339
+  end_time: string;    // RFC3339, required by backend
 }
 
 export interface UpdateEventRequestDTO {
-  title?: string;
+  division_id: string;
+  title: string;
   description?: string;
   location?: string;
-  start_date?: string;
-  end_date?: string;
+  start_time: string;  // RFC3339
+  end_time: string;    // RFC3339
 }

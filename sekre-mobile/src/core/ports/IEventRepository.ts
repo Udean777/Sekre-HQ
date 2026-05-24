@@ -1,19 +1,21 @@
 import type { Event, EventId, EventFilter, EventPage } from '@core/domain/entities/Event';
 
 export interface CreateEventParams {
+  divisionId: string;
   title: string;
   description?: string;
   location?: string;
-  startDate: string; // ISO string
-  endDate?: string; // ISO string
+  startDate: string; // ISO string RFC3339
+  endDate: string;   // ISO string RFC3339, required by backend
 }
 
 export interface UpdateEventParams {
-  title?: string;
+  divisionId: string;
+  title: string;
   description?: string;
   location?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface IEventRepository {

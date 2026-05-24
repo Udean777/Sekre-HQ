@@ -6,8 +6,8 @@ import type {
 } from '@core/ports/IMemberRepository';
 import type { Member, MemberId, MemberFilter, MemberPage } from '@core/domain/entities/Member';
 import { ENDPOINTS } from '@data/http/endpoints';
-import type { MemberListResponseDTO } from '@data/dto/member.dto';
-import { mapMemberListDTOToPage } from '@data/mappers/member.mapper';
+import type { MemberListResponseDTO, CreateMemberRequestDTO } from '@data/dto/member.dto';
+import { mapMemberListDTOToPage, mapMemberDTOToEntity } from '@data/mappers/member.mapper';
 
 export class MemberRepositoryImpl implements IMemberRepository {
   constructor(private readonly http: AxiosInstance) {}
@@ -27,8 +27,26 @@ export class MemberRepositoryImpl implements IMemberRepository {
     throw new Error('getMemberById not supported by this backend');
   }
 
-  async createMember(_params: CreateMemberParams): Promise<Member> {
-    throw new Error('createMember not supported — use member creation flow');
+  async createMember(params: CreateMemberParams): Promise<Member> {
+    const payload: CreateMemberRequestDTO = {
+      email: params.email,
+      full_name: params.fullName,
+      role: params.role,
+      ...(params.divisionIds !== undefined && { division_ids: params.divisionIds }),
+      ...(params.divisionId !== undefined && { division_id: params.divisionId }),
+      ...(params.divisionRole !== undefined && { division_role: params.divisionRole }),
+    };
+    const { data } = await this.http.post<{ success: boolean; message: string; data: { email: string; full_name: string; temporary_password: string; division: string } }>(
+      ENDPOINTS.MEMBERS.CREATE,
+      payload,
+    );
+    // Backend returns invite result, not a full Member — map to partial Member
+    return mapMemberDTOToEntity({
+      id: '',
+      email: data.data.email,
+      full_name: data.data.full_name,
+      role: params.role,
+    });
   }
 
   async updateMember(_id: MemberId, _params: UpdateMemberParams): Promise<Member> {

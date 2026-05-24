@@ -16,6 +16,9 @@ import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
+import { SelectField } from '@presentation/components/SelectField';
+import type { SelectOption } from '@presentation/components/SelectField';
+import { CurrencyInput } from '@presentation/components/CurrencyInput';
 import { colors, spacing, fontWeight } from '@presentation/theme';
 import {
   createTransactionSchema,
@@ -23,8 +26,15 @@ import {
 } from '@shared/utils/financeSchemas';
 import { useTransactionQuery } from '@hooks/finance/useTransactionQuery';
 import { useUpdateTransactionMutation } from '@hooks/finance/useUpdateTransactionMutation';
+import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
+import { useEventsQuery } from '@hooks/events/useEventsQuery';
+import { flattenPages } from '@shared/utils/infiniteQueryHelpers';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { FinanceStackParamList } from '@app/navigation/FinanceNavigator';
+import {
+  getCurrencyFromLocale,
+  getLocale,
+} from '@presentation/components/CurrencyInput/CurrencyInput';
 
 type Props = NativeStackScreenProps<FinanceStackParamList, 'EditTransaction'>;
 
@@ -48,6 +58,8 @@ export const EditTransactionScreen: React.FC<Props> = ({ navigation, route }) =>
 
   const { data: tx, isLoading } = useTransactionQuery(transactionId);
   const { mutate: updateTransaction, isPending } = useUpdateTransactionMutation();
+  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ pageSize: 100 });
+  const { data: eventsData, isLoading: eventsLoading } = useEventsQuery({ pageSize: 100 });
 
   const {
     control,
@@ -63,8 +75,8 @@ export const EditTransactionScreen: React.FC<Props> = ({ navigation, route }) =>
           divisionId: tx.divisionId,
           eventId: tx.eventId ?? '',
           type: tx.type,
-          amountCents: tx.amount.amountCents,
-          currency: tx.amount.currency,
+          amountRupiah: Math.round(tx.amount.amountCents / 100),
+          currency: tx.amount.currency ?? getCurrencyFromLocale(getLocale()),
           description: tx.description,
           receiptUrl: tx.receiptUrl ?? '',
         }
@@ -72,6 +84,16 @@ export const EditTransactionScreen: React.FC<Props> = ({ navigation, route }) =>
   });
 
   const selectedType = watch('type');
+
+  const divisionOptions: SelectOption[] = flattenPages(divisionsData).map(d => ({
+    label: d.name,
+    value: d.id,
+  }));
+
+  const eventOptions: SelectOption[] = flattenPages(eventsData).map(e => ({
+    label: e.title,
+    value: e.id,
+  }));
 
   const onSubmit = (values: CreateTransactionFormValues): void => {
     setGlobalError(null);
@@ -81,7 +103,7 @@ export const EditTransactionScreen: React.FC<Props> = ({ navigation, route }) =>
         params: {
           divisionId: values.divisionId,
           type: values.type,
-          amountCents: values.amountCents,
+          amountCents: values.amountRupiah * 100,
           currency: values.currency ?? 'IDR',
           description: values.description,
           eventId: values.eventId || undefined,
@@ -189,18 +211,54 @@ export const EditTransactionScreen: React.FC<Props> = ({ navigation, route }) =>
 
             <Controller
               control={control}
-              name="amountCents"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Nominal"
-                  placeholder="Contoh: 50000 = Rp 500"
-                  keyboardType="numeric"
-                  returnKeyType="next"
-                  value={value === 0 ? '' : String(value)}
-                  onChangeText={text => onChange(text ? parseInt(text, 10) : 0)}
-                  onBlur={onBlur}
-                  error={errors.amountCents?.message}
-                  hint="Masukkan dalam satuan sen. Rp 50.000 = 5000000"
+              name="amountRupiah"
+              render={({ field: { onChange, value } }) => (
+                <Controller
+                  control={control}
+                  name="currency"
+                  render={({ field: { onChange: onCurrencyChange, value: currencyValue } }) => (
+                    <CurrencyInput
+                      label="Nominal"
+                      value={value}
+                      onChange={onChange}
+                      currency={currencyValue ?? 'IDR'}
+                      onCurrencyChange={onCurrencyChange}
+                      error={errors.amountRupiah?.message}
+                    />
+                  )}
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="divisionId"
+              render={({ field: { onChange, value } }) => (
+                <SelectField
+                  label="Divisi"
+                  placeholder="Pilih divisi"
+                  options={divisionOptions}
+                  value={value || null}
+                  onChange={onChange}
+                  loading={divisionsLoading}
+                  error={errors.divisionId?.message}
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="eventId"
+              render={({ field: { onChange, value } }) => (
+                <SelectField
+                  label="Acara (opsional)"
+                  placeholder="Pilih acara terkait"
+                  options={eventOptions}
+                  value={value || null}
+                  onChange={onChange}
+                  loading={eventsLoading}
+                  optional
+                  error={errors.eventId?.message}
                 />
               )}
             />
@@ -218,58 +276,6 @@ export const EditTransactionScreen: React.FC<Props> = ({ navigation, route }) =>
                   onChangeText={onChange}
                   onBlur={onBlur}
                   error={errors.description?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="divisionId"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="ID Divisi"
-                  placeholder="UUID divisi terkait"
-                  returnKeyType="next"
-                  autoCapitalize="none"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.divisionId?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="currency"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Mata Uang"
-                  placeholder="IDR"
-                  autoCapitalize="characters"
-                  maxLength={3}
-                  returnKeyType="next"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.currency?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="eventId"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="ID Acara (opsional)"
-                  placeholder="UUID acara terkait"
-                  returnKeyType="next"
-                  autoCapitalize="none"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.eventId?.message}
                 />
               )}
             />
@@ -319,9 +325,7 @@ export const EditTransactionScreen: React.FC<Props> = ({ navigation, route }) =>
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  keyboardView: {
-    flex: 1,
-  },
+  keyboardView: { flex: 1 },
   scrollContent: {
     padding: spacing[4],
     paddingBottom: spacing[10],
@@ -331,8 +335,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // Header
   header: {
     alignItems: 'center',
     gap: spacing[2],
@@ -352,8 +354,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: colors.text.secondary,
   },
-
-  // Error
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -363,23 +363,13 @@ const styles = StyleSheet.create({
     padding: spacing[3],
     marginBottom: spacing[4],
   },
-  errorText: {
-    flex: 1,
-  },
-
-  // Form
+  errorText: { flex: 1 },
   form: {
     gap: spacing[4],
     marginBottom: spacing[6],
   },
-  fieldLabel: {
-    marginBottom: spacing[2],
-  },
-  fieldError: {
-    marginTop: spacing[1],
-  },
-
-  // Type selector
+  fieldLabel: { marginBottom: spacing[2] },
+  fieldError: { marginTop: spacing[1] },
   typeRow: {
     flexDirection: 'row',
     gap: spacing[3],
@@ -395,12 +385,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border.default,
   },
-  typeLabel: {
-    fontWeight: fontWeight.medium,
-  },
-
-  // Actions
-  cancelButton: {
-    marginTop: spacing[2],
-  },
+  typeLabel: { fontWeight: fontWeight.medium },
+  cancelButton: { marginTop: spacing[2] },
 });

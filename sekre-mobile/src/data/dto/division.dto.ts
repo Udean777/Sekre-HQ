@@ -5,6 +5,7 @@ export interface DivisionDTO {
   id: string;
   organization_id: string;
   name: string;
+  description: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -62,7 +63,7 @@ export interface CreateDivisionRequestDTO {
 }
 
 export interface UpdateDivisionRequestDTO {
-  name?: string;
+  name: string;
   description?: string;
 }
 

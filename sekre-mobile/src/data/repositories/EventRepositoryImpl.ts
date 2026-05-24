@@ -34,11 +34,12 @@ export class EventRepositoryImpl implements IEventRepository {
 
   async createEvent(params: CreateEventParams): Promise<Event> {
     const payload: CreateEventRequestDTO = {
+      division_id: params.divisionId,
       title: params.title,
-      start_date: params.startDate,
+      start_time: params.startDate,
+      end_time: params.endDate,
       ...(params.description !== undefined && { description: params.description }),
       ...(params.location !== undefined && { location: params.location }),
-      ...(params.endDate !== undefined && { end_date: params.endDate }),
     };
     const { data } = await this.http.post<EventResponseDTO>(ENDPOINTS.EVENTS.CREATE, payload);
     return mapEventResponseDTOToEntity(data);
@@ -46,11 +47,12 @@ export class EventRepositoryImpl implements IEventRepository {
 
   async updateEvent(id: EventId, params: UpdateEventParams): Promise<Event> {
     const payload: UpdateEventRequestDTO = {
-      ...(params.title !== undefined && { title: params.title }),
+      division_id: params.divisionId,
+      title: params.title,
+      start_time: params.startDate,
+      end_time: params.endDate,
       ...(params.description !== undefined && { description: params.description }),
       ...(params.location !== undefined && { location: params.location }),
-      ...(params.startDate !== undefined && { start_date: params.startDate }),
-      ...(params.endDate !== undefined && { end_date: params.endDate }),
     };
     const { data } = await this.http.put<EventResponseDTO>(ENDPOINTS.EVENTS.UPDATE(id), payload);
     return mapEventResponseDTOToEntity(data);

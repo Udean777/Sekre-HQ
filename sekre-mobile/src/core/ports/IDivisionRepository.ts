@@ -13,7 +13,7 @@ export interface CreateDivisionParams {
 }
 
 export interface UpdateDivisionParams {
-  name?: string;
+  name: string;
   description?: string;
 }
 

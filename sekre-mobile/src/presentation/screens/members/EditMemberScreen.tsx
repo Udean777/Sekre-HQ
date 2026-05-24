@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -76,11 +76,15 @@ export const EditMemberScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <Screen>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardView}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* ── Header ── */}
         <View style={styles.header}>
           <View style={styles.headerIcon}>
@@ -179,6 +183,7 @@ export const EditMemberScreen: React.FC<Props> = ({ navigation, route }) => {
           style={styles.cancelButton}
         />
       </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 };
@@ -186,6 +191,9 @@ export const EditMemberScreen: React.FC<Props> = ({ navigation, route }) => {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
   scrollContent: {
     padding: spacing[4],
     paddingBottom: spacing[10],
