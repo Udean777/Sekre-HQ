@@ -195,28 +195,21 @@ jobs:
             --bundle-output /tmp/main.jsbundle \
             --sourcemap-output /tmp/main.jsbundle.map
 
-          # Dapatkan versionName dari build.gradle
+          # Dapatkan versionName + versionCode dari build.gradle
           VERSION=$(grep -m1 'versionName' android/app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
+          VERSION_CODE=$(grep -m1 'versionCode' android/app/build.gradle | awk '{print $2}')
 
-          # Upload ke Sentry
-          bunx @sentry/cli releases \
-            --org "$SENTRY_ORG" \
-            --project "$SENTRY_PROJECT" \
-            new "$VERSION"
+          # Upload ke Sentry (sentry-cli v2)
+          bunx sentry-cli releases new "$VERSION"
 
-          bunx @sentry/cli releases \
-            --org "$SENTRY_ORG" \
-            --project "$SENTRY_PROJECT" \
-            files "$VERSION" upload-sourcemaps \
-            --dist 1 \
-            --rewrite \
+          bunx sentry-cli sourcemaps upload \
+            --release "$VERSION" \
+            --dist "$VERSION_CODE" \
             /tmp/main.jsbundle \
             /tmp/main.jsbundle.map
 
-          bunx @sentry/cli releases \
-            --org "$SENTRY_ORG" \
-            --project "$SENTRY_PROJECT" \
-            finalize "$VERSION"
+          bunx sentry-cli releases finalize "$VERSION"
+          bunx sentry-cli releases deploys "$VERSION" new -e production
 
       # ── Get versionName + short SHA ──
       - name: Get version name
