@@ -12,6 +12,8 @@ import { useAppSelector, useAppDispatch } from '@store/hooks';
 import { clearSession } from '@store/slices/authSlice';
 import { tokenStorage } from '@data/storage/MmkvTokenStorage';
 import { useBootstrapAuth } from '@hooks/auth/useBootstrapAuth';
+import { ScreenErrorBoundary } from '@presentation/components/ErrorBoundary';
+import { OfflineBanner } from '@presentation/components/OfflineBanner';
 import { colors } from '@presentation/theme';
 
 export type RootStackParamList = {
@@ -68,26 +70,27 @@ export const RootNavigator: React.FC = () => {
   }
 
   return (
-    <NavigationContainer
-      ref={navigationRef}
-      onReady={(): void => {
-        // Daftarkan navigationRef ke Sentry supaya setiap screen transition
-        // otomatis menjadi transaction di Sentry Performance
-        navigationIntegration.registerNavigationContainer(navigationRef);
-      }}
-    >
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-        {isAuthenticated ? (
-          <>
-            <Stack.Screen name="App" component={AppNavigator} options={{ animation: 'fade' }} />
-            <Stack.Screen name="Members" component={MembersNavigator} />
-            <Stack.Screen name="Divisions" component={DivisionsNavigator} />
-          </>
-        ) : (
-          <Stack.Screen name="Auth" component={AuthNavigator} options={{ animation: 'fade' }} />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ScreenErrorBoundary>
+      <OfflineBanner />
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={(): void => {
+          navigationIntegration.registerNavigationContainer(navigationRef);
+        }}
+      >
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+          {isAuthenticated ? (
+            <>
+              <Stack.Screen name="App" component={AppNavigator} options={{ animation: 'fade' }} />
+              <Stack.Screen name="Members" component={MembersNavigator} />
+              <Stack.Screen name="Divisions" component={DivisionsNavigator} />
+            </>
+          ) : (
+            <Stack.Screen name="Auth" component={AuthNavigator} options={{ animation: 'fade' }} />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ScreenErrorBoundary>
   );
 };
 
