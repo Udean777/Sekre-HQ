@@ -8,7 +8,11 @@ import type {
 
 export interface CreateMemberParams {
   email: string;
+  fullName: string;
   role: OrgRole;
+  divisionId?: string;
+  divisionIds?: string[];
+  divisionRole?: 'HEAD' | 'STAFF';
 }
 
 export interface UpdateMemberParams {

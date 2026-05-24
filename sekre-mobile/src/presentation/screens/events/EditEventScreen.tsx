@@ -16,18 +16,21 @@ import { AppText } from '@presentation/components/Text';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
 import { DatePickerField } from '@presentation/components/DatePickerField';
+import { SelectField } from '@presentation/components/SelectField';
+import type { SelectOption } from '@presentation/components/SelectField';
 import { colors, spacing } from '@presentation/theme';
 import { eventSchema, type EventFormValues } from '@shared/utils/eventSchemas';
 import { useEventQuery } from '@hooks/events/useEventQuery';
 import { useUpdateEventMutation } from '@hooks/events/useUpdateEventMutation';
+import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
+import { flattenPages } from '@shared/utils/infiniteQueryHelpers';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { EventsStackParamList } from '@app/navigation/EventsNavigator';
 
 type Props = NativeStackScreenProps<EventsStackParamList, 'EditEvent'>;
 
-// Konversi Date ke format ISO tanpa timezone untuk backend
-const toISOLocal = (date: Date): string =>
-  date.toISOString().replace('Z', '').split('.')[0] ?? '';
+// Konversi Date ke RFC3339 untuk backend
+const toRFC3339 = (date: Date): string => date.toISOString();
 
 export const EditEventScreen: React.FC<Props> = ({ navigation, route }) => {
   const { eventId } = route.params;
@@ -35,6 +38,7 @@ export const EditEventScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const { data: event, isLoading } = useEventQuery(eventId);
   const { mutate: updateEvent, isPending } = useUpdateEventMutation();
+  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ pageSize: 100 });
 
   const {
     control,
@@ -44,14 +48,20 @@ export const EditEventScreen: React.FC<Props> = ({ navigation, route }) => {
     resolver: zodResolver(eventSchema),
     values: event
       ? {
+          divisionId: event.divisionId ?? '',
           title: event.title,
           description: event.description ?? '',
           location: event.location ?? '',
           startDate: event.startDate,
-          endDate: event.endDate ?? null,
+          endDate: event.endDate ?? new Date(),
         }
       : undefined,
   });
+
+  const divisionOptions: SelectOption[] = flattenPages(divisionsData).map(d => ({
+    label: d.name,
+    value: d.id,
+  }));
 
   const onSubmit = (values: EventFormValues): void => {
     setGlobalError(null);
@@ -59,11 +69,12 @@ export const EditEventScreen: React.FC<Props> = ({ navigation, route }) => {
       {
         id: eventId,
         params: {
+          divisionId: values.divisionId,
           title: values.title,
           description: values.description || undefined,
           location: values.location || undefined,
-          startDate: toISOLocal(values.startDate),
-          endDate: values.endDate ? toISOLocal(values.endDate) : undefined,
+          startDate: toRFC3339(values.startDate),
+          endDate: toRFC3339(values.endDate),
         },
       },
       {
@@ -126,6 +137,22 @@ export const EditEventScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.form}>
             <Controller
               control={control}
+              name="divisionId"
+              render={({ field: { onChange, value } }) => (
+                <SelectField
+                  label="Divisi"
+                  placeholder="Pilih divisi"
+                  options={divisionOptions}
+                  value={value}
+                  onChange={onChange}
+                  loading={divisionsLoading}
+                  error={errors.divisionId?.message}
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
               name="title"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
@@ -179,7 +206,6 @@ export const EditEventScreen: React.FC<Props> = ({ navigation, route }) => {
                   value={value ?? null}
                   onChange={onChange}
                   mode="datetime"
-                  optional
                   error={errors.endDate?.message}
                 />
               )}

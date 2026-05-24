@@ -15,9 +15,13 @@ import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
+import { SelectField } from '@presentation/components/SelectField';
+import type { SelectOption } from '@presentation/components/SelectField';
 import { colors, spacing, fontWeight } from '@presentation/theme';
 import { inviteMemberSchema, type InviteMemberFormValues } from '@shared/utils/memberSchemas';
 import { useCreateMemberMutation } from '@hooks/members/useCreateMemberMutation';
+import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
+import { flattenPages } from '@shared/utils/infiniteQueryHelpers';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { MembersStackParamList } from '@app/navigation/MembersNavigator';
 import type { OrgRole } from '@core/domain/entities/Member';
@@ -41,25 +45,51 @@ const ROLE_OPTIONS: Array<{ label: string; value: OrgRole; description: string; 
   },
 ];
 
+const DIVISION_ROLE_OPTIONS: SelectOption[] = [
+  { label: 'Ketua', value: 'HEAD' },
+  { label: 'Anggota', value: 'STAFF' },
+];
+
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const InviteMemberScreen: React.FC<Props> = ({ navigation }) => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const { mutate: createMember, isPending } = useCreateMemberMutation();
+  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ pageSize: 100 });
 
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<InviteMemberFormValues>({
     resolver: zodResolver(inviteMemberSchema),
-    defaultValues: { email: '', role: 'MEMBER' },
+    defaultValues: {
+      email: '',
+      fullName: '',
+      role: 'MEMBER',
+      divisionId: undefined,
+      divisionRole: undefined,
+    },
   });
+
+  const selectedDivisionId = watch('divisionId');
+
+  const divisionOptions: SelectOption[] = flattenPages(divisionsData).map(d => ({
+    label: d.name,
+    value: d.id,
+  }));
 
   const onSubmit = (values: InviteMemberFormValues): void => {
     setGlobalError(null);
     createMember(
-      { email: values.email, role: values.role },
+      {
+        email: values.email,
+        fullName: values.fullName,
+        role: values.role,
+        ...(values.divisionId ? { divisionId: values.divisionId } : {}),
+        ...(values.divisionId && values.divisionRole ? { divisionRole: values.divisionRole } : {}),
+      },
       {
         onSuccess: () => navigation.goBack(),
         onError: (error: Error) => {
@@ -105,6 +135,29 @@ export const InviteMemberScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* ── Form ── */}
           <View style={styles.form}>
+
+            {/* Info Akun */}
+            <AppText variant="label" color={colors.text.secondary} style={styles.sectionLabel}>
+              INFO AKUN
+            </AppText>
+
+            <Controller
+              control={control}
+              name="fullName"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  label="Nama Lengkap"
+                  placeholder="Nama lengkap anggota"
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.fullName?.message}
+                />
+              )}
+            />
+
             <Controller
               control={control}
               name="email"
@@ -124,14 +177,16 @@ export const InviteMemberScreen: React.FC<Props> = ({ navigation }) => {
               )}
             />
 
+            {/* Peran Organisasi */}
+            <AppText variant="label" color={colors.text.secondary} style={styles.sectionLabel}>
+              PERAN ORGANISASI
+            </AppText>
+
             <Controller
               control={control}
               name="role"
               render={({ field: { onChange, value } }) => (
                 <View>
-                  <AppText variant="label" color={colors.text.secondary} style={styles.fieldLabel}>
-                    Peran
-                  </AppText>
                   <View style={styles.roleOptions}>
                     {ROLE_OPTIONS.map(opt => {
                       const active = value === opt.value;
@@ -183,6 +238,44 @@ export const InviteMemberScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
               )}
             />
+
+            {/* Divisi (opsional) */}
+            <AppText variant="label" color={colors.text.secondary} style={styles.sectionLabel}>
+              DIVISI (OPSIONAL)
+            </AppText>
+
+            <Controller
+              control={control}
+              name="divisionId"
+              render={({ field: { onChange, value } }) => (
+                <SelectField
+                  label="Divisi"
+                  placeholder="Pilih divisi (opsional)"
+                  options={divisionOptions}
+                  value={value ?? ''}
+                  onChange={onChange}
+                  loading={divisionsLoading}
+                  error={errors.divisionId?.message}
+                />
+              )}
+            />
+
+            {selectedDivisionId ? (
+              <Controller
+                control={control}
+                name="divisionRole"
+                render={({ field: { onChange, value } }) => (
+                  <SelectField
+                    label="Peran di Divisi"
+                    placeholder="Pilih peran di divisi"
+                    options={DIVISION_ROLE_OPTIONS}
+                    value={value ?? ''}
+                    onChange={onChange}
+                    error={errors.divisionRole?.message}
+                  />
+                )}
+              />
+            ) : null}
           </View>
 
           {/* ── Actions ── */}
@@ -258,8 +351,10 @@ const styles = StyleSheet.create({
     gap: spacing[4],
     marginBottom: spacing[6],
   },
-  fieldLabel: {
-    marginBottom: spacing[2],
+  sectionLabel: {
+    marginTop: spacing[2],
+    marginBottom: spacing[1],
+    letterSpacing: 0.5,
   },
   fieldError: {
     marginTop: spacing[1],

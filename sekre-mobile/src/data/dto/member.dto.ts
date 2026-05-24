@@ -25,7 +25,11 @@ export interface MemberListResponseDTO {
 // Request shapes
 export interface CreateMemberRequestDTO {
   email: string;
+  full_name: string;
   role: OrgRole;
+  division_id?: string;
+  division_ids?: string[];
+  division_role?: 'HEAD' | 'STAFF';
 }
 
 export interface UpdateMemberRequestDTO {

@@ -1,5 +1,5 @@
 // Backend response shapes (snake_case)
-import type { TaskStatus, TaskPriority } from '@core/domain/entities/Task';
+import type { TaskStatus } from '@core/domain/entities/Task';
 
 export interface TaskAssigneeDTO {
   id: string;
@@ -52,7 +52,6 @@ export interface TaskResponseDTO {
 export interface CreateTaskRequestDTO {
   title: string;
   description?: string;
-  priority?: TaskPriority;
   assignee_id?: string;
   division_id?: string;
   due_date?: string;
@@ -62,7 +61,6 @@ export interface UpdateTaskRequestDTO {
   title?: string;
   description?: string;
   status?: string;
-  priority?: TaskPriority;
   assignee_id?: string | null;
   division_id?: string;
   due_date?: string;

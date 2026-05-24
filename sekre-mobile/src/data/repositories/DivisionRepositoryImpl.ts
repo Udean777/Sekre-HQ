@@ -60,7 +60,7 @@ export class DivisionRepositoryImpl implements IDivisionRepository {
 
   async updateDivision(id: DivisionId, params: UpdateDivisionParams): Promise<Division> {
     const payload: UpdateDivisionRequestDTO = {
-      ...(params.name !== undefined && { name: params.name }),
+      name: params.name,
       ...(params.description !== undefined && { description: params.description }),
     };
     const { data } = await this.http.put<DivisionResponseDTO>(
@@ -88,7 +88,7 @@ export class DivisionRepositoryImpl implements IDivisionRepository {
     params: UpdateDivisionMemberParams,
   ): Promise<void> {
     const payload: UpdateDivisionMemberRequestDTO = { role: params.role };
-    await this.http.put(ENDPOINTS.DIVISIONS.UPDATE_MEMBER(id, userId), payload);
+    await this.http.patch(ENDPOINTS.DIVISIONS.UPDATE_MEMBER(id, userId), payload);
   }
 
   async removeMember(id: DivisionId, userId: string): Promise<void> {

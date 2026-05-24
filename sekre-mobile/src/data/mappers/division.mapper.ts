@@ -18,7 +18,7 @@ import { mapPaginationMeta } from './pagination.mapper';
 export const mapDivisionDTOToEntity = (dto: DivisionDTO): Division => ({
   id: dto.id as DivisionId,
   name: dto.name,
-  description: null, // tidak ada di response
+  description: dto.description,
   memberCount: 0, // tidak ada di response
   createdAt: new Date(dto.created_at),
   updatedAt: new Date(dto.updated_at),

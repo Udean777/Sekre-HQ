@@ -19,6 +19,7 @@ export const mapEventDTOToEntity = (dto: EventDTO): Event => {
   const endDate = dto.end_time ? new Date(dto.end_time) : null;
   return {
     id: dto.id as EventId,
+    divisionId: dto.division_id,
     title: dto.title,
     description: dto.description,
     location: dto.location,

@@ -9,21 +9,25 @@ import { AppText } from '@presentation/components/Text';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
 import { DatePickerField } from '@presentation/components/DatePickerField';
+import { SelectField } from '@presentation/components/SelectField';
+import type { SelectOption } from '@presentation/components/SelectField';
 import { colors, spacing } from '@presentation/theme';
 import { eventSchema, type EventFormValues } from '@shared/utils/eventSchemas';
 import { useCreateEventMutation } from '@hooks/events/useCreateEventMutation';
+import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
+import { flattenPages } from '@shared/utils/infiniteQueryHelpers';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { EventsStackParamList } from '@app/navigation/EventsNavigator';
 
 type Props = NativeStackScreenProps<EventsStackParamList, 'CreateEvent'>;
 
-// Konversi Date ke format ISO tanpa timezone untuk backend
-const toISOLocal = (date: Date): string =>
-  date.toISOString().replace('Z', '').split('.')[0] ?? '';
+// Konversi Date ke RFC3339 untuk backend
+const toRFC3339 = (date: Date): string => date.toISOString();
 
 export const CreateEventScreen: React.FC<Props> = ({ navigation }) => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const { mutate: createEvent, isPending } = useCreateEventMutation();
+  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ pageSize: 100 });
 
   const {
     control,
@@ -32,23 +36,30 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation }) => {
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
+      divisionId: '',
       title: '',
       description: '',
       location: '',
       startDate: undefined,
-      endDate: null,
+      endDate: undefined,
     },
   });
+
+  const divisionOptions: SelectOption[] = flattenPages(divisionsData).map(d => ({
+    label: d.name,
+    value: d.id,
+  }));
 
   const onSubmit = (values: EventFormValues): void => {
     setGlobalError(null);
     createEvent(
       {
+        divisionId: values.divisionId,
         title: values.title,
         description: values.description || undefined,
         location: values.location || undefined,
-        startDate: toISOLocal(values.startDate),
-        endDate: values.endDate ? toISOLocal(values.endDate) : undefined,
+        startDate: toRFC3339(values.startDate),
+        endDate: toRFC3339(values.endDate),
       },
       {
         onSuccess: () => navigation.goBack(),
@@ -95,6 +106,22 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* ── Form ── */}
           <View style={styles.form}>
+            <Controller
+              control={control}
+              name="divisionId"
+              render={({ field: { onChange, value } }) => (
+                <SelectField
+                  label="Divisi"
+                  placeholder="Pilih divisi"
+                  options={divisionOptions}
+                  value={value}
+                  onChange={onChange}
+                  loading={divisionsLoading}
+                  error={errors.divisionId?.message}
+                />
+              )}
+            />
+
             <Controller
               control={control}
               name="title"
@@ -150,7 +177,6 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation }) => {
                   value={value ?? null}
                   onChange={onChange}
                   mode="datetime"
-                  optional
                   error={errors.endDate?.message}
                 />
               )}

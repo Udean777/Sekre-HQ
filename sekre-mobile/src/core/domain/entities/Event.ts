@@ -7,6 +7,7 @@ export type EventStatus = 'UPCOMING' | 'ONGOING' | 'DONE';
 
 export interface Event {
   id: EventId;
+  divisionId: string | null;
   title: string;
   description: string | null;
   location: string | null;
