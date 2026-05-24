@@ -1,3 +1,5 @@
+import type { Page } from './Page';
+
 // Branded types untuk type safety
 export type MemberId = string & { __brand: 'MemberId' };
 
@@ -18,13 +20,7 @@ export interface MemberFilter {
   search?: string;
   role?: OrgRole;
   page?: number;
-  limit?: number;
+  pageSize?: number;
 }
 
-export interface MemberListResult {
-  members: Member[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export type MemberPage = Page<Member>;

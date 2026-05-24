@@ -8,24 +8,24 @@ import type {
   Member,
   MemberId,
   MemberFilter,
-  MemberListResult,
+  MemberPage,
 } from '@core/domain/entities/Member';
 import { ENDPOINTS } from '@data/http/endpoints';
 import type { MemberListResponseDTO } from '@data/dto/member.dto';
-import { mapMemberListDTOToResult } from '@data/mappers/member.mapper';
+import { mapMemberListDTOToPage } from '@data/mappers/member.mapper';
 
 export class MemberRepositoryImpl implements IMemberRepository {
   constructor(private readonly http: AxiosInstance) {}
 
-  async getMembers(filter?: MemberFilter): Promise<MemberListResult> {
+  async getMembers(filter?: MemberFilter): Promise<MemberPage> {
     const params: Record<string, string | number> = {};
     if (filter?.search) params.search = filter.search;
     if (filter?.role) params.role = filter.role;
     if (filter?.page) params.page = filter.page;
-    if (filter?.limit) params.limit = filter.limit;
+    if (filter?.pageSize) params.page_size = filter.pageSize;
 
     const { data } = await this.http.get<MemberListResponseDTO>(ENDPOINTS.MEMBERS.LIST, { params });
-    return mapMemberListDTOToResult(data);
+    return mapMemberListDTOToPage(data);
   }
 
   async getMemberById(_id: MemberId): Promise<Member> {

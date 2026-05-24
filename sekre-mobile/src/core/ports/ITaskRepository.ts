@@ -1,10 +1,4 @@
-import type {
-  Task,
-  TaskId,
-  TaskFilter,
-  TaskListResult,
-  TaskStatus,
-} from '@core/domain/entities/Task';
+import type { Task, TaskId, TaskFilter, TaskPage, TaskStatus } from '@core/domain/entities/Task';
 
 export interface CreateTaskParams {
   title: string;
@@ -23,7 +17,7 @@ export interface UpdateTaskParams {
 }
 
 export interface ITaskRepository {
-  getTasks(filter?: TaskFilter): Promise<TaskListResult>;
+  getTasks(filter?: TaskFilter): Promise<TaskPage>;
   getTaskById(id: TaskId): Promise<Task>;
   createTask(params: CreateTaskParams): Promise<Task>;
   updateTask(id: TaskId, params: UpdateTaskParams): Promise<Task>;

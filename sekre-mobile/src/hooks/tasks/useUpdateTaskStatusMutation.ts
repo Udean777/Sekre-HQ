@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import { UpdateTaskStatusUseCase } from '@core/usecases/tasks/UpdateTaskStatusUseCase';
 import { getTaskRepository } from '@di/container';
 import { showToast } from '@store/slices/uiSlice';
-import type { Task, TaskId, TaskListResult, TaskStatus } from '@core/domain/entities/Task';
+import type { Task, TaskId, TaskPage, TaskStatus } from '@core/domain/entities/Task';
 import { TASKS_QUERY_KEY } from './useTasksQuery';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ export const useUpdateTaskStatusMutation = (): UseMutationResult<
       await queryClient.cancelQueries({ queryKey: [TASKS_QUERY_KEY] });
 
       // Snapshot all active task list queries for rollback
-      const taskQueries = queryClient.getQueriesData<TaskListResult>({
+      const taskQueries = queryClient.getQueriesData<TaskPage>({
         queryKey: [TASKS_QUERY_KEY],
       });
 
@@ -50,11 +50,11 @@ export const useUpdateTaskStatusMutation = (): UseMutationResult<
       }));
 
       // Apply optimistic update to all cached task list queries
-      queryClient.setQueriesData<TaskListResult>({ queryKey: [TASKS_QUERY_KEY] }, old => {
+      queryClient.setQueriesData<TaskPage>({ queryKey: [TASKS_QUERY_KEY] }, old => {
         if (!old) return old;
         return {
           ...old,
-          tasks: old.tasks.map(task =>
+          items: old.items.map(task =>
             task.id === id ? { ...task, status, updatedAt: new Date() } : task,
           ),
         };
@@ -65,11 +65,11 @@ export const useUpdateTaskStatusMutation = (): UseMutationResult<
 
     // ── On success — sync cache with server response ───────────────────────
     onSuccess: updatedTask => {
-      queryClient.setQueriesData<TaskListResult>({ queryKey: [TASKS_QUERY_KEY] }, old => {
+      queryClient.setQueriesData<TaskPage>({ queryKey: [TASKS_QUERY_KEY] }, old => {
         if (!old) return old;
         return {
           ...old,
-          tasks: old.tasks.map(task => (task.id === updatedTask.id ? updatedTask : task)),
+          items: old.items.map(task => (task.id === updatedTask.id ? updatedTask : task)),
         };
       });
     },

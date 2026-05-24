@@ -108,7 +108,7 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
   const { data, isLoading, isError, refetch, isFetching } = useMembersQuery({
     search: search.trim() || undefined,
     role: activeRole,
-    limit: 50,
+    pageSize: 20,
   });
 
   const { mutate: deleteMember } = useDeleteMemberMutation();
@@ -184,7 +184,7 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
       {/* ── Total ── */}
       {!isLoading && !isError && data ? (
         <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.total} anggota ditemukan
+          {data.meta.total} anggota ditemukan
         </AppText>
       ) : null}
 
@@ -209,7 +209,7 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : (
         <FlatList
-          data={data?.members ?? []}
+          data={data?.items ?? []}
           keyExtractor={keyExtractor}
           renderItem={renderMember}
           style={styles.list}

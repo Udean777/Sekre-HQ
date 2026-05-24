@@ -9,7 +9,7 @@ import type {
   Transaction,
   TransactionId,
   TransactionFilter,
-  TransactionListResult,
+  TransactionPage,
   FinanceSummary,
 } from '@core/domain/entities/Transaction';
 import { ENDPOINTS } from '@data/http/endpoints';
@@ -21,7 +21,7 @@ import type {
   UpdateTransactionRequestDTO,
 } from '@data/dto/finance.dto';
 import {
-  mapTransactionListDTOToResult,
+  mapTransactionListDTOToPage,
   mapTransactionDTOToEntity,
   mapFinanceSummaryDTOToEntity,
 } from '@data/mappers/finance.mapper';
@@ -29,7 +29,7 @@ import {
 export class FinanceRepositoryImpl implements IFinanceRepository {
   constructor(private readonly http: AxiosInstance) {}
 
-  async getTransactions(filter?: TransactionFilter): Promise<TransactionListResult> {
+  async getTransactions(filter?: TransactionFilter): Promise<TransactionPage> {
     const params: Record<string, string | number> = {};
     if (filter?.divisionId) params.division_id = filter.divisionId;
     if (filter?.type) params.type = filter.type;
@@ -45,11 +45,13 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
       ENDPOINTS.FINANCE.TRANSACTIONS_LIST,
       { params },
     );
-    return mapTransactionListDTOToResult(data);
+    return mapTransactionListDTOToPage(data);
   }
 
   async getTransactionById(id: TransactionId): Promise<Transaction> {
-    const { data } = await this.http.get<TransactionResponseDTO>(ENDPOINTS.FINANCE.TRANSACTION_DETAIL(id));
+    const { data } = await this.http.get<TransactionResponseDTO>(
+      ENDPOINTS.FINANCE.TRANSACTION_DETAIL(id),
+    );
     return mapTransactionDTOToEntity(data.data);
   }
 

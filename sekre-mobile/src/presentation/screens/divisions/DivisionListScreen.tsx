@@ -96,7 +96,7 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
 
   const { data, isLoading, isError, refetch, isFetching } = useDivisionsQuery({
     search: search.trim() || undefined,
-    limit: 50,
+    pageSize: 20,
   });
 
   const { mutate: deleteDivision } = useDeleteDivisionMutation();
@@ -169,7 +169,7 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
       {/* ── Total ── */}
       {!isLoading && !isError && data ? (
         <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.total} divisi ditemukan
+          {data.meta.total} divisi ditemukan
         </AppText>
       ) : null}
 
@@ -194,7 +194,7 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : (
         <FlatList
-          data={data?.divisions ?? []}
+          data={data?.items ?? []}
           keyExtractor={keyExtractor}
           renderItem={renderDivision}
           style={styles.list}

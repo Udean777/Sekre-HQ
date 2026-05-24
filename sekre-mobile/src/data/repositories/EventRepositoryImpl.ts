@@ -4,7 +4,7 @@ import type {
   CreateEventParams,
   UpdateEventParams,
 } from '@core/ports/IEventRepository';
-import type { Event, EventId, EventFilter, EventListResult } from '@core/domain/entities/Event';
+import type { Event, EventId, EventFilter, EventPage } from '@core/domain/entities/Event';
 import { ENDPOINTS } from '@data/http/endpoints';
 import type {
   EventListResponseDTO,
@@ -12,19 +12,19 @@ import type {
   CreateEventRequestDTO,
   UpdateEventRequestDTO,
 } from '@data/dto/event.dto';
-import { mapEventListDTOToResult, mapEventResponseDTOToEntity } from '@data/mappers/event.mapper';
+import { mapEventListDTOToPage, mapEventResponseDTOToEntity } from '@data/mappers/event.mapper';
 
 export class EventRepositoryImpl implements IEventRepository {
   constructor(private readonly http: AxiosInstance) {}
 
-  async getEvents(filter?: EventFilter): Promise<EventListResult> {
+  async getEvents(filter?: EventFilter): Promise<EventPage> {
     const params: Record<string, string | number> = {};
     if (filter?.search) params.search = filter.search;
     if (filter?.page) params.page = filter.page;
-    if (filter?.limit) params.limit = filter.limit;
+    if (filter?.pageSize) params.page_size = filter.pageSize;
 
     const { data } = await this.http.get<EventListResponseDTO>(ENDPOINTS.EVENTS.LIST, { params });
-    return mapEventListDTOToResult(data);
+    return mapEventListDTOToPage(data);
   }
 
   async getEventById(id: EventId): Promise<Event> {

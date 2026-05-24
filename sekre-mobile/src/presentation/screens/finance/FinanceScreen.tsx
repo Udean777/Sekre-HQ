@@ -158,7 +158,7 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
   const { data, isLoading, isError, refetch, isFetching } = useTransactionsQuery({
     search: search.trim() || undefined,
     type: typeFilter,
-    pageSize: 50,
+    pageSize: 20,
   });
 
   const { data: summary } = useFinanceSummaryQuery();
@@ -265,7 +265,7 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
       {/* ── Total ── */}
       {!isLoading && !isError && data ? (
         <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.total} transaksi ditemukan
+          {data.meta.total} transaksi ditemukan
         </AppText>
       ) : null}
 
@@ -290,7 +290,7 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : (
         <FlatList
-          data={data?.transactions ?? []}
+          data={data?.items ?? []}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           style={styles.list}

@@ -1,4 +1,4 @@
-import type { Event, EventId, EventFilter, EventListResult } from '@core/domain/entities/Event';
+import type { Event, EventId, EventFilter, EventPage } from '@core/domain/entities/Event';
 
 export interface CreateEventParams {
   title: string;
@@ -17,7 +17,7 @@ export interface UpdateEventParams {
 }
 
 export interface IEventRepository {
-  getEvents(filter?: EventFilter): Promise<EventListResult>;
+  getEvents(filter?: EventFilter): Promise<EventPage>;
   getEventById(id: EventId): Promise<Event>;
   createEvent(params: CreateEventParams): Promise<Event>;
   updateEvent(id: EventId, params: UpdateEventParams): Promise<Event>;

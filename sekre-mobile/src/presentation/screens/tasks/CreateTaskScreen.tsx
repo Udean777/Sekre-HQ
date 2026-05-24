@@ -26,7 +26,7 @@ type Props = NativeStackScreenProps<TasksStackParamList, 'CreateTask'>;
 export const CreateTaskScreen: React.FC<Props> = ({ navigation }) => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const { mutate: createTask, isPending } = useCreateTaskMutation();
-  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ limit: 100 });
+  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ pageSize: 100 });
 
   const {
     control,
@@ -50,7 +50,7 @@ export const CreateTaskScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const divisionOptions: SelectOption[] =
-    divisionsData?.divisions.map(d => ({
+    divisionsData?.items.map(d => ({
       label: d.name,
       value: d.id,
       description: d.description ?? undefined,

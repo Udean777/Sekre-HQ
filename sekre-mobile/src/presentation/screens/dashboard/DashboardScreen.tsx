@@ -150,14 +150,14 @@ export const DashboardScreen: React.FC = () => {
     data: taskData,
     isLoading: taskLoading,
     isError: taskError,
-  } = useTasksQuery({ limit: 100 });
-  const { data: eventData, isLoading: eventLoading } = useEventsQuery({ limit: 10 });
+  } = useTasksQuery({ pageSize: 20 });
+  const { data: eventData, isLoading: eventLoading } = useEventsQuery({ pageSize: 10 });
 
   // Hitung task per status
   const tasksByStatus = React.useMemo(() => {
     const base = { TODO: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 } as Record<TaskStatus, number>;
     if (!taskData) return base;
-    return taskData.tasks.reduce((acc, task) => {
+    return taskData.items.reduce((acc, task) => {
       acc[task.status] = (acc[task.status] ?? 0) + 1;
       return acc;
     }, base);
@@ -165,17 +165,17 @@ export const DashboardScreen: React.FC = () => {
 
   // 3 task terbaru (urut berdasarkan updatedAt desc)
   const recentTasks = React.useMemo(() => {
-    if (!taskData?.tasks) return [];
-    return [...taskData.tasks]
+    if (!taskData?.items) return [];
+    return [...taskData.items]
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
       .slice(0, 3);
   }, [taskData]);
 
   // 3 event mendatang (startDate >= sekarang, urut asc)
   const upcomingEvents = React.useMemo(() => {
-    if (!eventData?.events) return [];
+    if (!eventData?.items) return [];
     const now = new Date();
-    return eventData.events
+    return eventData.items
       .filter(e => e.startDate >= now)
       .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
       .slice(0, 3);
@@ -241,7 +241,7 @@ export const DashboardScreen: React.FC = () => {
             <AppText variant="bodySm" color={colors.text.secondary}>
               Total Tugas
             </AppText>
-            <AppText style={styles.totalCount}>{taskData?.total ?? 0}</AppText>
+            <AppText style={styles.totalCount}>{taskData?.meta.total ?? 0}</AppText>
           </Card>
         </>
       )}

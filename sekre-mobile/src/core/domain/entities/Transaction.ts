@@ -1,3 +1,5 @@
+import type { Page } from './Page';
+
 // Branded types untuk type safety
 export type TransactionId = string & { __brand: 'TransactionId' };
 
@@ -44,9 +46,4 @@ export interface TransactionFilter {
   pageSize?: number;
 }
 
-export interface TransactionListResult {
-  transactions: Transaction[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type TransactionPage = Page<Transaction>;

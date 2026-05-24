@@ -27,7 +27,7 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
 
   const { data, isLoading, isError, refetch, isFetching } = useTasksQuery({
     search: search.trim() || undefined,
-    limit: 100,
+    pageSize: 20,
   });
 
   const { mutate: updateStatus } = useUpdateTaskStatusMutation();
@@ -77,7 +77,7 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
       <KanbanBoard
-        tasks={data?.tasks ?? []}
+        tasks={data?.items ?? []}
         onTaskPress={handleTaskPress}
         onStatusChange={handleStatusChange}
         canManage={canManage}

@@ -1,5 +1,6 @@
-import type { Task, TaskId, TaskListResult } from '@core/domain/entities/Task';
+import type { Task, TaskId, TaskPage } from '@core/domain/entities/Task';
 import type { TaskItemDTO, TaskListResponseDTO, TaskResponseDTO } from '@data/dto/task.dto';
+import { mapPaginationMeta } from './pagination.mapper';
 
 export const mapTaskItemDTOToEntity = (dto: TaskItemDTO): Task => ({
   id: dto.task.id as TaskId,
@@ -16,12 +17,9 @@ export const mapTaskItemDTOToEntity = (dto: TaskItemDTO): Task => ({
   updatedAt: new Date(dto.task.updated_at),
 });
 
-export const mapTaskListDTOToResult = (dto: TaskListResponseDTO): TaskListResult => ({
-  tasks: dto.data.data.map(mapTaskItemDTOToEntity),
-  total: dto.data.pagination.total_items,
-  page: dto.data.pagination.page,
-  limit: dto.data.pagination.page_size,
-  totalPages: dto.data.pagination.total_pages,
+export const mapTaskListDTOToPage = (dto: TaskListResponseDTO): TaskPage => ({
+  items: dto.data.data.map(mapTaskItemDTOToEntity),
+  meta: mapPaginationMeta(dto.data.pagination),
 });
 
 export const mapTaskResponseDTOToEntity = (dto: TaskResponseDTO): Task =>

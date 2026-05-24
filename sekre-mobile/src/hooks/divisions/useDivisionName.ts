@@ -6,7 +6,7 @@ import type { DivisionId } from '@core/domain/entities/Division';
  * Tidak trigger request baru jika data sudah ada di cache.
  */
 export const useDivisionName = (divisionId: string | null): string | null => {
-  const { data } = useDivisionsQuery({ limit: 100 });
+  const { data } = useDivisionsQuery({ pageSize: 100 });
   if (!divisionId || !data) return null;
-  return data.divisions.find(d => d.id === (divisionId as DivisionId))?.name ?? null;
+  return data.items.find(d => d.id === (divisionId as DivisionId))?.name ?? null;
 };

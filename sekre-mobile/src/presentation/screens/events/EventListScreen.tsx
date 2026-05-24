@@ -32,7 +32,7 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
 
   const { data, isLoading, isError, refetch, isFetching } = useEventsQuery({
     search: search.trim() || undefined,
-    limit: 100,
+    pageSize: 20,
   });
 
   const { mutate: deleteEvent } = useDeleteEventMutation();
@@ -64,7 +64,7 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
   // ── Build sections ────────────────────────────────────────────────────────
 
   const sections = useMemo(() => {
-    const events = data?.events ?? [];
+    const events = data?.items ?? [];
 
     const grouped: Record<EventStatus, Event[]> = {
       ONGOING: [],
@@ -85,7 +85,7 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
       status,
       data: grouped[status],
     }));
-  }, [data?.events]);
+  }, [data?.items]);
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
@@ -177,7 +177,7 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
       {/* ── Total ── */}
       {data ? (
         <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.total} acara ditemukan
+          {data.meta.total} acara ditemukan
         </AppText>
       ) : null}
 

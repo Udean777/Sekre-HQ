@@ -1,3 +1,5 @@
+import type { Page } from './Page';
+
 // Branded types untuk type safety
 export type EventId = string & { __brand: 'EventId' };
 
@@ -18,13 +20,7 @@ export interface Event {
 export interface EventFilter {
   search?: string;
   page?: number;
-  limit?: number;
+  pageSize?: number;
 }
 
-export interface EventListResult {
-  events: Event[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export type EventPage = Page<Event>;

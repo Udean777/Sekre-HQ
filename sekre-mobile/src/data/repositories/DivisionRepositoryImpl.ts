@@ -11,7 +11,7 @@ import type {
   DivisionId,
   DivisionDetail,
   DivisionFilter,
-  DivisionListResult,
+  DivisionPage,
 } from '@core/domain/entities/Division';
 import { ENDPOINTS } from '@data/http/endpoints';
 import type {
@@ -24,7 +24,7 @@ import type {
   UpdateDivisionMemberRequestDTO,
 } from '@data/dto/division.dto';
 import {
-  mapDivisionListDTOToResult,
+  mapDivisionListDTOToPage,
   mapDivisionResponseDTOToEntity,
   mapDivisionDetailResponseDTOToEntity,
 } from '@data/mappers/division.mapper';
@@ -32,16 +32,16 @@ import {
 export class DivisionRepositoryImpl implements IDivisionRepository {
   constructor(private readonly http: AxiosInstance) {}
 
-  async getDivisions(filter?: DivisionFilter): Promise<DivisionListResult> {
+  async getDivisions(filter?: DivisionFilter): Promise<DivisionPage> {
     const params: Record<string, string | number> = {};
     if (filter?.search) params.search = filter.search;
     if (filter?.page) params.page = filter.page;
-    if (filter?.limit) params.limit = filter.limit;
+    if (filter?.pageSize) params.page_size = filter.pageSize;
 
     const { data } = await this.http.get<DivisionListResponseDTO>(ENDPOINTS.DIVISIONS.LIST, {
       params,
     });
-    return mapDivisionListDTOToResult(data);
+    return mapDivisionListDTOToPage(data);
   }
 
   async getDivisionById(id: DivisionId): Promise<DivisionDetail> {

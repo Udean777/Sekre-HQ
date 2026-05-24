@@ -3,7 +3,7 @@ import type {
   DivisionId,
   DivisionDetail,
   DivisionFilter,
-  DivisionListResult,
+  DivisionPage,
   DivisionRole,
 } from '@core/domain/entities/Division';
 
@@ -27,7 +27,7 @@ export interface UpdateDivisionMemberParams {
 }
 
 export interface IDivisionRepository {
-  getDivisions(filter?: DivisionFilter): Promise<DivisionListResult>;
+  getDivisions(filter?: DivisionFilter): Promise<DivisionPage>;
   getDivisionById(id: DivisionId): Promise<DivisionDetail>;
   createDivision(params: CreateDivisionParams): Promise<Division>;
   updateDivision(id: DivisionId, params: UpdateDivisionParams): Promise<Division>;

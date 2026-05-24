@@ -37,7 +37,7 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const { data: task, isLoading } = useTaskQuery(taskId);
   const { mutate: updateTask, isPending } = useUpdateTaskMutation();
-  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ limit: 100 });
+  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ pageSize: 100 });
 
   const {
     control,
@@ -62,7 +62,7 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
     useDivisionMembersOptions(selectedDivisionId || null);
 
   const divisionOptions: SelectOption[] =
-    divisionsData?.divisions.map(d => ({
+    divisionsData?.items.map(d => ({
       label: d.name,
       value: d.id,
       description: d.description ?? undefined,

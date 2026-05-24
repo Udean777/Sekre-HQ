@@ -16,7 +16,7 @@ import { useDragDrop } from './useDragDrop';
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface KanbanBoardProps {
-  tasks: Task[];
+  tasks: readonly Task[];
   onTaskPress: (task: Task) => void;
   onStatusChange: (taskId: TaskId, newStatus: TaskStatus) => void;
   canManage: boolean;

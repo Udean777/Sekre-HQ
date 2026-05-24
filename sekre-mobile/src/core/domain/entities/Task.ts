@@ -1,3 +1,5 @@
+import type { Page } from './Page';
+
 // Branded types untuk type safety
 export type TaskId = string & { __brand: 'TaskId' };
 
@@ -26,13 +28,7 @@ export interface TaskFilter {
   divisionId?: string;
   search?: string;
   page?: number;
-  limit?: number;
+  pageSize?: number;
 }
 
-export interface TaskListResult {
-  tasks: Task[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export type TaskPage = Page<Task>;
