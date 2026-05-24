@@ -116,11 +116,13 @@ jobs:
           MYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
 
-      # ── Inject Sentry DSN ke .env.production ──
-      # react-native-config membaca .env.production saat release build
-      - name: Inject Sentry DSN
+      # ── Tulis .env.production dari secrets ──
+      # .env.production di-gitignore sehingga tidak ada di repo.
+      # CI harus membuat file ini secara lengkap sebelum build.
+      - name: Write .env.production
         run: |
-          echo "SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env.production
+          printf 'APP_ENV=production\nAPI_BASE_URL=https://sekre-backend.onrender.com\nSENTRY_DSN=%s\n' \
+            "${{ secrets.SENTRY_DSN }}" > .env.production
 
       # ── Cache Gradle ──
       # Includes:
