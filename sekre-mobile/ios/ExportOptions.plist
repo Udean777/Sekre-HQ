@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Method: app-store-connect untuk upload ke App Store Connect / TestFlight -->
+  <!-- Ganti ke "ad-hoc" kalau distribusi via Firebase App Distribution / diawi -->
+  <key>method</key>
+  <string>app-store-connect</string>
+
+  <!-- Team ID — harus match dengan Apple Developer account -->
+  <!-- Set via environment variable atau hardcode di sini -->
+  <key>teamID</key>
+  <string>$(DEVELOPMENT_TEAM)</string>
+
+  <!-- Upload ke App Store Connect setelah export -->
+  <key>uploadBitcode</key>
+  <false/>
+
+  <key>uploadSymbols</key>
+  <true/>
+
+  <key>compileBitcode</key>
+  <false/>
+
+  <!-- Signing style: manual (pakai provisioning profile dari Secrets) -->
+  <key>signingStyle</key>
+  <string>manual</string>
+
+  <!-- Strip Swift symbols untuk reduce IPA size -->
+  <key>stripSwiftSymbols</key>
+  <true/>
+
+  <!-- Thinning: none = universal IPA (App Store akan handle thinning) -->
+  <key>thinning</key>
+  <string>&lt;none&gt;</string>
+</dict>
+</plist>

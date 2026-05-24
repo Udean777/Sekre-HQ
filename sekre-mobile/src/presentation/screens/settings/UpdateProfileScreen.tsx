@@ -12,6 +12,7 @@ import { colors, spacing } from '@presentation/theme';
 import { profileSchema, type ProfileFormValues } from '@shared/utils/settingsSchemas';
 import { useUpdateProfileMutation } from '@hooks/auth/useUpdateProfileMutation';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthUser } from '@store/slices/authSlice';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { SettingsStackParamList } from '@app/navigation/SettingsNavigator';
 
@@ -21,7 +22,7 @@ export const UpdateProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const user = useAppSelector(state => state.auth.user);
+  const user = useAppSelector(selectAuthUser);
   const { mutate: updateProfile, isPending } = useUpdateProfileMutation();
 
   const {

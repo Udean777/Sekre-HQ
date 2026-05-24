@@ -1,5 +1,7 @@
-// Branded types untuk type safety
-export type MemberId = string & { __brand: 'MemberId' };
+import type { Page } from './Page';
+import type { MemberId } from '@core/domain/ids';
+
+export type { MemberId };
 
 export type OrgRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 
@@ -18,13 +20,7 @@ export interface MemberFilter {
   search?: string;
   role?: OrgRole;
   page?: number;
-  limit?: number;
+  pageSize?: number;
 }
 
-export interface MemberListResult {
-  members: Member[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export type MemberPage = Page<Member>;

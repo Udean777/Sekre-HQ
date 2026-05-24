@@ -13,6 +13,7 @@ import { useDeleteTaskMutation } from '@hooks/tasks/useDeleteTaskMutation';
 import { useUpdateTaskStatusMutation } from '@hooks/tasks/useUpdateTaskStatusMutation';
 import { useDivisionName } from '@hooks/divisions/useDivisionName';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthRole } from '@store/slices/authSlice';
 import type { TaskStatus, TaskPriority } from '@core/domain/entities/Task';
 import type { TasksStackParamList } from '@app/navigation/TasksNavigator';
 
@@ -71,7 +72,7 @@ const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({
 export const TaskDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { taskId } = route.params;
 
-  const role = useAppSelector(state => state.auth.role);
+  const role = useAppSelector(selectAuthRole);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data: task, isLoading, isError } = useTaskQuery(taskId);

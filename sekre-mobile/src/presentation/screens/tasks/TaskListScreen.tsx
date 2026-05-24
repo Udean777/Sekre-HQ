@@ -11,6 +11,8 @@ import { colors, spacing } from '@presentation/theme';
 import { useTasksQuery } from '@hooks/tasks/useTasksQuery';
 import { useUpdateTaskStatusMutation } from '@hooks/tasks/useUpdateTaskStatusMutation';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthRole } from '@store/slices/authSlice';
+import { flattenPages } from '@shared/utils/infiniteQueryHelpers';
 import type { Task, TaskId, TaskStatus } from '@core/domain/entities/Task';
 import type { TasksStackParamList } from '@app/navigation/TasksNavigator';
 import { KanbanBoard } from './kanban/KanbanBoard';
@@ -22,12 +24,12 @@ type Props = NativeStackScreenProps<TasksStackParamList, 'TaskList'>;
 export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
 
-  const role = useAppSelector(state => state.auth.role);
+  const role = useAppSelector(selectAuthRole);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data, isLoading, isError, refetch, isFetching } = useTasksQuery({
     search: search.trim() || undefined,
-    limit: 100,
+    pageSize: 20,
   });
 
   const { mutate: updateStatus } = useUpdateTaskStatusMutation();
@@ -77,7 +79,7 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
       <KanbanBoard
-        tasks={data?.tasks ?? []}
+        tasks={flattenPages(data)}
         onTaskPress={handleTaskPress}
         onStatusChange={handleStatusChange}
         canManage={canManage}

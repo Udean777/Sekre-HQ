@@ -1,7 +1,7 @@
 import type {
   Transaction,
   TransactionId,
-  TransactionListResult,
+  TransactionPage,
   FinanceSummary,
   Money,
 } from '@core/domain/entities/Transaction';
@@ -12,6 +12,7 @@ import type {
   FinanceSummaryDTO,
   MoneyDTO,
 } from '@data/dto/finance.dto';
+import { mapPaginationMeta } from './pagination.mapper';
 
 export const mapMoneyDTOToEntity = (dto: MoneyDTO): Money => ({
   amountCents: dto.amount_cents,
@@ -34,13 +35,11 @@ export const mapTransactionDTOToEntity = (dto: TransactionDTO): Transaction => (
   updatedAt: new Date(dto.updated_at),
 });
 
-export const mapTransactionListDTOToResult = (
+export const mapTransactionListDTOToPage = (
   dto: TransactionListResponseDTO,
-): TransactionListResult => ({
-  transactions: dto.data.data.map(mapTransactionDTOToEntity),
-  total: dto.data.pagination.total_items,
-  page: dto.data.pagination.page,
-  pageSize: dto.data.pagination.page_size,
+): TransactionPage => ({
+  items: dto.data.data.map(mapTransactionDTOToEntity),
+  meta: mapPaginationMeta(dto.data.pagination),
 });
 
 export const mapFinanceSummaryDTOToEntity = (dto: FinanceSummaryResponseDTO): FinanceSummary =>

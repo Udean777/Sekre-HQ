@@ -13,6 +13,7 @@ import { colors, spacing, fontWeight } from '@presentation/theme';
 import { organizationSchema, type OrganizationFormValues } from '@shared/utils/settingsSchemas';
 import { useUpdateOrganizationMutation } from '@hooks/auth/useUpdateOrganizationMutation';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthOrganization } from '@store/slices/authSlice';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { SettingsStackParamList } from '@app/navigation/SettingsNavigator';
 
@@ -37,7 +38,7 @@ export const OrganizationSettingsScreen: React.FC<Props> = ({ navigation }) => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const organization = useAppSelector(state => state.auth.organization);
+  const organization = useAppSelector(selectAuthOrganization);
   const { mutate: updateOrganization, isPending } = useUpdateOrganizationMutation();
 
   const {

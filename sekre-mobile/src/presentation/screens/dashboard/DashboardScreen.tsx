@@ -10,8 +10,10 @@ import { Card } from '@presentation/components/Card';
 import { Badge, taskStatusVariant, type BadgeVariant } from '@presentation/components/Badge';
 import { colors, spacing, fontSize, fontWeight } from '@presentation/theme';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthUser, selectAuthOrganization, selectAuthRole } from '@store/slices/authSlice';
 import { useTasksQuery } from '@hooks/tasks/useTasksQuery';
 import { useEventsQuery } from '@hooks/events/useEventsQuery';
+import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Task, TaskStatus } from '@core/domain/entities/Task';
 import type { Event } from '@core/domain/entities/Event';
 import type { RootStackParamList } from '@app/navigation/RootNavigator';
@@ -31,6 +33,9 @@ const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
   DONE: { label: 'Selesai', color: colors.success.main },
   CANCELLED: { label: 'Dibatalkan', color: colors.danger.main },
 };
+
+// Typed keys — hindari Object.keys cast di render
+const STATUS_CONFIG_KEYS: readonly TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'];
 
 const PLAN_VARIANT: Record<string, BadgeVariant> = {
   FREE: 'default',
@@ -142,44 +147,43 @@ const MenuShortcut: React.FC<{
 
 export const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<DashboardNavProp>();
-  const user = useAppSelector(state => state.auth.user);
-  const organization = useAppSelector(state => state.auth.organization);
-  const role = useAppSelector(state => state.auth.role);
+  const user = useAppSelector(selectAuthUser);
+  const organization = useAppSelector(selectAuthOrganization);
+  const role = useAppSelector(selectAuthRole);
 
   const {
     data: taskData,
     isLoading: taskLoading,
     isError: taskError,
-  } = useTasksQuery({ limit: 100 });
-  const { data: eventData, isLoading: eventLoading } = useEventsQuery({ limit: 10 });
+  } = useTasksQuery({ pageSize: 20 });
+  const { data: eventData, isLoading: eventLoading } = useEventsQuery({ pageSize: 10 });
+
+  const taskItems = flattenPages(taskData);
+  const taskMeta = lastPageMeta(taskData);
+  const eventItems = flattenPages(eventData);
 
   // Hitung task per status
   const tasksByStatus = React.useMemo(() => {
-    const base = { TODO: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 } as Record<TaskStatus, number>;
-    if (!taskData) return base;
-    return taskData.tasks.reduce((acc, task) => {
+    const base: Record<TaskStatus, number> = { TODO: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 };
+    return taskItems.reduce((acc: Record<TaskStatus, number>, task) => {
       acc[task.status] = (acc[task.status] ?? 0) + 1;
       return acc;
     }, base);
-  }, [taskData]);
+  }, [taskItems]);
 
   // 3 task terbaru (urut berdasarkan updatedAt desc)
   const recentTasks = React.useMemo(() => {
-    if (!taskData?.tasks) return [];
-    return [...taskData.tasks]
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-      .slice(0, 3);
-  }, [taskData]);
+    return [...taskItems].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 3);
+  }, [taskItems]);
 
   // 3 event mendatang (startDate >= sekarang, urut asc)
   const upcomingEvents = React.useMemo(() => {
-    if (!eventData?.events) return [];
     const now = new Date();
-    return eventData.events
+    return eventItems
       .filter(e => e.startDate >= now)
       .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
       .slice(0, 3);
-  }, [eventData]);
+  }, [eventItems]);
 
   const plan = organization?.subscriptionPlan ?? 'FREE';
 
@@ -228,7 +232,7 @@ export const DashboardScreen: React.FC = () => {
       ) : (
         <>
           <View style={styles.statsGrid}>
-            {(Object.keys(STATUS_CONFIG) as TaskStatus[]).map(status => (
+            {STATUS_CONFIG_KEYS.map(status => (
               <StatCard
                 key={status}
                 label={STATUS_CONFIG[status].label}
@@ -241,7 +245,7 @@ export const DashboardScreen: React.FC = () => {
             <AppText variant="bodySm" color={colors.text.secondary}>
               Total Tugas
             </AppText>
-            <AppText style={styles.totalCount}>{taskData?.total ?? 0}</AppText>
+            <AppText style={styles.totalCount}>{taskMeta?.total ?? 0}</AppText>
           </Card>
         </>
       )}

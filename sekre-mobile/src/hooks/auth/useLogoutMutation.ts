@@ -2,7 +2,7 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 import { useAppDispatch } from '@store/hooks';
 import { clearSession } from '@store/slices/authSlice';
 import { LogoutUseCase } from '@core/usecases/auth/LogoutUseCase';
-import { getAuthRepository, getTokenStorage } from '@di/container';
+import { getAuthRepository, getTokenStorage, getTelemetry } from '@di/container';
 
 export const useLogoutMutation = (): UseMutationResult<void, Error, void> => {
   const dispatch = useAppDispatch();
@@ -17,6 +17,9 @@ export const useLogoutMutation = (): UseMutationResult<void, Error, void> => {
       // Clear semua cached queries saat logout
       queryClient.clear();
       dispatch(clearSession());
+
+      // Clear Sentry user context supaya event setelah logout tidak ter-tag ke user lama
+      getTelemetry().setUser(null);
     },
   });
 };

@@ -1,5 +1,6 @@
-import type { Event, EventId, EventListResult, EventStatus } from '@core/domain/entities/Event';
+import type { Event, EventId, EventPage, EventStatus } from '@core/domain/entities/Event';
 import type { EventDTO, EventListResponseDTO, EventResponseDTO } from '@data/dto/event.dto';
+import { mapPaginationMeta } from './pagination.mapper';
 
 const deriveEventStatus = (startDate: Date, endDate: Date | null): EventStatus => {
   const now = new Date();
@@ -29,12 +30,9 @@ export const mapEventDTOToEntity = (dto: EventDTO): Event => {
   };
 };
 
-export const mapEventListDTOToResult = (dto: EventListResponseDTO): EventListResult => ({
-  events: dto.data.data.map(mapEventDTOToEntity),
-  total: dto.data.pagination.total_items,
-  page: dto.data.pagination.page,
-  limit: dto.data.pagination.page_size,
-  totalPages: dto.data.pagination.total_pages,
+export const mapEventListDTOToPage = (dto: EventListResponseDTO): EventPage => ({
+  items: dto.data.data.map(mapEventDTOToEntity),
+  meta: mapPaginationMeta(dto.data.pagination),
 });
 
 export const mapEventResponseDTOToEntity = (dto: EventResponseDTO): Event =>

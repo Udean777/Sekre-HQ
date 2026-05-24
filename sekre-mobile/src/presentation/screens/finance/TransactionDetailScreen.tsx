@@ -11,6 +11,7 @@ import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useTransactionQuery } from '@hooks/finance/useTransactionQuery';
 import { useDeleteTransactionMutation } from '@hooks/finance/useDeleteTransactionMutation';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthRole } from '@store/slices/authSlice';
 import type { Money } from '@core/domain/entities/Transaction';
 import type { FinanceStackParamList } from '@app/navigation/FinanceNavigator';
 
@@ -69,7 +70,7 @@ const InfoRow: React.FC<{ icon: string; label: string; value: string; valueColor
 
 export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { transactionId } = route.params;
-  const role = useAppSelector(state => state.auth.role);
+  const role = useAppSelector(selectAuthRole);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data: tx, isLoading, isError } = useTransactionQuery(transactionId);

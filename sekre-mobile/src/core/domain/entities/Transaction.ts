@@ -1,5 +1,7 @@
-// Branded types untuk type safety
-export type TransactionId = string & { __brand: 'TransactionId' };
+import type { Page } from './Page';
+import type { TransactionId } from '@core/domain/ids';
+
+export type { TransactionId };
 
 export type TransactionType = 'INCOME' | 'EXPENSE';
 export type TransactionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -44,9 +46,4 @@ export interface TransactionFilter {
   pageSize?: number;
 }
 
-export interface TransactionListResult {
-  transactions: Transaction[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type TransactionPage = Page<Transaction>;

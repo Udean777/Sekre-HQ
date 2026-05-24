@@ -2,7 +2,7 @@ import type {
   Member,
   MemberId,
   MemberFilter,
-  MemberListResult,
+  MemberPage,
   OrgRole,
 } from '@core/domain/entities/Member';
 
@@ -16,7 +16,7 @@ export interface UpdateMemberParams {
 }
 
 export interface IMemberRepository {
-  getMembers(filter?: MemberFilter): Promise<MemberListResult>;
+  getMembers(filter?: MemberFilter): Promise<MemberPage>;
   getMemberById(id: MemberId): Promise<Member>;
   createMember(params: CreateMemberParams): Promise<Member>;
   updateMember(id: MemberId, params: UpdateMemberParams): Promise<Member>;

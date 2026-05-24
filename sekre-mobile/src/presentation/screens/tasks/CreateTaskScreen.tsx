@@ -16,6 +16,7 @@ import { taskSchema, type TaskFormValues } from '@shared/utils/taskSchemas';
 import { useCreateTaskMutation } from '@hooks/tasks/useCreateTaskMutation';
 import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
 import { useDivisionMembersOptions } from '@hooks/divisions/useDivisionMembersOptions';
+import { flattenPages } from '@shared/utils/infiniteQueryHelpers';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { TasksStackParamList } from '@app/navigation/TasksNavigator';
 
@@ -26,7 +27,7 @@ type Props = NativeStackScreenProps<TasksStackParamList, 'CreateTask'>;
 export const CreateTaskScreen: React.FC<Props> = ({ navigation }) => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const { mutate: createTask, isPending } = useCreateTaskMutation();
-  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ limit: 100 });
+  const { data: divisionsData, isLoading: divisionsLoading } = useDivisionsQuery({ pageSize: 100 });
 
   const {
     control,
@@ -50,11 +51,11 @@ export const CreateTaskScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const divisionOptions: SelectOption[] =
-    divisionsData?.divisions.map(d => ({
+    flattenPages(divisionsData).map(d => ({
       label: d.name,
       value: d.id,
       description: d.description ?? undefined,
-    })) ?? [];
+    }));
 
   const onSubmit = (values: TaskFormValues): void => {
     setGlobalError(null);

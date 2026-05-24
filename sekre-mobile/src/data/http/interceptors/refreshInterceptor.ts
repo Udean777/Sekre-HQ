@@ -3,8 +3,8 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from 'axios';
-import Config from 'react-native-config';
 import { tokenStorage } from '@data/storage/MmkvTokenStorage';
+import { getBaseUrl } from '../getBaseUrl';
 import { ENDPOINTS } from '../endpoints';
 
 interface RefreshResponse {
@@ -20,6 +20,9 @@ interface RefreshResponse {
 interface RetryConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
+
+const isRetryConfig = (config: InternalAxiosRequestConfig | undefined): config is RetryConfig =>
+  config !== undefined;
 
 let isRefreshing = false;
 let pendingQueue: Array<{
@@ -44,7 +47,7 @@ const processQueue = (error: unknown, token: string | null): void => {
  * errorInterceptor mengubah error sebelum kita bisa handle.
  */
 const refreshClient = axios.create({
-  baseURL: `${Config.API_BASE_URL ?? 'http://192.168.40.153:8080'}/api/v1`,
+  baseURL: `${getBaseUrl()}/api/v1`,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -64,7 +67,7 @@ export const refreshInterceptor = (client: AxiosInstance): void => {
         return Promise.reject(error);
       }
 
-      const originalRequest = error.config as RetryConfig | undefined;
+      const originalRequest = isRetryConfig(error.config) ? error.config : undefined;
 
       // Hanya handle 401, skip jika sudah retry
       if (error.response?.status !== 401 || originalRequest?._retry) {

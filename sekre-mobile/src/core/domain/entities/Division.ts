@@ -1,5 +1,7 @@
-// Branded types untuk type safety
-export type DivisionId = string & { __brand: 'DivisionId' };
+import type { Page } from './Page';
+import type { DivisionId } from '@core/domain/ids';
+
+export type { DivisionId };
 
 export type DivisionRole = 'HEAD' | 'STAFF';
 
@@ -27,13 +29,7 @@ export interface DivisionDetail extends Division {
 export interface DivisionFilter {
   search?: string;
   page?: number;
-  limit?: number;
+  pageSize?: number;
 }
 
-export interface DivisionListResult {
-  divisions: Division[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export type DivisionPage = Page<Division>;

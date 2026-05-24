@@ -1,5 +1,7 @@
-// Branded types untuk type safety
-export type TaskId = string & { __brand: 'TaskId' };
+import type { Page } from './Page';
+import type { TaskId } from '@core/domain/ids';
+
+export type { TaskId };
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
@@ -26,13 +28,7 @@ export interface TaskFilter {
   divisionId?: string;
   search?: string;
   page?: number;
-  limit?: number;
+  pageSize?: number;
 }
 
-export interface TaskListResult {
-  tasks: Task[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export type TaskPage = Page<Task>;

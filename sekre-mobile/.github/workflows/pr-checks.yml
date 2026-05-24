@@ -1,0 +1,81 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: pr-checks-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Static checks: TypeScript + Lint + Test ─────────────────────────────────
+  checks:
+    name: TypeScript + Lint + Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: TypeScript check
+        run: bunx tsc --noEmit
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Test
+        run: bun test --passWithNoTests
+
+  # ─── Bundle budget enforcement ───────────────────────────────────────────────
+  # Generate prod bundle (Android) dan fail kalau size/module count melebihi
+  # budget di bundle-budget.json. Mencegah bundle bloat masuk main tanpa review.
+  #
+  # iOS budget di-skip di PR check karena butuh macos runner ($$$) dan
+  # iOS workflow saat ini di-disable (lihat .github/workflows/ios-release.yml).
+  bundle-budget:
+    name: Bundle Budget (Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check Android bundle budget
+        run: bun run check-bundle-budget -- --platform=android
+

@@ -10,6 +10,7 @@ import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useEventQuery } from '@hooks/events/useEventQuery';
 import { useDeleteEventMutation } from '@hooks/events/useDeleteEventMutation';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthRole } from '@store/slices/authSlice';
 import type { EventsStackParamList } from '@app/navigation/EventsNavigator';
 
 type Props = NativeStackScreenProps<EventsStackParamList, 'EventDetail'>;
@@ -53,7 +54,7 @@ const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({
 
 export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { eventId } = route.params;
-  const role = useAppSelector(state => state.auth.role);
+  const role = useAppSelector(selectAuthRole);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data: event, isLoading, isError } = useEventQuery(eventId);

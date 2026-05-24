@@ -1,5 +1,6 @@
-import type { Member, MemberId, MemberListResult } from '@core/domain/entities/Member';
+import type { Member, MemberId, MemberPage } from '@core/domain/entities/Member';
 import type { MemberDTO, MemberListResponseDTO } from '@data/dto/member.dto';
+import { mapPaginationMeta } from './pagination.mapper';
 
 export const mapMemberDTOToEntity = (dto: MemberDTO): Member => ({
   id: dto.id as MemberId,
@@ -12,10 +13,7 @@ export const mapMemberDTOToEntity = (dto: MemberDTO): Member => ({
   joinedAt: new Date(), // tidak ada di list response
 });
 
-export const mapMemberListDTOToResult = (dto: MemberListResponseDTO): MemberListResult => ({
-  members: dto.data.data.map(mapMemberDTOToEntity),
-  total: dto.data.pagination.total_items,
-  page: dto.data.pagination.page,
-  limit: dto.data.pagination.page_size,
-  totalPages: dto.data.pagination.total_pages,
+export const mapMemberListDTOToPage = (dto: MemberListResponseDTO): MemberPage => ({
+  items: dto.data.data.map(mapMemberDTOToEntity),
+  meta: mapPaginationMeta(dto.data.pagination),
 });

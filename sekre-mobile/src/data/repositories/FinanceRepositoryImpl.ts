@@ -9,7 +9,7 @@ import type {
   Transaction,
   TransactionId,
   TransactionFilter,
-  TransactionListResult,
+  TransactionPage,
   FinanceSummary,
 } from '@core/domain/entities/Transaction';
 import { ENDPOINTS } from '@data/http/endpoints';
@@ -21,7 +21,7 @@ import type {
   UpdateTransactionRequestDTO,
 } from '@data/dto/finance.dto';
 import {
-  mapTransactionListDTOToResult,
+  mapTransactionListDTOToPage,
   mapTransactionDTOToEntity,
   mapFinanceSummaryDTOToEntity,
 } from '@data/mappers/finance.mapper';
@@ -29,27 +29,29 @@ import {
 export class FinanceRepositoryImpl implements IFinanceRepository {
   constructor(private readonly http: AxiosInstance) {}
 
-  async getTransactions(filter?: TransactionFilter): Promise<TransactionListResult> {
+  async getTransactions(filter?: TransactionFilter): Promise<TransactionPage> {
     const params: Record<string, string | number> = {};
-    if (filter?.divisionId) params.division_id = filter.divisionId;
-    if (filter?.type) params.type = filter.type;
-    if (filter?.startDate) params.start_date = filter.startDate;
-    if (filter?.endDate) params.end_date = filter.endDate;
-    if (filter?.search) params.search = filter.search;
-    if (filter?.minAmount !== undefined) params.min_amount = filter.minAmount;
-    if (filter?.maxAmount !== undefined) params.max_amount = filter.maxAmount;
-    if (filter?.page) params.page = filter.page;
-    if (filter?.pageSize) params.page_size = filter.pageSize;
+    if (filter?.divisionId) params['division_id'] = filter.divisionId;
+    if (filter?.type) params['type'] = filter.type;
+    if (filter?.startDate) params['start_date'] = filter.startDate;
+    if (filter?.endDate) params['end_date'] = filter.endDate;
+    if (filter?.search) params['search'] = filter.search;
+    if (filter?.minAmount !== undefined) params['min_amount'] = filter.minAmount;
+    if (filter?.maxAmount !== undefined) params['max_amount'] = filter.maxAmount;
+    if (filter?.page) params['page'] = filter.page;
+    if (filter?.pageSize) params['page_size'] = filter.pageSize;
 
     const { data } = await this.http.get<TransactionListResponseDTO>(
       ENDPOINTS.FINANCE.TRANSACTIONS_LIST,
       { params },
     );
-    return mapTransactionListDTOToResult(data);
+    return mapTransactionListDTOToPage(data);
   }
 
   async getTransactionById(id: TransactionId): Promise<Transaction> {
-    const { data } = await this.http.get<TransactionResponseDTO>(ENDPOINTS.FINANCE.TRANSACTION_DETAIL(id));
+    const { data } = await this.http.get<TransactionResponseDTO>(
+      ENDPOINTS.FINANCE.TRANSACTION_DETAIL(id),
+    );
     return mapTransactionDTOToEntity(data.data);
   }
 
@@ -96,9 +98,9 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
   async getSummary(filter?: SummaryFilter): Promise<FinanceSummary> {
     const params: Record<string, string> = {};
-    if (filter?.divisionId) params.division_id = filter.divisionId;
-    if (filter?.startDate) params.start_date = filter.startDate;
-    if (filter?.endDate) params.end_date = filter.endDate;
+    if (filter?.divisionId) params['division_id'] = filter.divisionId;
+    if (filter?.startDate) params['start_date'] = filter.startDate;
+    if (filter?.endDate) params['end_date'] = filter.endDate;
 
     const { data } = await this.http.get<FinanceSummaryResponseDTO>(ENDPOINTS.FINANCE.SUMMARY, {
       params,

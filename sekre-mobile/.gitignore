@@ -76,3 +76,9 @@ yarn-error.log
 
 # Environment variables
 .env*
+
+# Bundle visualizer output — generated artifact, regen with `bun run analyze-bundle`
+bundle-visualizer-output/
+
+# Bundle budget temp dir — generated during CI check, cleaned up automatically
+.bundle-budget-tmp/

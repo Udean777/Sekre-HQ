@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
@@ -15,10 +16,27 @@ import { useTransactionsQuery } from '@hooks/finance/useTransactionsQuery';
 import { useFinanceSummaryQuery } from '@hooks/finance/useFinanceSummaryQuery';
 import { useDeleteTransactionMutation } from '@hooks/finance/useDeleteTransactionMutation';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthRole } from '@store/slices/authSlice';
+import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
+import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Transaction, TransactionType, Money } from '@core/domain/entities/Transaction';
 import type { FinanceStackParamList } from '@app/navigation/FinanceNavigator';
 
 type Props = NativeStackScreenProps<FinanceStackParamList, 'FinanceList'>;
+
+// ─── Constants (module scope — tidak re-create tiap render) ───────────────────
+
+const TYPE_FILTERS: ReadonlyArray<{ label: string; value: TransactionType | undefined }> = [
+  { label: 'Semua', value: undefined },
+  { label: 'Pemasukan', value: 'INCOME' },
+  { label: 'Pengeluaran', value: 'EXPENSE' },
+] as const;
+
+const STATUS_LABEL: Readonly<Record<string, string>> = {
+  APPROVED: 'Disetujui',
+  REJECTED: 'Ditolak',
+  PENDING: 'Menunggu',
+} as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -34,12 +52,6 @@ const formatMoney = (money: Money): string => {
 const formatDate = (date: Date): string =>
   date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
-const STATUS_LABEL: Record<string, string> = {
-  APPROVED: 'Disetujui',
-  REJECTED: 'Ditolak',
-  PENDING: 'Menunggu',
-};
-
 // ─── Summary Card ─────────────────────────────────────────────────────────────
 
 interface SummaryCardProps {
@@ -49,7 +61,7 @@ interface SummaryCardProps {
   color: string;
 }
 
-const SummaryCard: React.FC<SummaryCardProps> = ({ label, icon, money, color }) => (
+const SummaryCard: React.FC<SummaryCardProps> = React.memo(({ label, icon, money, color }) => (
   <Card style={styles.summaryCard}>
     <View style={[styles.summaryIcon, { backgroundColor: `${color}18` }]}>
       <Ionicons name={icon} size={18} color={color} />
@@ -61,118 +73,130 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ label, icon, money, color }) 
       {formatMoney(money)}
     </AppText>
   </Card>
-);
+));
 
-// ─── Transaction Card ─────────────────────────────────────────────────────────
+// ─── Transaction Card (memoized) ──────────────────────────────────────────────
 
 interface TransactionCardProps {
   transaction: Transaction;
   canManage: boolean;
-  onPress: () => void;
-  onDelete: () => void;
+  onPress: (tx: Transaction) => void;
+  onDelete: (tx: Transaction) => void;
 }
 
-const TransactionCard: React.FC<TransactionCardProps> = ({
-  transaction,
-  canManage,
-  onPress,
-  onDelete,
-}) => {
-  const isIncome = transaction.type === 'INCOME';
+const TransactionCard: React.FC<TransactionCardProps> = React.memo(
+  ({ transaction, canManage, onPress, onDelete }) => {
+    const isIncome = transaction.type === 'INCOME';
 
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-      <Card style={styles.txCard}>
-        <View style={styles.txHeader}>
-          {/* Type icon */}
-          <View
-            style={[
-              styles.txIcon,
-              {
-                backgroundColor: isIncome ? `${colors.success.main}18` : `${colors.danger.main}18`,
-              },
-            ]}
-          >
-            <Ionicons
-              name={isIncome ? 'arrow-down-outline' : 'arrow-up-outline'}
-              size={18}
-              color={isIncome ? colors.success.main : colors.danger.main}
-            />
-          </View>
+    const handlePress = useCallback((): void => onPress(transaction), [onPress, transaction]);
+    const handleDelete = useCallback(
+      (e: { stopPropagation: () => void }): void => {
+        e.stopPropagation();
+        onDelete(transaction);
+      },
+      [onDelete, transaction],
+    );
 
-          {/* Info */}
-          <View style={styles.txInfo}>
-            <AppText variant="bodyMd" style={styles.txDesc} numberOfLines={1}>
-              {transaction.description}
-            </AppText>
-            <AppText variant="bodySm" color={colors.text.secondary}>
-              {formatDate(transaction.createdAt)}
-            </AppText>
-          </View>
-
-          {/* Amount + actions */}
-          <View style={styles.txRight}>
-            <AppText
-              variant="bodyMd"
+    return (
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
+        <Card style={styles.txCard}>
+          <View style={styles.txHeader}>
+            <View
               style={[
-                styles.txAmount,
-                { color: isIncome ? colors.success.main : colors.danger.main },
+                styles.txIcon,
+                {
+                  backgroundColor: isIncome
+                    ? `${colors.success.main}18`
+                    : `${colors.danger.main}18`,
+                },
               ]}
             >
-              {isIncome ? '+' : '-'}
-              {formatMoney(transaction.amount)}
-            </AppText>
-            <View style={styles.txMeta}>
-              <Badge
-                label={STATUS_LABEL[transaction.status] ?? transaction.status}
-                variant={txStatusVariant(transaction.status)}
+              <Ionicons
+                name={isIncome ? 'arrow-down-outline' : 'arrow-up-outline'}
+                size={18}
+                color={isIncome ? colors.success.main : colors.danger.main}
               />
-              {canManage ? (
-                <TouchableOpacity
-                  onPress={e => {
-                    e.stopPropagation();
-                    onDelete();
-                  }}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Ionicons name="trash-outline" size={16} color={colors.danger.main} />
-                </TouchableOpacity>
-              ) : null}
+            </View>
+
+            <View style={styles.txInfo}>
+              <AppText variant="bodyMd" style={styles.txDesc} numberOfLines={1}>
+                {transaction.description}
+              </AppText>
+              <AppText variant="bodySm" color={colors.text.secondary}>
+                {formatDate(transaction.createdAt)}
+              </AppText>
+            </View>
+
+            <View style={styles.txRight}>
+              <AppText
+                variant="bodyMd"
+                style={[
+                  styles.txAmount,
+                  { color: isIncome ? colors.success.main : colors.danger.main },
+                ]}
+              >
+                {isIncome ? '+' : '-'}
+                {formatMoney(transaction.amount)}
+              </AppText>
+              <View style={styles.txMeta}>
+                <Badge
+                  label={STATUS_LABEL[transaction.status] ?? transaction.status}
+                  variant={txStatusVariant(transaction.status)}
+                />
+                {canManage ? (
+                  <TouchableOpacity
+                    onPress={handleDelete}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.danger.main} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             </View>
           </View>
-        </View>
-      </Card>
-    </TouchableOpacity>
-  );
-};
+        </Card>
+      </TouchableOpacity>
+    );
+  },
+);
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | undefined>(undefined);
-  const role = useAppSelector(state => state.auth.role);
+
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  const role = useAppSelector(selectAuthRole);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
-  const { data, isLoading, isError, refetch, isFetching } = useTransactionsQuery({
-    search: search.trim() || undefined,
+  const { data, isLoading, isError, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } = useTransactionsQuery({
+    search: debouncedSearch.trim() || undefined,
     type: typeFilter,
-    pageSize: 50,
+    pageSize: 20,
   });
+
+  const transactions = flattenPages(data);
+  const meta = lastPageMeta(data);
 
   const { data: summary } = useFinanceSummaryQuery();
   const { mutate: deleteTransaction } = useDeleteTransactionMutation();
 
   const handlePress = useCallback(
-    (tx: Transaction) => navigation.navigate('TransactionDetail', { transactionId: tx.id }),
+    (tx: Transaction): void =>
+      navigation.navigate('TransactionDetail', { transactionId: tx.id }),
     [navigation],
   );
 
-  const handleCreate = useCallback(() => navigation.navigate('CreateTransaction'), [navigation]);
+  const handleCreate = useCallback(
+    (): void => navigation.navigate('CreateTransaction'),
+    [navigation],
+  );
 
   const handleDelete = useCallback(
-    (tx: Transaction) => {
+    (tx: Transaction): void => {
       Alert.alert('Hapus Transaksi', `Hapus transaksi "${tx.description}"?`, [
         { text: 'Batal', style: 'cancel' },
         { text: 'Hapus', style: 'destructive', onPress: (): void => deleteTransaction(tx.id) },
@@ -181,97 +205,93 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
     [deleteTransaction],
   );
 
-  const renderItem = useCallback(
-    ({ item }: { item: Transaction }) => (
+  const handleRefetch = useCallback((): void => { refetch(); }, [refetch]);
+
+  const renderItem = useCallback<ListRenderItem<Transaction>>(
+    ({ item }) => (
       <TransactionCard
         transaction={item}
         canManage={canManage}
-        onPress={() => handlePress(item)}
-        onDelete={() => handleDelete(item)}
+        onPress={handlePress}
+        onDelete={handleDelete}
       />
     ),
     [canManage, handlePress, handleDelete],
   );
 
-  const keyExtractor = useCallback((item: Transaction) => item.id, []);
-
-  const TYPE_FILTERS: Array<{ label: string; value: TransactionType | undefined }> = [
-    { label: 'Semua', value: undefined },
-    { label: 'Pemasukan', value: 'INCOME' },
-    { label: 'Pengeluaran', value: 'EXPENSE' },
-  ];
+  const keyExtractor = useCallback((item: Transaction): string => item.id, []);
 
   return (
-    <Screen padded edges={['top']} tabScreen>
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <AppText variant="h3">Keuangan</AppText>
-        {canManage ? (
-          <Button label="+ Tambah" variant="primary" size="sm" onPress={handleCreate} />
+    <Screen mode="none" edges={['top']} tabScreen>
+      {/* ── Header + Summary + Search + Filter (non-scrollable) ── */}
+      <View style={styles.headerSection}>
+        <View style={styles.header}>
+          <AppText variant="h3">Keuangan</AppText>
+          {canManage ? (
+            <Button label="+ Tambah" variant="primary" size="sm" onPress={handleCreate} />
+          ) : null}
+        </View>
+
+        {summary ? (
+          <View style={styles.summaryRow}>
+            <SummaryCard
+              label="Pemasukan"
+              icon="arrow-down-outline"
+              money={summary.totalIncome}
+              color={colors.success.main}
+            />
+            <SummaryCard
+              label="Pengeluaran"
+              icon="arrow-up-outline"
+              money={summary.totalExpense}
+              color={colors.danger.main}
+            />
+            <SummaryCard
+              label="Saldo"
+              icon="wallet-outline"
+              money={summary.balance}
+              color={colors.primary[500]}
+            />
+          </View>
+        ) : null}
+
+        <Input
+          placeholder="Cari transaksi..."
+          value={search}
+          onChangeText={setSearch}
+          style={styles.searchInput}
+        />
+
+        <View style={styles.filterRow}>
+          {TYPE_FILTERS.map(f => (
+            <TouchableOpacity
+              key={f.label}
+              onPress={(): void => setTypeFilter(f.value)}
+              activeOpacity={0.7}
+              style={[styles.filterChip, typeFilter === f.value && styles.filterChipActive]}
+            >
+              <AppText
+                variant="bodySm"
+                color={typeFilter === f.value ? colors.neutral[0] : colors.text.secondary}
+              >
+                {f.label}
+              </AppText>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {!isLoading && !isError && meta ? (
+          <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
+            {meta.total} transaksi ditemukan
+          </AppText>
         ) : null}
       </View>
 
-      {/* ── Summary ── */}
-      {summary ? (
-        <View style={styles.summaryRow}>
-          <SummaryCard
-            label="Pemasukan"
-            icon="arrow-down-outline"
-            money={summary.totalIncome}
-            color={colors.success.main}
-          />
-          <SummaryCard
-            label="Pengeluaran"
-            icon="arrow-up-outline"
-            money={summary.totalExpense}
-            color={colors.danger.main}
-          />
-          <SummaryCard
-            label="Saldo"
-            icon="wallet-outline"
-            money={summary.balance}
-            color={colors.primary[500]}
-          />
-        </View>
-      ) : null}
-
-      {/* ── Search ── */}
-      <Input
-        placeholder="Cari transaksi..."
-        value={search}
-        onChangeText={setSearch}
-        style={styles.searchInput}
-      />
-
-      {/* ── Type Filter ── */}
-      <View style={styles.filterRow}>
-        {TYPE_FILTERS.map(f => (
-          <TouchableOpacity
-            key={f.label}
-            onPress={() => setTypeFilter(f.value)}
-            activeOpacity={0.7}
-            style={[styles.filterChip, typeFilter === f.value && styles.filterChipActive]}
-          >
-            <AppText
-              variant="bodySm"
-              color={typeFilter === f.value ? colors.neutral[0] : colors.text.secondary}
-            >
-              {f.label}
-            </AppText>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* ── Total ── */}
-      {!isLoading && !isError && data ? (
-        <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.total} transaksi ditemukan
-        </AppText>
-      ) : null}
-
       {/* ── List ── */}
       {isLoading ? (
-        <SkeletonList count={5} />
+        <View style={styles.skeletonWrapper}>
+          <SkeletonList count={5} />
+        </View>
       ) : isError ? (
         <View style={styles.centered}>
           <Ionicons name="alert-circle-outline" size={32} color={colors.danger.main} />
@@ -282,29 +302,22 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
             label="Coba Lagi"
             variant="ghost"
             size="sm"
-            onPress={() => {
-              refetch();
-            }}
+            onPress={handleRefetch}
             style={styles.retryButton}
           />
         </View>
       ) : (
-        <FlatList
-          data={data?.transactions ?? []}
+        <FlashList
+          data={transactions}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
-          style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={() => {
-                refetch();
-              }}
-              tintColor={colors.primary[500]}
-            />
-          }
+          onEndReached={hasNextPage ? (): void => { void fetchNextPage(); } : undefined}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isFetchingNextPage ? <SkeletonList count={2} /> : null}
+          onRefresh={handleRefetch}
+          refreshing={isFetching && !isLoading}
           ListEmptyComponent={
             <EmptyState
               icon="wallet-outline"
@@ -323,6 +336,10 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  headerSection: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[4],
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -375,21 +392,22 @@ const styles = StyleSheet.create({
     borderColor: colors.primary[500],
   },
   totalText: {
-    marginBottom: spacing[3],
+    marginBottom: spacing[2],
   },
 
   // List
-  list: {
-    flex: 1,
+  skeletonWrapper: {
+    paddingHorizontal: spacing[4],
   },
   listContent: {
-    gap: spacing[3],
+    paddingHorizontal: spacing[4],
     paddingBottom: spacing[6],
   },
 
   // Transaction card
   txCard: {
     paddingVertical: spacing[3],
+    marginBottom: spacing[3],
   },
   txHeader: {
     flexDirection: 'row',

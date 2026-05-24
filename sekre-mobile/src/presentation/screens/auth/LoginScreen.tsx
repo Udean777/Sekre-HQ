@@ -11,6 +11,7 @@ import { Button } from '@presentation/components/Button';
 import { colors, spacing, fontWeight } from '@presentation/theme';
 import { loginSchema, type LoginFormValues } from '@shared/utils/authSchemas';
 import { useLoginMutation } from '@hooks/auth/useLoginMutation';
+import { useLoginRateLimit } from '@hooks/ui/useLoginRateLimit';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { AuthStackParamList } from '@app/navigation/AuthNavigator';
 
@@ -22,6 +23,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const { mutate: login, isPending } = useLoginMutation();
 
+  const { isLocked, remainingSeconds, failureCount, recordFailure, recordSuccess } =
+    useLoginRateLimit(5, 30);
+
   const {
     control,
     handleSubmit,
@@ -32,11 +36,17 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   const onSubmit = (values: LoginFormValues): void => {
+    if (isLocked) return;
     setGlobalError(null);
+
     login(
       { email: values.email, password: values.password },
       {
+        onSuccess: () => {
+          recordSuccess();
+        },
         onError: (error: Error) => {
+          recordFailure();
           setGlobalError(
             isDomainError(error) ? error.message : 'Terjadi kesalahan. Coba lagi nanti.',
           );
@@ -44,6 +54,15 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       },
     );
   };
+
+  // Label tombol — tampilkan countdown saat locked
+  const submitLabel = isLocked ? `Tunggu ${remainingSeconds}s` : 'Masuk';
+
+  // Peringatan sisa percobaan sebelum lockout
+  const attemptsWarning =
+    failureCount > 0 && failureCount >= 3
+      ? `${5 - failureCount} percobaan tersisa sebelum akun dikunci sementara.`
+      : null;
 
   return (
     <Screen scrollable padded edges={['top']} noTabBar>
@@ -79,6 +98,23 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         ) : null}
 
+        {/* ── Lockout banner ── */}
+        {isLocked ? (
+          <View style={styles.lockoutBanner}>
+            <Ionicons name="lock-closed-outline" size={16} color={colors.warning.main} />
+            <AppText variant="bodySm" color={colors.warning.main} style={styles.errorText}>
+              Terlalu banyak percobaan gagal. Coba lagi dalam {remainingSeconds} detik.
+            </AppText>
+          </View>
+        ) : attemptsWarning ? (
+          <View style={styles.warningBanner}>
+            <Ionicons name="warning-outline" size={16} color={colors.warning.main} />
+            <AppText variant="bodySm" color={colors.warning.main} style={styles.errorText}>
+              {attemptsWarning}
+            </AppText>
+          </View>
+        ) : null}
+
         {/* ── Form ── */}
         <View style={styles.form}>
           <Controller
@@ -96,6 +132,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={onChange}
                 onBlur={onBlur}
                 error={errors.email?.message}
+                editable={!isLocked}
               />
             )}
           />
@@ -115,9 +152,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={onChange}
                 onBlur={onBlur}
                 error={errors.password?.message}
+                editable={!isLocked}
                 rightIcon={
                   <TouchableOpacity
-                    onPress={() => setShowPassword(prev => !prev)}
+                    onPress={(): void => setShowPassword(prev => !prev)}
                     accessibilityLabel={
                       showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'
                     }
@@ -137,11 +175,12 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* ── Submit ── */}
         <Button
-          label="Masuk"
+          label={submitLabel}
           variant="primary"
           size="lg"
           fullWidth
           loading={isPending}
+          disabled={isLocked}
           onPress={handleSubmit(onSubmit)}
           style={styles.submitButton}
         />
@@ -152,7 +191,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             Belum punya akun?{' '}
           </AppText>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Register')}
+            onPress={(): void => navigation.navigate('Register')}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
           >
             <AppText variant="bodyMd" color={colors.primary[500]} style={styles.footerLink}>
@@ -199,13 +238,33 @@ const styles = StyleSheet.create({
     marginTop: spacing[1],
   },
 
-  // Error
+  // Banners
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
     backgroundColor: colors.danger.light,
-    borderRadius: 10,
+    borderRadius: 8,
+    padding: spacing[3],
+    marginBottom: spacing[4],
+  },
+  lockoutBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    backgroundColor: '#FFF8E1',
+    borderRadius: 8,
+    padding: spacing[3],
+    marginBottom: spacing[4],
+    borderWidth: 1,
+    borderColor: colors.warning.main,
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    backgroundColor: '#FFF8E1',
+    borderRadius: 8,
     padding: spacing[3],
     marginBottom: spacing[4],
   },
@@ -218,8 +277,6 @@ const styles = StyleSheet.create({
     gap: spacing[4],
     marginBottom: spacing[6],
   },
-
-  // Submit
   submitButton: {
     marginBottom: spacing[4],
   },
@@ -230,7 +287,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing[2],
-    paddingBottom: spacing[6],
   },
   footerLink: {
     fontWeight: fontWeight.semiBold,

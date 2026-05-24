@@ -1,9 +1,14 @@
-import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  type UseMutationResult,
+  type InfiniteData,
+} from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
 import { UpdateTaskStatusUseCase } from '@core/usecases/tasks/UpdateTaskStatusUseCase';
 import { getTaskRepository } from '@di/container';
 import { showToast } from '@store/slices/uiSlice';
-import type { Task, TaskId, TaskListResult, TaskStatus } from '@core/domain/entities/Task';
+import type { Task, TaskId, TaskPage, TaskStatus } from '@core/domain/entities/Task';
 import { TASKS_QUERY_KEY } from './useTasksQuery';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -14,8 +19,29 @@ interface MutationVariables {
 }
 
 interface MutationContext {
-  previousQueries: Array<{ queryKey: unknown[]; data: unknown }>;
+  previousQueries: Array<{ queryKey: readonly unknown[]; data: unknown }>;
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Update task di dalam InfiniteData<TaskPage> secara immutable.
+ * Dipakai untuk optimistic update dan sync setelah success.
+ */
+const updateTaskInInfiniteData = (
+  old: InfiniteData<TaskPage> | undefined,
+  updater: (task: Task) => Task,
+  predicate: (task: Task) => boolean,
+): InfiniteData<TaskPage> | undefined => {
+  if (!old) return old;
+  return {
+    ...old,
+    pages: old.pages.map(page => ({
+      ...page,
+      items: page.items.map(task => (predicate(task) ? updater(task) : task)),
+    })),
+  };
+};
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -36,42 +62,42 @@ export const useUpdateTaskStatusMutation = (): UseMutationResult<
 
     // ── Optimistic update ──────────────────────────────────────────────────
     onMutate: async ({ id, status }) => {
-      // Cancel any in-flight refetches so they don't overwrite our optimistic update
+      // Cancel in-flight refetches supaya tidak overwrite optimistic update
       await queryClient.cancelQueries({ queryKey: [TASKS_QUERY_KEY] });
 
-      // Snapshot all active task list queries for rollback
-      const taskQueries = queryClient.getQueriesData<TaskListResult>({
+      // Snapshot semua active task list queries untuk rollback
+      const taskQueries = queryClient.getQueriesData<InfiniteData<TaskPage>>({
         queryKey: [TASKS_QUERY_KEY],
       });
 
       const previousQueries = taskQueries.map(([queryKey, data]) => ({
-        queryKey: queryKey as unknown[],
+        queryKey,
         data,
       }));
 
-      // Apply optimistic update to all cached task list queries
-      queryClient.setQueriesData<TaskListResult>({ queryKey: [TASKS_QUERY_KEY] }, old => {
-        if (!old) return old;
-        return {
-          ...old,
-          tasks: old.tasks.map(task =>
-            task.id === id ? { ...task, status, updatedAt: new Date() } : task,
-          ),
-        };
-      });
+      // Apply optimistic update ke semua cached infinite task queries
+      queryClient.setQueriesData<InfiniteData<TaskPage>>(
+        { queryKey: [TASKS_QUERY_KEY] },
+        old => updateTaskInInfiniteData(
+          old,
+          task => ({ ...task, status, updatedAt: new Date() }),
+          task => task.id === id,
+        ),
+      );
 
       return { previousQueries };
     },
 
-    // ── On success — sync cache with server response ───────────────────────
+    // ── On success — sync cache dengan server response ─────────────────────
     onSuccess: updatedTask => {
-      queryClient.setQueriesData<TaskListResult>({ queryKey: [TASKS_QUERY_KEY] }, old => {
-        if (!old) return old;
-        return {
-          ...old,
-          tasks: old.tasks.map(task => (task.id === updatedTask.id ? updatedTask : task)),
-        };
-      });
+      queryClient.setQueriesData<InfiniteData<TaskPage>>(
+        { queryKey: [TASKS_QUERY_KEY] },
+        old => updateTaskInInfiniteData(
+          old,
+          () => updatedTask,
+          task => task.id === updatedTask.id,
+        ),
+      );
     },
 
     // ── On error — rollback + show toast ──────────────────────────────────

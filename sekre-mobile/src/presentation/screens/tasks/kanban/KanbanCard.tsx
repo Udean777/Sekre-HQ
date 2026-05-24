@@ -81,7 +81,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = React.memo(
       cardRef.current.measureInWindow((cardX, cardY, cardW, cardH) => {
         activatedRef.current = true;
         startDrag({
-          taskId: task.id as TaskId,
+          taskId: task.id,
           sourceColumn: columnStatus,
           cardX,
           cardY,

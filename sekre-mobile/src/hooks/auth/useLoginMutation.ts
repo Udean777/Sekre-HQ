@@ -2,7 +2,7 @@ import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 import { useAppDispatch } from '@store/hooks';
 import { setSession } from '@store/slices/authSlice';
 import { LoginUseCase } from '@core/usecases/auth/LoginUseCase';
-import { getAuthRepository, getTokenStorage } from '@di/container';
+import { getAuthRepository, getTokenStorage, getTelemetry } from '@di/container';
 import type { AuthSession } from '@core/ports/IAuthRepository';
 
 export const useLoginMutation = (): UseMutationResult<
@@ -35,6 +35,13 @@ export const useLoginMutation = (): UseMutationResult<
           role: session.role,
         }),
       );
+
+      // Set Sentry user context — muncul di setiap event setelah login
+      getTelemetry().setUser({
+        id: session.user.id,
+        email: session.user.email,
+        orgId: session.organization.id,
+      });
     },
   });
 };
