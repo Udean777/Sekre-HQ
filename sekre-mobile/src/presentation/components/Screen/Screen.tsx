@@ -4,8 +4,28 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, spacing } from '@presentation/theme';
 import { TAB_BAR_HEIGHT } from '@app/navigation/AppNavigator';
 
+/**
+ * ScreenMode:
+ * - 'view'   — default, render View biasa (tidak scrollable)
+ * - 'scroll' — render ScrollView (alias untuk scrollable=true lama)
+ * - 'none'   — tidak render wrapper tambahan, child langsung di SafeAreaView.
+ *              Pakai ini untuk screen yang sudah punya FlatList/FlashList
+ *              sendiri supaya tidak ada nested scroll container.
+ *
+ * `scrollable` prop lama masih didukung untuk backward compat.
+ */
+type ScreenMode = 'view' | 'scroll' | 'none';
+
 interface ScreenProps extends ScrollViewProps {
   children: React.ReactNode;
+  /**
+   * Mode render wrapper:
+   * - 'view'   — View biasa (default)
+   * - 'scroll' — ScrollView
+   * - 'none'   — tanpa wrapper, langsung di SafeAreaView
+   */
+  mode?: ScreenMode;
+  /** @deprecated Pakai mode='scroll'. Masih didukung untuk backward compat. */
   scrollable?: boolean;
   padded?: boolean;
   style?: ViewStyle;
@@ -28,6 +48,7 @@ interface ScreenProps extends ScrollViewProps {
 
 export const Screen: React.FC<ScreenProps> = ({
   children,
+  mode,
   scrollable = false,
   padded = true,
   style,
@@ -39,6 +60,9 @@ export const Screen: React.FC<ScreenProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
 
+  // Resolve effective mode — mode prop takes precedence over legacy scrollable
+  const effectiveMode: ScreenMode = mode ?? (scrollable ? 'scroll' : 'view');
+
   // tabScreen: perlu TAB_BAR_HEIGHT karena tab bar position absolute overlay konten
   // stack screens & auth: 0 — navigator sudah handle safe area, tidak perlu padding tambahan
   const extraBottom = tabScreen ? TAB_BAR_HEIGHT + insets.bottom : 0;
@@ -49,11 +73,9 @@ export const Screen: React.FC<ScreenProps> = ({
       ? { paddingBottom: extraBottom }
       : {};
 
-  const content = <View style={[styles.content, paddedStyle, contentStyle]}>{children}</View>;
-
   return (
     <SafeAreaView style={[styles.safe, style]} edges={edges}>
-      {scrollable ? (
+      {effectiveMode === 'scroll' ? (
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={[paddedStyle, contentStyle]}
@@ -63,8 +85,13 @@ export const Screen: React.FC<ScreenProps> = ({
         >
           {children}
         </ScrollView>
+      ) : effectiveMode === 'none' ? (
+        // 'none' — tidak ada wrapper tambahan, child langsung di SafeAreaView
+        // Berguna untuk screen dengan FlatList/FlashList yang sudah handle scroll sendiri
+        <>{children}</>
       ) : (
-        content
+        // 'view' — default
+        <View style={[styles.content, paddedStyle, contentStyle]}>{children}</View>
       )}
     </SafeAreaView>
   );

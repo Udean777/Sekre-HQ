@@ -1,16 +1,54 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { DashboardScreen } from '@presentation/screens/dashboard/DashboardScreen';
-import { TasksNavigator } from './TasksNavigator';
-import { EventsNavigator } from './EventsNavigator';
-import { FinanceNavigator } from './FinanceNavigator';
-import { SettingsNavigator } from './SettingsNavigator';
 import { AppText } from '@presentation/components/Text';
+import { ScreenSkeleton } from '@presentation/components/Screen';
 import { colors, spacing } from '@presentation/theme';
+
+// ─── Lazy navigators ──────────────────────────────────────────────────────────
+// Setiap tab navigator di-load hanya saat tab pertama kali dikunjungi.
+// Ini memindahkan biaya require() semua screen dari startup ke saat dibutuhkan.
+// DashboardScreen tetap eager karena itu initial tab.
+
+const DashboardScreen = React.lazy(() =>
+  import('@presentation/screens/dashboard/DashboardScreen').then(m => ({
+    default: m.DashboardScreen,
+  })),
+);
+const TasksNavigator = React.lazy(() =>
+  import('./TasksNavigator').then(m => ({ default: m.TasksNavigator })),
+);
+const EventsNavigator = React.lazy(() =>
+  import('./EventsNavigator').then(m => ({ default: m.EventsNavigator })),
+);
+const FinanceNavigator = React.lazy(() =>
+  import('./FinanceNavigator').then(m => ({ default: m.FinanceNavigator })),
+);
+const SettingsNavigator = React.lazy(() =>
+  import('./SettingsNavigator').then(m => ({ default: m.SettingsNavigator })),
+);
+
+// ─── Suspense wrapper ─────────────────────────────────────────────────────────
+
+const withSuspense = (Component: React.ComponentType): React.FC => {
+  const Wrapped: React.FC = () => (
+    <Suspense fallback={<ScreenSkeleton />}>
+      <Component />
+    </Suspense>
+  );
+  return Wrapped;
+};
+
+const DashboardTab = withSuspense(DashboardScreen);
+const TasksTab = withSuspense(TasksNavigator);
+const EventsTab = withSuspense(EventsNavigator);
+const FinanceTab = withSuspense(FinanceNavigator);
+const SettingsTab = withSuspense(SettingsNavigator);
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export type AppTabParamList = {
   Dashboard: undefined;
@@ -115,11 +153,11 @@ export const AppNavigator: React.FC = () => {
       tabBar={props => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Tasks" component={TasksNavigator} />
-      <Tab.Screen name="Events" component={EventsNavigator} />
-      <Tab.Screen name="Finance" component={FinanceNavigator} />
-      <Tab.Screen name="Settings" component={SettingsNavigator} />
+      <Tab.Screen name="Dashboard" component={DashboardTab} />
+      <Tab.Screen name="Tasks" component={TasksTab} />
+      <Tab.Screen name="Events" component={EventsTab} />
+      <Tab.Screen name="Finance" component={FinanceTab} />
+      <Tab.Screen name="Settings" component={SettingsTab} />
     </Tab.Navigator>
   );
 };
