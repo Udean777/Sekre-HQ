@@ -32,7 +32,7 @@ export const ENDPOINTS = {
   // Members
   MEMBERS: {
     LIST: '/members',
-    CREATE: '/members',
+    CREATE: '/members/create',
     BULK_IMPORT: '/members/bulk-import',
     TEMPLATE: '/members/template',
     UPDATE: (userId: string) => `/members/${userId}`,

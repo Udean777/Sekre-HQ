@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -65,11 +65,16 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       : null;
 
   return (
-    <Screen scrollable padded edges={['top']} noTabBar>
+    <Screen edges={['top']} noTabBar>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* ── Branding ── */}
         <View style={styles.branding}>
           <View style={styles.logoBox}>
@@ -199,6 +204,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             </AppText>
           </TouchableOpacity>
         </View>
+      </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -207,6 +213,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
+  },
+  scrollContent: {
+    padding: spacing[4],
+    paddingBottom: spacing[10],
   },
 
   // Branding

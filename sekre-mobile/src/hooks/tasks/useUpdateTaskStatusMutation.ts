@@ -19,7 +19,8 @@ interface MutationVariables {
 }
 
 interface MutationContext {
-  previousQueries: Array<{ queryKey: readonly unknown[]; data: unknown }>;
+  previousListQueries: Array<{ queryKey: readonly unknown[]; data: unknown }>;
+  previousDetailData: Task | undefined;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -62,22 +63,42 @@ export const useUpdateTaskStatusMutation = (): UseMutationResult<
 
     // ── Optimistic update ──────────────────────────────────────────────────
     onMutate: async ({ id, status }) => {
-      // Cancel in-flight refetches supaya tidak overwrite optimistic update
-      await queryClient.cancelQueries({ queryKey: [TASKS_QUERY_KEY] });
-
-      // Snapshot semua active task list queries untuk rollback
-      const taskQueries = queryClient.getQueriesData<InfiniteData<TaskPage>>({
+      // Cancel hanya list queries — jangan cancel detail query supaya
+      // getTaskById setelah PATCH tidak di-discard
+      await queryClient.cancelQueries({
         queryKey: [TASKS_QUERY_KEY],
+        predicate: query =>
+          query.queryKey.length === 2 &&
+          query.queryKey[0] === TASKS_QUERY_KEY &&
+          typeof query.queryKey[1] === 'object', // filter object = list query
       });
 
-      const previousQueries = taskQueries.map(([queryKey, data]) => ({
+      // Snapshot list queries untuk rollback
+      const listQueries = queryClient.getQueriesData<InfiniteData<TaskPage>>({
+        queryKey: [TASKS_QUERY_KEY],
+        predicate: query =>
+          query.queryKey.length === 2 &&
+          query.queryKey[0] === TASKS_QUERY_KEY &&
+          typeof query.queryKey[1] === 'object',
+      });
+
+      const previousListQueries = listQueries.map(([queryKey, data]) => ({
         queryKey,
         data,
       }));
 
-      // Apply optimistic update ke semua cached infinite task queries
+      // Snapshot detail query untuk rollback
+      const previousDetailData = queryClient.getQueryData<Task>([TASKS_QUERY_KEY, id]);
+
+      // Optimistic update list queries
       queryClient.setQueriesData<InfiniteData<TaskPage>>(
-        { queryKey: [TASKS_QUERY_KEY] },
+        {
+          queryKey: [TASKS_QUERY_KEY],
+          predicate: query =>
+            query.queryKey.length === 2 &&
+            query.queryKey[0] === TASKS_QUERY_KEY &&
+            typeof query.queryKey[1] === 'object',
+        },
         old => updateTaskInInfiniteData(
           old,
           task => ({ ...task, status, updatedAt: new Date() }),
@@ -85,27 +106,50 @@ export const useUpdateTaskStatusMutation = (): UseMutationResult<
         ),
       );
 
-      return { previousQueries };
+      // Optimistic update detail query
+      if (previousDetailData) {
+        queryClient.setQueryData<Task>([TASKS_QUERY_KEY, id], {
+          ...previousDetailData,
+          status,
+          updatedAt: new Date(),
+        });
+      }
+
+      return { previousListQueries, previousDetailData };
     },
 
     // ── On success — sync cache dengan server response ─────────────────────
-    onSuccess: updatedTask => {
+    onSuccess: (updatedTask) => {
+      // Sync list queries
       queryClient.setQueriesData<InfiniteData<TaskPage>>(
-        { queryKey: [TASKS_QUERY_KEY] },
+        {
+          queryKey: [TASKS_QUERY_KEY],
+          predicate: query =>
+            query.queryKey.length === 2 &&
+            query.queryKey[0] === TASKS_QUERY_KEY &&
+            typeof query.queryKey[1] === 'object',
+        },
         old => updateTaskInInfiniteData(
           old,
           () => updatedTask,
           task => task.id === updatedTask.id,
         ),
       );
+
+      // Sync detail query
+      queryClient.setQueryData<Task>([TASKS_QUERY_KEY, updatedTask.id], updatedTask);
     },
 
     // ── On error — rollback + show toast ──────────────────────────────────
-    onError: (_error, _variables, context) => {
-      if (context?.previousQueries) {
-        for (const { queryKey, data } of context.previousQueries) {
+    onError: (_error, { id }, context) => {
+      if (context?.previousListQueries) {
+        for (const { queryKey, data } of context.previousListQueries) {
           queryClient.setQueryData(queryKey, data);
         }
+      }
+
+      if (context?.previousDetailData !== undefined) {
+        queryClient.setQueryData([TASKS_QUERY_KEY, id], context.previousDetailData);
       }
 
       dispatch(
@@ -117,8 +161,9 @@ export const useUpdateTaskStatusMutation = (): UseMutationResult<
     },
 
     // ── Always invalidate after settle ────────────────────────────────────
-    onSettled: () => {
+    onSettled: (_data, _error, { id }) => {
       void queryClient.invalidateQueries({ queryKey: [TASKS_QUERY_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [TASKS_QUERY_KEY, id] });
     },
   });
 };

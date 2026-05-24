@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CURRENCY_CODES } from '@shared/constants/currencies';
 
 export const createTransactionSchema = z.object({
   divisionId: z.string().min(1, 'Divisi wajib dipilih.'),
@@ -6,11 +7,18 @@ export const createTransactionSchema = z.object({
   type: z.enum(['INCOME', 'EXPENSE'], {
     error: 'Tipe transaksi wajib dipilih.',
   }),
-  amountCents: z
+  /**
+   * amountRupiah — nilai yang diinput user dalam unit mata uang (bukan sen).
+   * Konversi ke sen (× 100) dilakukan saat submit ke backend.
+   */
+  amountRupiah: z
     .number({ error: 'Nominal wajib diisi.' })
     .int('Nominal harus bilangan bulat.')
     .positive('Nominal harus lebih dari 0.'),
-  currency: z.string().length(3, 'Kode mata uang harus 3 karakter.').optional(),
+  currency: z
+    .string()
+    .refine(val => CURRENCY_CODES.includes(val), { message: 'Mata uang tidak valid.' })
+    .default('IDR'),
   description: z
     .string()
     .min(1, 'Deskripsi wajib diisi.')
