@@ -1,93 +1,23 @@
 import React, { useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
-import { Badge, type BadgeVariant } from '@presentation/components/Badge';
 import { Button } from '@presentation/components/Button';
 import { Divider } from '@presentation/components/Divider';
-import { colors, spacing, fontWeight, fontSize } from '@presentation/theme';
+import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useDivisionQuery } from '@hooks/divisions/useDivisionQuery';
 import { useRemoveDivisionMemberMutation } from '@hooks/divisions/useRemoveDivisionMemberMutation';
 import { useAppSelector } from '@store/hooks';
 import { selectAuthRole } from '@store/slices/authSlice';
-import type { DivisionMember, DivisionRole } from '@core/domain/entities/Division';
+import { formatDateShort } from '@shared/utils/formatDate';
+import type { DivisionMember } from '@core/domain/entities/Division';
 import type { DivisionsStackParamList } from '@app/navigation/DivisionsNavigator';
+import { MemberRow } from './components';
 
 type Props = NativeStackScreenProps<DivisionsStackParamList, 'DivisionDetail'>;
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const ROLE_VARIANT: Record<DivisionRole, BadgeVariant> = {
-  HEAD: 'primary',
-  STAFF: 'default',
-};
-
-const ROLE_LABEL: Record<DivisionRole, string> = {
-  HEAD: 'Ketua',
-  STAFF: 'Staf',
-};
-
-// ─── Avatar ───────────────────────────────────────────────────────────────────
-
-const Avatar: React.FC<{ name: string }> = ({ name }) => {
-  const initials = name
-    .split(' ')
-    .slice(0, 2)
-    .map(w => w[0]?.toUpperCase() ?? '')
-    .join('');
-
-  return (
-    <View style={styles.avatar}>
-      <AppText style={styles.avatarText}>{initials}</AppText>
-    </View>
-  );
-};
-
-// ─── Member Row ───────────────────────────────────────────────────────────────
-
-interface MemberRowProps {
-  member: DivisionMember;
-  canManage: boolean;
-  onRemove: () => void;
-}
-
-const MemberRow: React.FC<MemberRowProps> = ({ member, canManage, onRemove }) => (
-  <View style={styles.memberRow}>
-    <Avatar name={member.fullName} />
-    <View style={styles.memberInfo}>
-      <AppText variant="bodyMd" style={styles.memberName} numberOfLines={1}>
-        {member.fullName}
-      </AppText>
-      <AppText variant="bodySm" color={colors.text.secondary} numberOfLines={1}>
-        {member.email}
-      </AppText>
-    </View>
-    <View style={styles.memberRight}>
-      <Badge label={ROLE_LABEL[member.role]} variant={ROLE_VARIANT[member.role]} />
-      {canManage ? (
-        <TouchableOpacity
-          onPress={onRemove}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="trash-outline" size={18} color={colors.danger.main} />
-        </TouchableOpacity>
-      ) : null}
-    </View>
-  </View>
-);
-
-// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const DivisionDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { divisionId } = route.params;
@@ -115,7 +45,6 @@ export const DivisionDetailScreen: React.FC<Props> = ({ navigation, route }) => 
     [divisionId, removeMember],
   );
 
-  // ── Loading ──
   if (isLoading) {
     return (
       <Screen>
@@ -126,7 +55,6 @@ export const DivisionDetailScreen: React.FC<Props> = ({ navigation, route }) => 
     );
   }
 
-  // ── Error ──
   if (isError || !division) {
     return (
       <Screen padded>
@@ -192,11 +120,7 @@ export const DivisionDetailScreen: React.FC<Props> = ({ navigation, route }) => 
                   Dibuat
                 </AppText>
                 <AppText variant="bodyMd" style={styles.statValue}>
-                  {division.createdAt.toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
+                  {formatDateShort(division.createdAt)}
                 </AppText>
               </View>
             </View>
@@ -257,8 +181,6 @@ const styles = StyleSheet.create({
   backButton: {
     marginTop: spacing[1],
   },
-
-  // Header
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -280,8 +202,6 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: fontWeight.bold,
   },
-
-  // Stats
   statsCard: {
     marginBottom: spacing[5],
   },
@@ -304,56 +224,16 @@ const styles = StyleSheet.create({
   statValue: {
     fontWeight: fontWeight.semiBold,
   },
-
-  // Section header
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing[3],
   },
-
-  // Members
   membersCard: {
     paddingVertical: 0,
     overflow: 'hidden',
   },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-  },
-  memberInfo: {
-    flex: 1,
-    gap: spacing[1],
-  },
-  memberName: {
-    fontWeight: fontWeight.medium,
-  },
-  memberRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-
-  // Avatar
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary[100],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semiBold,
-    color: colors.primary[700],
-  },
-
-  // Empty
   emptyCard: {
     alignItems: 'center',
     gap: spacing[2],

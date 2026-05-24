@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,18 +7,23 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
-import { Badge, taskStatusVariant, type BadgeVariant } from '@presentation/components/Badge';
+import { Badge, type BadgeVariant } from '@presentation/components/Badge';
 import { colors, spacing, fontSize, fontWeight } from '@presentation/theme';
 import { useAppSelector } from '@store/hooks';
 import { selectAuthUser, selectAuthOrganization, selectAuthRole } from '@store/slices/authSlice';
 import { useTasksQuery } from '@hooks/tasks/useTasksQuery';
 import { useEventsQuery } from '@hooks/events/useEventsQuery';
 import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
-import type { Task, TaskStatus } from '@core/domain/entities/Task';
-import type { Event } from '@core/domain/entities/Event';
+import type { TaskStatus } from '@core/domain/entities/Task';
 import type { RootStackParamList } from '@app/navigation/RootNavigator';
 import type { AppTabParamList } from '@app/navigation/AppNavigator';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import {
+  StatCard,
+  SectionHeader,
+  TaskRow,
+  EventRow,
+  MenuShortcut,
+} from './components';
 
 type DashboardNavProp = CompositeNavigationProp<
   BottomTabNavigationProp<AppTabParamList, 'Dashboard'>,
@@ -34,7 +39,6 @@ const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
   CANCELLED: { label: 'Dibatalkan', color: colors.danger.main },
 };
 
-// Typed keys — hindari Object.keys cast di render
 const STATUS_CONFIG_KEYS: readonly TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'];
 
 const PLAN_VARIANT: Record<string, BadgeVariant> = {
@@ -42,106 +46,6 @@ const PLAN_VARIANT: Record<string, BadgeVariant> = {
   LITE: 'info',
   PRO: 'primary',
 };
-
-// ─── Sub-components ──────────────────────────────────────────────────────────
-
-const StatCard: React.FC<{ label: string; count: number; color: string }> = ({
-  label,
-  count,
-  color,
-}) => (
-  <Card style={styles.statCard}>
-    <AppText style={[styles.statCount, { color }]}>{count}</AppText>
-    <AppText variant="bodySm" color={colors.text.secondary}>
-      {label}
-    </AppText>
-  </Card>
-);
-
-const SectionHeader: React.FC<{ title: string; onViewAll?: () => void }> = ({
-  title,
-  onViewAll,
-}) => (
-  <View style={styles.sectionHeader}>
-    <AppText variant="h4">{title}</AppText>
-    {onViewAll ? (
-      <TouchableOpacity onPress={onViewAll} activeOpacity={0.7}>
-        <AppText variant="bodySm" color={colors.primary[500]}>
-          Lihat Semua
-        </AppText>
-      </TouchableOpacity>
-    ) : null}
-  </View>
-);
-
-const TaskRow: React.FC<{ task: Task }> = ({ task }) => (
-  <View style={styles.listRow}>
-    <View style={styles.listRowContent}>
-      <AppText variant="bodyMd" numberOfLines={1} style={styles.listRowTitle}>
-        {task.title}
-      </AppText>
-      {task.assigneeName ? (
-        <AppText variant="bodySm" color={colors.text.secondary} numberOfLines={1}>
-          {task.assigneeName}
-        </AppText>
-      ) : null}
-    </View>
-    <Badge label={STATUS_CONFIG[task.status].label} variant={taskStatusVariant(task.status)} />
-  </View>
-);
-
-const EventRow: React.FC<{ event: Event }> = ({ event }) => {
-  const timeStr = event.startDate.toLocaleTimeString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  return (
-    <View style={styles.listRow}>
-      <View style={styles.eventDateBox}>
-        <AppText variant="bodySm" style={styles.eventDay}>
-          {event.startDate.getDate()}
-        </AppText>
-        <AppText variant="bodySm" color={colors.text.secondary} style={styles.eventMonth}>
-          {event.startDate.toLocaleDateString('id-ID', { month: 'short' })}
-        </AppText>
-      </View>
-      <View style={styles.listRowContent}>
-        <AppText variant="bodyMd" numberOfLines={1} style={styles.listRowTitle}>
-          {event.title}
-        </AppText>
-        <AppText variant="bodySm" color={colors.text.secondary}>
-          {timeStr}
-          {event.location ? ` · ${event.location}` : ''}
-        </AppText>
-      </View>
-    </View>
-  );
-};
-
-const MenuShortcut: React.FC<{
-  icon: string;
-  label: string;
-  description: string;
-  onPress: () => void;
-}> = ({ icon, label, description, onPress }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.shortcutItem}>
-    <Card style={styles.shortcutCard}>
-      <View style={styles.shortcutIcon}>
-        <Ionicons name={icon} size={22} color={colors.primary[500]} />
-      </View>
-      <View style={styles.shortcutText}>
-        <AppText variant="bodyMd" style={styles.shortcutLabel}>
-          {label}
-        </AppText>
-        <AppText variant="bodySm" color={colors.text.secondary}>
-          {description}
-        </AppText>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
-    </Card>
-  </TouchableOpacity>
-);
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
@@ -162,7 +66,6 @@ export const DashboardScreen: React.FC = () => {
   const taskMeta = lastPageMeta(taskData);
   const eventItems = flattenPages(eventData);
 
-  // Hitung task per status
   const tasksByStatus = React.useMemo(() => {
     const base: Record<TaskStatus, number> = { TODO: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 };
     return taskItems.reduce((acc: Record<TaskStatus, number>, task) => {
@@ -171,12 +74,11 @@ export const DashboardScreen: React.FC = () => {
     }, base);
   }, [taskItems]);
 
-  // 3 task terbaru (urut berdasarkan updatedAt desc)
-  const recentTasks = React.useMemo(() => {
-    return [...taskItems].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 3);
-  }, [taskItems]);
+  const recentTasks = React.useMemo(
+    () => [...taskItems].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 3),
+    [taskItems],
+  );
 
-  // 3 event mendatang (startDate >= sekarang, urut asc)
   const upcomingEvents = React.useMemo(() => {
     const now = new Date();
     return eventItems
@@ -313,7 +215,6 @@ export const DashboardScreen: React.FC = () => {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -327,8 +228,6 @@ const styles = StyleSheet.create({
   roleText: {
     marginTop: spacing[1],
   },
-
-  // Org card
   orgCard: {
     marginBottom: spacing[5],
     gap: spacing[1],
@@ -336,17 +235,6 @@ const styles = StyleSheet.create({
   orgName: {
     fontWeight: fontWeight.semiBold,
   },
-
-  // Section header
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing[2],
-    marginBottom: spacing[3],
-  },
-
-  // Loading / error / empty
   loadingContainer: {
     paddingVertical: spacing[4],
     alignItems: 'center',
@@ -358,24 +246,11 @@ const styles = StyleSheet.create({
   emptyText: {
     marginBottom: spacing[4],
   },
-
-  // Stats grid
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing[3],
     marginBottom: spacing[3],
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-    paddingVertical: spacing[4],
-    gap: spacing[1],
-  },
-  statCount: {
-    fontSize: fontSize['3xl'],
-    fontWeight: fontWeight.bold,
   },
   totalCard: {
     flexDirection: 'row',
@@ -389,74 +264,14 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     color: colors.primary[500],
   },
-
-  // List card (tasks & events)
   listCard: {
     marginBottom: spacing[2],
     paddingVertical: 0,
     overflow: 'hidden',
   },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-  },
-  listRowContent: {
-    flex: 1,
-    gap: spacing[1],
-  },
-  listRowTitle: {
-    fontWeight: fontWeight.medium,
-  },
   divider: {
     height: 1,
     backgroundColor: colors.border.default,
     marginHorizontal: spacing[4],
-  },
-
-  // Event date box
-  eventDateBox: {
-    width: 36,
-    alignItems: 'center',
-    backgroundColor: colors.primary[50],
-    borderRadius: 8,
-    paddingVertical: spacing[1],
-  },
-  eventDay: {
-    fontWeight: fontWeight.bold,
-    color: colors.primary[600],
-    fontSize: fontSize.lg,
-  },
-  eventMonth: {
-    fontSize: fontSize.xs,
-    color: colors.primary[500],
-  },
-
-  // Shortcuts
-  shortcutItem: {
-    marginBottom: spacing[3],
-  },
-  shortcutCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    paddingVertical: spacing[3],
-  },
-  shortcutIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shortcutText: {
-    flex: 1,
-    gap: spacing[1],
-  },
-  shortcutLabel: {
-    fontWeight: fontWeight.semiBold,
   },
 });

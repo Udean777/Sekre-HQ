@@ -17,12 +17,10 @@ import { useCreateEventMutation } from '@hooks/events/useCreateEventMutation';
 import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
 import { flattenPages } from '@shared/utils/infiniteQueryHelpers';
 import { isDomainError } from '@core/domain/errors/DomainError';
+import { toRFC3339 } from './utils/toRFC3339';
 import type { EventsStackParamList } from '@app/navigation/EventsNavigator';
 
 type Props = NativeStackScreenProps<EventsStackParamList, 'CreateEvent'>;
-
-// Konversi Date ke RFC3339 untuk backend
-const toRFC3339 = (date: Date): string => date.toISOString();
 
 export const CreateEventScreen: React.FC<Props> = ({ navigation }) => {
   const [globalError, setGlobalError] = useState<string | null>(null);

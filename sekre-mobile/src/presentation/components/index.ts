@@ -41,3 +41,12 @@ export type { SelectOption } from './SelectField';
 export { BottomSheet } from './BottomSheet';
 
 export { CurrencyInput } from './CurrencyInput';
+
+export { InfoRow } from './InfoRow';
+export type { InfoRowProps } from './InfoRow';
+
+export { Avatar } from './Avatar';
+export type { AvatarProps } from './Avatar';
+
+export { FilterChips } from './FilterChips';
+export type { FilterChipsProps, FilterChipOption } from './FilterChips';
