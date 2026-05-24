@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as Sentry from '@sentry/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, StatusBar } from 'react-native';
 import { ReduxProvider } from './providers/ReduxProvider';
 import { QueryProvider } from './providers/QueryProvider';
 import { RootNavigator } from './navigation/RootNavigator';
@@ -35,6 +35,11 @@ const AppRoot: React.FC = () => {
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.root}>
         <SafeAreaProvider>
+          <StatusBar
+            barStyle="dark-content"
+            backgroundColor={colors.surface.background}
+            translucent={false}
+          />
           <ReduxProvider>
             <QueryProvider>
               <RootNavigator />
