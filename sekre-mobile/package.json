@@ -11,7 +11,9 @@
     "prepare": "husky",
     "ios:fresh": "cd ios && pod install && cd .. && bunx react-native run-ios",
     "ios:clean": "rm -rf ~/Library/Developer/Xcode/DerivedData/SekreMobile-* && cd ios && pod deintegrate && pod install && cd .. && bunx react-native run-ios",
-    "pods": "cd ios && pod install && cd .."
+    "pods": "cd ios && pod install && cd ..",
+    "sentry:upload-android": "sentry-cli releases files $(cat android/app/build.gradle | grep versionName | head -1 | awk -F'\"' '{print $2}') upload-sourcemaps --dist 1 --rewrite android/app/build/generated/sourcemaps/react/release/index.android.bundle.map",
+    "sentry:upload-ios": "sentry-cli releases files $(cat ios/SekreMobile/Info.plist | grep -A1 CFBundleShortVersionString | tail -1 | sed 's/.*<string>\\(.*\\)<\\/string>.*/\\1/') upload-sourcemaps --dist 1 --rewrite ios/main.jsbundle.map"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -65,6 +67,7 @@
     "@react-native/jest-preset": "0.85.3",
     "@react-native/metro-config": "0.85.3",
     "@react-native/typescript-config": "0.85.3",
+    "@sentry/cli": "3.4.3",
     "@testing-library/react-native": "13.3.3",
     "@types/jest": "^29.5.13",
     "@types/react": "^19.2.0",
