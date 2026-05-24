@@ -1,485 +1,274 @@
-# Sekre Backend
+# 🔙 Sekre Backend
 
-Multi-tenant SaaS backend for organization management, written in Go. Provides authentication, task management, event scheduling, and finance tracking with strong tenant isolation and production-grade security.
+**Multi-tenant SaaS REST API Engine untuk Manajemen Organisasi Kampus**
 
----
+[![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev/)
+[![GORM v2](https://img.shields.io/badge/ORM-GORM_v2-blue?style=for-the-badge&logo=go&logoColor=white)](https://gorm.io/)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL_16-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-## Tech Stack
-
-### Core
-
-| Component | Technology |
-|-----------|-----------|
-| Language | Go 1.26 |
-| HTTP Router | gorilla/mux |
-| ORM | GORM v2 |
-| Database | PostgreSQL 16+ |
-| Migrations | golang-migrate |
-| Auth | golang-jwt v5 + bcrypt |
-| Logging | zerolog |
-| Validation | go-playground/validator v10 |
-| Rate Limiting | golang.org/x/time/rate |
-| Metrics | prometheus/client_golang |
-| Scheduler | robfig/cron v3 |
-
-### Testing
-
-- Test Runner: `go test` + gotestsum
-- Assertions: stretchr/testify
-- Mocks: vektra/mockery v2
-- Integration DB: testcontainers-go
-- Coverage: 60%+ enforced
+Sekre Backend adalah modul engine RESTful API utama yang mengelola logika bisnis, autentikasi, otorisasi peran, validasi input, pencatatan keuangan aman, koordinasi divisi, serta penjadwalan tugas untuk platform Sekre. Dibangun menggunakan bahasa pemrograman Go dengan prinsip arsitektur bersih (Clean Architecture) untuk menjamin kode yang teruji, mudah dipelihara, dan sangat aman.
 
 ---
 
-## Architecture
+## 🛠️ Tech Stack & Dependencies
 
-Clean Architecture with explicit layer separation:
+### Core Engine
+* **Bahasa**: Go 1.26
+* **HTTP Routing**: `gorilla/mux` (pemuatan cepat, mendukung middleware chain)
+* **Object-Relational Mapping (ORM)**: `GORM v2`
+* **Basis Data**: `PostgreSQL 16+`
+* **Autentikasi**: `golang-jwt/jwt/v5` + `bcrypt` untuk pengamanan sandi
+* **Logging terstruktur**: `zerolog` (output format JSON berkecepatan tinggi)
+* **Validasi Input**: `go-playground/validator/v10`
+* **Pembatas Request (Rate Limiter)**: `golang.org/x/time/rate` (Token Bucket Algorithm)
+* **Eksposur Metrik**: `prometheus/client_golang` untuk pemantauan runtime server
+* **Pemroses Latar Belakang (Cron Scheduler)**: `robfig/cron/v3`
 
+### Framework Pengujian (Testing)
+* **Test Runner**: bawaan `go test` + `gotestsum` untuk visualisasi pengujian yang rapi
+* **Klaim Pengujian (Assertions)**: `stretchr/testify`
+* **Peniruan Interface (Mocks Generator)**: `vektra/mockery v2`
+* **Basis Data Pengujian Integrasi**: `testcontainers-go` (PostgreSQL di dalam Docker container secara otomatis saat unit test berjalan)
+* **Ambang Batas Coverage**: Minimal **60%** coverage wajib lolos di tahap CI/CD pipeline.
+
+---
+
+## 🏗️ Clean Architecture & Struktur Layer
+
+Modul backend ini secara konsisten mengimplementasikan arsitektur bersih (Clean Architecture) untuk meminimalkan ketergantungan antar-komponen luar dengan logika inti bisnis:
+
+```text
+               ┌──────────────────────────────┐
+               │    📂 delivery (HTTP)        │ Request / Response
+               └──────────────┬───────────────┘
+                              │ calls
+               ┌──────────────▼───────────────┐
+               │  📂 application (Use Cases)   │ Orkestrasi Bisnis & Transaksi DB
+               └──────────────┬───────────────┘
+                              │ calls
+               ┌──────────────▼───────────────┐
+               │      📂 domain (Entities)     │ Model Data, Logika Murni, Kontrak/Ports
+               └──────────────▲───────────────┘
+                              │ implements
+               ┌──────────────┴───────────────┐
+               │  📂 infrastructure (GORM, JWT)│ Konektor DB, Token, Bcrypt
+               └──────────────────────────────┘
 ```
-delivery (HTTP)
-    ↓
-application (use cases)
-    ↓
-domain (entities, interfaces)
-    ↑
-infrastructure (GORM, JWT, bcrypt)
-```
 
-### Layer Responsibilities
-
-| Layer | Responsibility |
-|-------|----------------|
-| **delivery** | HTTP routing, request/response handling |
-| **application** | Business orchestration, transaction boundaries |
-| **domain** | Entities, value objects, business rules, interfaces |
-| **infrastructure** | Database, auth, external services |
-
-### Key Principles
-
-- **Multi-tenancy**: Every query scoped by `organization_id`
-- **Errors as values**: `*domainerrors.DomainError` flows through layers
-- **Money as integers**: Never use `float64` for monetary values
-- **Context-first**: `ctx context.Context` is first parameter for I/O operations
+### Tanggung Jawab Masing-Masing Layer:
+1. **Domain Layer (`internal/domain`)**:
+   * Menampung entitas data utama seperti `User`, `Organization`, `Task`, `Member`, `Division`, `Event`, `Transaction`, `AuditLog`.
+   * Mengatur *Value Objects* aman (misalnya `valueobject.Money` untuk representasi kas finansial).
+   * Mendefinisikan kontrak interface repository (misalnya `repository.TaskRepository`) sebagai penunjuk arah bagi layer infrastruktur.
+2. **Application Layer (`internal/application`)**:
+   * Tempat implementasi *Use Case* atau proses bisnis utama. Layer ini memanggil repository, mengoordinasikan entitas, serta menjamin batasan transaksi basis data (`gorm.DB` transaction boundary).
+3. **Delivery Layer (`internal/delivery/http`)**:
+   * Bertanggung jawab untuk menyajikan REST API. Menerima request HTTP, melakukan validasi payload JSON, menyaring data lewat middleware keamanan, dan menyusun format response JSON standar.
+4. **Infrastructure Layer (`internal/infrastructure`)**:
+   * Berisi detail teknis implementasi database repository dengan GORM, konfigurasi generate token JWT, enkripsi sandi via bcrypt, serta interaksi ke komponen sistem operasi luar lainnya.
 
 ---
 
-## Project Structure
+## 📁 Struktur Direktori Backend
 
 ```
 sekre-backend/
 ├── cmd/
-│   ├── api/              # HTTP API server
-│   ├── dbctl/            # Database seeding tool
-│   └── migrate/          # Migration runner
+│   ├── api/                  # Titik masuk utama HTTP API Server
+│   ├── dbctl/                # Perkakas inisialisasi basis data (database control)
+│   └── migrate/              # Eksekutor migrasi SQL database
 │
 ├── internal/
-│   ├── application/      # Use cases (auth, task, finance, etc.)
-│   ├── config/           # Environment configuration
-│   ├── delivery/http/    # HTTP handlers & middleware
-│   ├── domain/           # Entities, value objects, interfaces
-│   ├── infrastructure/   # GORM repos, JWT, bcrypt
-│   └── scheduler/        # Background cron jobs
-│       └── jobs/         # cleanup.go, ping.go
+│   ├── application/          # Use cases (logika pendaftaran, manajemen tugas, kas keuangan)
+│   ├── config/               # Struktur konfigurasi variabel lingkungan (.env)
+│   ├── delivery/http/        # Handlers HTTP API, routing, & middleware
+│   │   ├── handler/          # Pengolah request (auth, divisi, tugas, keuangan, dll)
+│   │   └── middleware/       # Autentikasi, rate limit, logging, dan CORS
+│   ├── domain/               # Entitas inti, objek nilai (valueobject), dan interface repositori
+│   ├── infrastructure/       # Implementasi repository GORM, modul token JWT, dan bcrypt
+│   └── scheduler/            # Pengelola tugas terjadwal di latar belakang (background cron)
+│       └── jobs/             # jobs: audit cleanup, session pruning, self-ping
 │
-├── pkg/                  # Reusable packages
-│   ├── database/         # GORM connection
-│   ├── logger/           # Zerolog wrapper
-│   ├── response/         # HTTP response helpers
-│   ├── token/            # JWT manager
-│   └── validator/        # Input validation
+├── pkg/                      # Pustaka internal yang dapat digunakan kembali (reusable)
+│   ├── database/             # Pembuat koneksi pool PostgreSQL
+│   ├── logger/               # Konfigurasi runtime perekaman log zerolog
+│   ├── response/             # Format pembungkus response sukses dan error API
+│   ├── token/                # Utility pembuatan dan verifikasi JWT token
+│   └── validator/            # Custom validator struct tags
 │
-├── migrations/           # SQL migration files
-├── tests/e2e/            # End-to-end tests
-├── docs/api/             # OpenAPI spec
+├── migrations/               # Skema migrasi SQL versi terurut (up/down)
+├── tests/                    # Pengujian fungsional terintegrasi
+│   └── e2e/                  # End-to-end tests untuk seluruh endpoint API
+├── docs/                     # Dokumentasi API spesifikasi OpenAPI 3.0 / Swagger UI
 │
-├── Dockerfile            # Multi-stage Docker build
-├── render.yaml           # Render deployment config
-├── .env.example          # Configuration template
-├── Makefile              # Development commands
+├── Dockerfile                # Multi-stage production Docker build
+├── render.yaml               # Blueprint Render infrastructure-as-code
+├── .env.example              # Contoh cetakan variabel lingkungan
+├── Makefile                  # Perintah otomatisasi pembangunan dan pengujian proyek
 └── README.md
 ```
 
 ---
 
-## Getting Started
+## 🛠️ Fitur Teknis Utama (Mendalam)
 
-### Prerequisites
+### 1. Sistem Keamanan & Autentikasi Dual-Token
+Backend mengimplementasikan pengamanan tingkat tinggi menggunakan skema rotasi token:
+* **Access Token**: Berumur pendek (15 menit), dikirimkan di header HTTP `Authorization: Bearer <token>`.
+* **Refresh Token**: Berumur panjang (7 hari), disimpan secara aman dan digunakan hanya untuk memperbarui access token baru saat sudah kedaluwarsa.
+* **Token Rotation (RTR)**: Setiap kali refresh token digunakan, server mendeteksi pencurian token potensial dengan menerbitkan pasangan kunci baru dan membatalkan kunci lama secara otomatis.
 
-- Go 1.26+
-- PostgreSQL 16+
-- Docker (optional, for local Postgres)
-- `make`
+### 2. Multi-tenancy & Data Isolation
+Platform didesain untuk melayani banyak organisasi mahasiswa secara bersamaan secara aman (*SaaS platform ready*).
+* Setiap entitas data (Divisi, Tugas, Transaksi, Anggota) secara wajib memiliki atribut `organization_id`.
+* Setiap *middleware* autentikasi mengekstrak data ID Organisasi pengguna dari payload JWT.
+* Semua kueri GORM ke database secara paksa difilter menggunakan parameter `organization_id` tersebut.
+* Jika pengguna A dari organisasi B mencoba menebak ID tugas milik organisasi C, server akan membalas dengan status `404 Not Found` (mencegah enumerasi data internal).
 
-### Setup
+### 3. Perhitungan Keuangan Aman (`valueobject.Money`)
+Untuk mencegah galat kalkulasi nilai desimal (khas pada tipe data floating point `float64` dalam pengolahan mata uang), backend menerapkan pola khusus:
+* Uang disimpan dalam representasi integer terkecil (Cents, atau Rupiah tanpa koma desimal).
+* Entitas `Transaction` didukung oleh tipe terstruktur `Money` yang memvalidasi nominal transaksi agar tidak bernilai negatif tanpa tanda eksplisit dan memiliki standarisasi mata uang (IDR).
+* Kalkulasi penjumlahan dan pengurangan kas organisasi dijamin 100% presisi di level basis data dan komputasi memori.
 
+### 4. Struktur Divisi & Alokasi Anggota Dinamis
+* Mendukung organisasi dengan banyak divisi internal.
+* Pembuatan divisi baru tervalidasi secara unik per organisasi.
+* Penugasan dan pemindahan anggota ke dalam divisi tertentu dilakukan melalui pengecekan ketersediaan akun anggota di organisasi tersebut (mencegah penugasan lintas tenant).
+
+### 5. Audit Logging Otomatis
+* Setiap aksi administratif (seperti perubahan anggaran, penghapusan divisi, atau perubahan peran anggota) direkam ke dalam tabel `audit_logs`.
+* Mencatat pelaku (`user_id`), nama organisasi (`organization_id`), jenis tindakan (`action`), entitas sasaran (`entity_name` & `entity_id`), alamat IP asal, dan waktu kejadian.
+* Berguna untuk menjaga transparansi dan meminimalkan penyalahgunaan kekuasaan admin.
+
+### 6. Background Jobs Scheduler (Cron)
+Tugas latar belakang berjalan secara otomatis setiap hari untuk menjaga performa basis data:
+* **Daily session cleanup (02:00)**: Menghapus sesi refresh token yang sudah kedaluwarsa lebih dari 7 hari.
+* **Daily audit cleanup (02:30)**: Menghapus log audit yang sudah berusia lebih dari 90 hari untuk menghemat penyimpanan.
+* **Self-Ping Job (14 menit)**: Melakukan ping mandiri ke `SELF_PING_URL` jika diaktifkan (menghindari mode tidur paksa pada layanan hosting gratis seperti Render Free Tier).
+
+---
+
+## 🚀 Panduan Memulai Inisialisasi
+
+### Prasyarat Lokal
+* **Go SDK**: Versi 1.26 atau lebih baru.
+* **PostgreSQL**: Versi 16 atau lebih tinggi.
+* **Docker**: Diperlukan jika Anda ingin menjalankan database instan atau menjalankan tes integrasi via Testcontainers.
+* **Make Utility**: Opsional, namun sangat disarankan untuk menjalankan shortcut build.
+
+### Instalasi Langkah Demi Langkah
+1. **Unduh alat bantu pengembangan**:
+   ```bash
+   make install-tools
+   ```
+2. **Siapkan konfigurasi `.env`**:
+   ```bash
+   cp .env.example .env
+   # Edit berkas .env Anda. Pastikan untuk mengisi nilai JWT_SECRET dengan string acak minimal 32 karakter!
+   ```
+3. **Jalankan database PostgreSQL (jika belum ada)**:
+   ```bash
+   docker run --name sekre-pg -p 5432:5432 \
+     -e POSTGRES_USER=postgres \
+     -e POSTGRES_PASSWORD=yourpass \
+     -e POSTGRES_DB=sekre_db \
+     -d postgres:16-alpine
+   ```
+4. **Jalankan Migrasi Database**:
+   ```bash
+   make migrate
+   ```
+5. **Jalankan Data Simulasi Demo (Opsional)**:
+   ```bash
+   make db-seed
+   ```
+6. **Mulai Server API**:
+   ```bash
+   make run
+   ```
+
+Pusat REST API akan aktif melayani request di **http://localhost:8080** (atau port alternatif sesuai pengaturan berkas `.env` Anda).
+
+---
+
+## 🧪 Strategi Pengujian (Testing Suite)
+
+Pengujian dibagi menjadi 3 kategori demi keseimbangan kecepatan eksekusi dan keandalan skenario dunia nyata:
+
+| Jenis Tes | Penanda (Tags) | Durasi Rata-rata | Deskripsi |
+|-----------|----------------|------------------|-----------|
+| **Unit Test** | Tanpa tag | < 1 detik | Menguji fungsi internal murni, kalkulasi matematika uang, dan parser middleware menggunakan tiruan (mocks). |
+| **Integration Test** | `-tags=integration` | ~5 detik | Menguji kueri database SQL nyata terhadap instansi PostgreSQL yang diangkat instan di Docker via Testcontainers. |
+| **End-to-End Test** | `-tags=e2e` | ~10 detik | Memulai server HTTP API secara penuh dan menembakkan request HTTP eksternal ke seluruh endpoint untuk memvalidasi alur integrasi menyeluruh. |
+
+Menjalankan pengujian lewat terminal:
 ```bash
-# 1. Install development tools
-make install-tools
+# Menjalankan seluruh paket pengujian
+make test
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env: set JWT_SECRET (>= 32 chars) and DB credentials
+# Menjalankan unit test saja (cepat)
+make test-unit
 
-# 3. Start PostgreSQL
-docker run --name sekre-pg -p 5432:5432 \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=yourpass \
-  -e POSTGRES_DB=sekre_db \
-  -d postgres:16-alpine
+# Menjalankan integration test (butuh Docker)
+make test-integration
 
-# 4. Run migrations
-make migrate
-
-# 5. Seed demo data (optional)
-make db-seed
-
-# 6. Start server
-make run
-```
-
-Server runs on `http://localhost:1000`
-
-### Quick Health Check
-
-```bash
-curl http://localhost:1000/health/live
-curl http://localhost:1000/health/ready
-open http://localhost:1000/docs   # Swagger UI
+# Memeriksa cakupan coverage kode (Wajib lolos batas minimal 60%)
+make test-cover
+make test-cover-check
 ```
 
 ---
 
-## Configuration
+## ⚙️ Variabel Lingkungan Penting
 
-All configuration via environment variables. See `.env.example` for full list.
+Berikut adalah variabel lingkungan kunci yang harus diperhatikan:
 
-### Required Variables
-
-| Variable | Constraint |
-|----------|------------|
-| `JWT_SECRET` | At least 32 characters |
-| `DB_PASSWORD` | Non-empty |
-
-### Important Variables
-
-| Variable | Default | Notes |
-|----------|---------|-------|
-| `SERVER_ENV` | `development` | Set to `production` for strict validation |
-| `SERVER_PORT` | `8080` | HTTP listen port (project default: `1000`) |
-| `DB_HOST` | `localhost` | PostgreSQL host |
-| `DB_PORT` | `5432` | PostgreSQL port (project default: `2000`) |
-| `DB_NAME` | `sekre_db` | Database name |
-| `DB_SSLMODE` | `disable` | Must be `require` in production |
-| `JWT_ACCESS_EXPIRY` | `15` | Access token lifetime (minutes) |
-| `JWT_REFRESH_EXPIRY` | `10080` | Refresh token lifetime (minutes, 7 days) |
-| `LOG_LEVEL` | `info` | trace/debug/info/warn/error |
-| `CORS_ALLOWED_ORIGINS` | `localhost:3000` | Comma-separated origins |
-
-### Scheduler Variables
-
-| Variable | Default | Notes |
-|----------|---------|-------|
-| `CLEANUP_REFRESH_SESSION_RETENTION_DAYS` | `7` | Days to keep expired refresh sessions |
-| `CLEANUP_AUDIT_LOG_RETENTION_DAYS` | `90` | Days to keep audit log entries |
-| `SELF_PING_URL` | `` | Health URL to ping every 14 min (prevents Render spin-down) |
+| Variabel | Default | Catatan Penting |
+|----------|---------|-----------------|
+| `SERVER_ENV` | `development` | Atur ke `production` untuk mengaktifkan validasi CORS ketat dan proteksi SSL. |
+| `SERVER_PORT` | `8080` | Port tempat API server mendengarkan koneksi. |
+| `DB_HOST` | `localhost` | Alamat host database PostgreSQL. |
+| `DB_PORT` | `5432` | Port database PostgreSQL. |
+| `DB_NAME` | `sekre_db` | Nama database untuk penyimpanan data. |
+| `DB_SSLMODE` | `disable` | Wajib diatur ke `require` saat dideploy ke server produksi. |
+| `JWT_SECRET` | *(Kosong)* | Kunci rahasia untuk tanda tangan JWT. Harus diganti demi alasan keamanan! |
+| `LOG_LEVEL` | `info` | Tingkat keparahan log (`debug`, `info`, `warn`, `error`). |
+| `CORS_ALLOWED_ORIGINS` | `*` | Daftar origin web client yang diizinkan melakukan interaksi API (dipisahkan tanda koma). |
 
 ---
 
-## Background Scheduler
+## 🌍 Alur Logika Fitur (Perspektif Teknis & Bisnis)
 
-The server runs a built-in cron scheduler with the following jobs:
+Berikut penjelasan sederhana bagaimana masing-masing modul bekerja untuk menjamin keutuhan dan kegunaan aplikasi:
 
-| Job | Schedule | Description |
-|-----|----------|-------------|
-| `CleanupExpiredSessions` | Daily 02:00 | Deletes expired refresh sessions older than retention period |
-| `CleanupAuditLogs` | Daily 02:30 | Deletes audit log entries older than retention period |
-| `SelfPing` | Every 14 min | Pings `SELF_PING_URL` to prevent Render free tier spin-down |
-
-> `SelfPing` is a no-op if `SELF_PING_URL` is not set.
-
----
-
-## Development
-
-### Common Commands
-
-```bash
-# Build & run
-make build          # Build binaries to ./bin
-make run            # Start API server
-make migrate        # Run database migrations
-
-# Database
-make db-seed        # Seed demo data
-make db-reset       # Reset DB + seed
-
-# Code quality
-make fmt            # Format code
-make vet            # Run go vet
-make lint           # Run golangci-lint
-make pre-commit     # Fast checks (fmt + vet + lint + test-short)
-
-# Testing
-make test           # Run all tests
-make test-unit      # Unit tests only (fast)
-make test-integration  # Integration tests (requires Docker)
-make test-cover     # Generate coverage report
-make test-cover-check  # Enforce 60% coverage threshold
-
-# Mocks
-make mocks          # Regenerate mocks after interface changes
-
-# Cleanup
-make clean          # Remove build artifacts
-```
-
-### Testing Strategy
-
-| Type | Tag | Speed | Purpose |
-|------|-----|-------|---------|
-| Unit | (none) | < 1s | Business logic, no I/O |
-| Integration | `integration` | ~5s | Real Postgres via testcontainers |
-| E2E | `e2e` | ~10s | Full HTTP stack |
-
-Run specific test types:
-```bash
-go test -v -short ./...                    # Unit tests
-go test -v -tags=integration ./...         # Integration tests
-go test -v -tags=e2e ./tests/e2e/...       # E2E tests
-```
-
----
-
-## Deployment
-
-### Render (Current)
-
-Project uses [Render](https://render.com) for hosting with `render.yaml` Blueprint.
-
-**Resources provisioned:**
-- Web Service (Docker, free tier)
-- PostgreSQL (free tier, 90-day expiry)
-
-**Setup steps:**
-1. New → Blueprint → connect repo → set YAML path: `sekre-backend/render.yaml`
-2. Set secrets in Render dashboard: `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`
-3. After first deploy, set `SELF_PING_URL` to `https://<service>.onrender.com/health`
-4. Run migration via Render Shell: `make migrate`
-
-**GitHub Secrets required for CI/CD:**
-
-| Secret | Description |
-|--------|-------------|
-| `RENDER_DEPLOY_HOOK_URL` | From Render dashboard → Settings → Deploy Hook |
-| `RENDER_SERVICE_URL` | e.g. `https://sekre-backend.onrender.com` |
-
-### Docker (Local / VPS)
-
-```bash
-# Build image
-docker build -t sekre-backend .
-
-# Run with env file
-docker run -d \
-  --env-file .env \
-  -p 1000:1000 \
-  sekre-backend
-```
-
-### Migrating to VPS
-
-The CD workflow in `.github/workflows/backend-cd.yml` has a commented-out VPS deploy job ready to use. Replace the Render deploy step with the SSH deploy step and add these secrets:
-
-| Secret | Description |
-|--------|-------------|
-| `VPS_HOST` | VPS IP or domain |
-| `VPS_USER` | SSH username |
-| `VPS_SSH_KEY` | SSH private key |
-
----
-
-## CI/CD
-
-GitHub Actions workflows in `.github/workflows/`:
-
-| Workflow | Trigger | Jobs |
-|----------|---------|------|
-| `backend-ci.yml` | Push / PR to `main` (path: `sekre-backend/**`) | lint → test → build → docker push (GHCR) |
-| `backend-cd.yml` | After CI passes on `main` | Deploy to Render via deploy hook |
-
-Deploy status is visible in the GitHub commit/PR timeline.
-
----
-
-## Security
-
-### Multi-layer Security
-
-1. **Transport**: HSTS in production
-2. **CORS**: Explicit origin whitelist
-3. **Authentication**: JWT with short-lived tokens (15 min)
-4. **Authorization**: Role-based access control (OWNER, ADMIN, MEMBER)
-5. **Input Validation**: Struct-tag validation + XSS sanitization
-6. **Rate Limiting**: Token bucket per-IP (10 rps default)
-7. **Security Headers**: CSP, X-Frame-Options, etc.
-8. **Multi-tenancy**: Cross-tenant access returns 404
-9. **Database**: Row-level security (RLS) policies
-
-### Production Checklist
-
-- [ ] `SERVER_ENV=production`
-- [ ] `JWT_SECRET` is strong random string (>= 32 chars)
-- [ ] `DB_SSLMODE=require`
-- [ ] `LOG_LEVEL=info` or `warn`
-- [ ] `CORS_ALLOWED_ORIGINS` lists actual domains
-- [ ] `SELF_PING_URL` set to health endpoint
-- [ ] Reverse proxy sets `X-Forwarded-For`
-- [ ] Monitoring scrapes `/metrics`
-- [ ] Health checks on `/health/live` and `/health/ready`
-
----
-
-## API Documentation
-
-- **OpenAPI Spec**: `GET /openapi.yaml`
-- **Swagger UI**: `GET /docs`
-- **Health Check**: `GET /health/live`, `GET /health/ready`
-- **Metrics**: `GET /metrics` (Prometheus format)
-
----
-
-## Conventions
-
-### Code Style
-
-- Standard `gofmt` + `goimports`
-- All linters in `.golangci.yml` must pass
-- Acronyms uppercase: `ID`, `URL`, `HTTP`
-
-### Error Handling
-
-- Domain errors: `*domainerrors.DomainError`
-- Use sentinels: `ErrUserNotFound`, `ErrInvalidCredentials`
-- Use factories: `NotFound("task", id)`, `Forbidden("delete", "task")`
-- Wrap infrastructure errors: `domainerrors.Internal("save user", err)`
-
-### HTTP Responses
-
-```json
-// Success
-{ "success": true, "message": "...", "data": {...} }
-
-// Error
-{ "success": false, "code": "INVALID_INPUT", "message": "...", "request_id": "..." }
-```
-
-### Money
-
-- Always use `valueobject.Money` (integer cents + currency)
-- Never use `float64` for monetary values
-- Default currency: `IDR`
-
----
-
-## Alur Fitur (Versi Mudah Dipahami)
-
-Bagian ini menjelaskan cara kerja sistem dengan bahasa sederhana, agar bisa dipahami juga oleh non-engineer.
-
-### 1) Login, Sesi, dan Token
-
-Saat user login atau daftar, backend memberikan 2 "kunci digital":
-
-- `access_token` (umur pendek, default 15 menit): dipakai untuk akses API sehari-hari.
-- `refresh_token` (umur lebih panjang, default 7 hari): dipakai untuk minta `access_token` baru tanpa login ulang.
-
-Kenapa 2 token? Agar tetap nyaman dipakai user, tapi risiko keamanan tetap kecil jika token utama bocor.
-
+### 💼 1. Autentikasi, Registrasi, dan Alur Multi-tenant
 ```text
-User login/daftar
-  -> backend cek data user
-  -> backend kirim access_token + refresh_token
-
-User akses fitur
-  -> kirim access_token
-  -> kalau valid: proses lanjut
-  -> kalau expired/tidak valid: diminta refresh atau login ulang
-
-Saat access_token habis
-  -> kirim refresh_token
-  -> backend kirim access_token baru
+[Guest User]
+   │
+   ├─► Register Org & Owner ──► Buat baris baru di tabel `organizations` & `users`
+   │                            dengan peran OWNER pada `members`.
+   │
+   └─► Login Akun ────────────► Cocokkan hash Bcrypt password di DB ──► Terbitkan Access
+                                & Refresh Token ──► Simpan sidik jari sesi di DB.
 ```
+* Setiap request selanjutnya wajib melampirkan Access Token.
+* Middleware autentikasi mengekstrak `user_id`, `organization_id`, dan `role` lalu menyelipkannya ke dalam konteks request (`context.Context`).
+* Logika bisnis di usecase membaca data ini dari context sehingga isolasi multi-tenant dijamin 100% aman sejak dari gerbang HTTP paling depan.
 
-### 2) Hak Akses Per Peran (RBAC)
+### 👥 2. Manajemen Anggota & Struktur Organisasi
+* Pengurus dengan peran `OWNER` atau `ADMIN` dapat mengundang anggota baru dengan mengirimkan alamat email sasaran.
+* Undangan akan disimpan sebagai baris `Member` dengan status terundang. Anggota dapat login untuk mengaktifkan statusnya.
+* Perubahan peran (`OWNER` ➔ `ADMIN` ➔ `MEMBER`) divalidasi dengan ketat: hanya `OWNER` yang boleh mengubah hak akses `ADMIN` atau memindahkan hak kepemilikan organisasi (`OWNER` transfer).
+* Penghapusan anggota akan memutuskan relasi data keanggotaan namun mempertahankan riwayat tugas dan transaksi keuangan lama (menjadi relasi anonim) demi menjaga konsistensi audit keuangan organisasi.
 
-Setiap user punya peran:
+### 📋 3. Penugasan Kerja (Task Management)
+* Pengurus dapat membuat tugas, menulis tenggat waktu (deadline), menetapkan tingkat prioritas (`LOW`, `MEDIUM`, `HIGH`), dan menunjuk penanggung jawab (`assignee_id`).
+* Pengguna yang ditunjuk akan menerima notifikasi status.
+* Status tugas dapat bertransisi secara berurutan: `TODO` (belum dikerjakan) ➔ `IN_PROGRESS` (sedang dikerjakan) ➔ `DONE` (selesai).
+* Setiap transisi status dicatat dan diverifikasi apakah penanggung jawab atau admin yang merubahnya.
 
-- `OWNER`: akses tertinggi di organisasi.
-- `ADMIN`: mengelola sebagian besar operasional.
-- `MEMBER`: akses sesuai kebutuhan kerja harian.
-
-Alurnya sederhana: setelah user terbukti login, sistem cek apakah perannya boleh menjalankan aksi tersebut.
-
-### 3) Isolasi Data Antar Organisasi (Multi-tenant)
-
-Sistem ini dipakai banyak organisasi sekaligus, jadi data harus benar-benar terpisah.
-
-- Setiap request selalu membawa konteks `organization_id`.
-- Query database selalu difilter berdasarkan organisasi itu.
-- Jika user mencoba akses data organisasi lain, data tidak akan ditampilkan.
-
-### 4) Alur Fitur Operasional
-
-#### Task Management
-
-```text
-User kirim data task
-  -> backend validasi input
-  -> backend simpan/ubah data task
-  -> backend kirim hasil terbaru
-```
-
-Status task yang didukung: `TODO`, `IN_PROGRESS`, `DONE`.
-
-#### Event Scheduling
-
-Backend memastikan data waktu masuk akal (waktu mulai harus sebelum waktu selesai), lalu menyimpan data event.
-
-#### Finance Tracking
-
-- Data transaksi divalidasi dulu.
-- Data disimpan ke ledger.
-- Ringkasan keuangan dihitung/dibaca dari data tersimpan.
-
-Catatan penting: nominal uang tidak pakai `float64`, tapi integer-safe (`valueobject.Money`) agar perhitungan presisi.
-
-### 5) Validasi Input dan Format Error
-
-Setiap request dari client selalu melewati validasi.
-
-- Jika format/syarat data salah → backend balas error 4xx.
-- Jika benar → proses bisnis dilanjutkan.
-- Setiap error menyertakan `request_id` agar mudah ditelusuri di log.
-
-### 6) Pembatasan Request (Rate Limiting)
-
-Untuk mencegah spam/abuse, sistem membatasi jumlah request per IP (default 10 request/detik).
-
-- Masih dalam batas → request diproses.
-- Lewat batas → dapat `429 Too Many Requests`.
-
-### 7) Monitoring dan Health Check
-
-Backend menyediakan endpoint untuk memantau kondisi layanan:
-
-- `GET /health/live`: cek apakah service hidup.
-- `GET /health/ready`: cek apakah service siap melayani request.
-- `GET /metrics`: data metrik untuk monitoring (Prometheus).
-
-Selain itu, log dibuat terstruktur dan menyertakan `request_id` agar investigasi insiden lebih cepat.
-
----
-
-## License
-
-Internal project — Arah Baru Selayar.
+### 💰 4. Transaksi Keuangan (Finance Ledger)
+* Transaksi wajib mencantumkan nominal uang, tipe transaksi (`INCOME` untuk kas masuk, `EXPENSE` untuk kas keluar), kategori transaksi (misalnya: Konsumsi, Logistik, Dana Usaha), serta bukti deskripsi penjelasan.
+* Nominal transaksi keuangan dipaksa tervalidasi menggunakan format integer desimal penuh.
+* Log audit otomatis dibuat untuk mencatat siapa admin yang menginput transaksi tersebut guna mencegah kecurangan laporan keuangan di lingkup internal organisasi mahasiswa.
