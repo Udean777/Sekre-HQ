@@ -14,6 +14,7 @@ import { useEventsQuery } from '@hooks/events/useEventsQuery';
 import { useDeleteEventMutation } from '@hooks/events/useDeleteEventMutation';
 import { useAppSelector } from '@store/hooks';
 import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
+import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Event, EventStatus } from '@core/domain/entities/Event';
 import type { EventsStackParamList } from '@app/navigation/EventsNavigator';
 import { EventTimelineCard } from './timeline/EventTimelineCard';
@@ -44,10 +45,13 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
   const role = useAppSelector(state => state.auth.role);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
-  const { data, isLoading, isError, refetch, isFetching } = useEventsQuery({
+  const { data, isLoading, isError, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } = useEventsQuery({
     search: debouncedSearch.trim() || undefined,
     pageSize: 20,
   });
+
+  const allEvents = flattenPages(data);
+  const meta = lastPageMeta(data);
 
   const { mutate: deleteEvent } = useDeleteEventMutation();
 
@@ -83,7 +87,7 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
   // ── Build flat data (header + events per section) ─────────────────────────
 
   const flatData = useMemo((): readonly FlatItem[] => {
-    const events = data?.items ?? [];
+    const events = allEvents;
 
     const grouped: Record<EventStatus, Event[]> = {
       ONGOING: [],
@@ -109,7 +113,7 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
       }
     }
     return result;
-  }, [data?.items]);
+  }, [allEvents]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -201,9 +205,9 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
         <Input placeholder="Cari acara..." value={search} onChangeText={setSearch} />
       </View>
 
-      {data ? (
+      {meta ? (
         <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.meta.total} acara ditemukan
+          {meta.total} acara ditemukan
         </AppText>
       ) : null}
 
@@ -213,11 +217,13 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         getItemType={getItemType}
-        // header ~40px, event card ~120px — estimasi rata-rata
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         onRefresh={handleRefetch}
         refreshing={isFetching && !isLoading}
+        onEndReached={hasNextPage ? (): void => { void fetchNextPage(); } : undefined}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={isFetchingNextPage ? <SkeletonList count={2} /> : null}
         ListEmptyComponent={
           <EmptyState
             icon="calendar-outline"

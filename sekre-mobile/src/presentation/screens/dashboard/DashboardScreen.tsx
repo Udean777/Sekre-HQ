@@ -12,6 +12,7 @@ import { colors, spacing, fontSize, fontWeight } from '@presentation/theme';
 import { useAppSelector } from '@store/hooks';
 import { useTasksQuery } from '@hooks/tasks/useTasksQuery';
 import { useEventsQuery } from '@hooks/events/useEventsQuery';
+import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Task, TaskStatus } from '@core/domain/entities/Task';
 import type { Event } from '@core/domain/entities/Event';
 import type { RootStackParamList } from '@app/navigation/RootNavigator';
@@ -156,33 +157,34 @@ export const DashboardScreen: React.FC = () => {
   } = useTasksQuery({ pageSize: 20 });
   const { data: eventData, isLoading: eventLoading } = useEventsQuery({ pageSize: 10 });
 
+  const taskItems = flattenPages(taskData);
+  const taskMeta = lastPageMeta(taskData);
+  const eventItems = flattenPages(eventData);
+
   // Hitung task per status
   const tasksByStatus = React.useMemo(() => {
     const base: Record<TaskStatus, number> = { TODO: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 };
-    if (!taskData) return base;
-    return taskData.items.reduce((acc, task) => {
+    return taskItems.reduce((acc: Record<TaskStatus, number>, task) => {
       acc[task.status] = (acc[task.status] ?? 0) + 1;
       return acc;
     }, base);
-  }, [taskData]);
+  }, [taskItems]);
 
   // 3 task terbaru (urut berdasarkan updatedAt desc)
   const recentTasks = React.useMemo(() => {
-    if (!taskData?.items) return [];
-    return [...taskData.items]
+    return [...taskItems]
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
       .slice(0, 3);
-  }, [taskData]);
+  }, [taskItems]);
 
   // 3 event mendatang (startDate >= sekarang, urut asc)
   const upcomingEvents = React.useMemo(() => {
-    if (!eventData?.items) return [];
     const now = new Date();
-    return eventData.items
+    return eventItems
       .filter(e => e.startDate >= now)
       .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
       .slice(0, 3);
-  }, [eventData]);
+  }, [eventItems]);
 
   const plan = organization?.subscriptionPlan ?? 'FREE';
 
@@ -244,7 +246,7 @@ export const DashboardScreen: React.FC = () => {
             <AppText variant="bodySm" color={colors.text.secondary}>
               Total Tugas
             </AppText>
-            <AppText style={styles.totalCount}>{taskData?.meta.total ?? 0}</AppText>
+            <AppText style={styles.totalCount}>{taskMeta?.total ?? 0}</AppText>
           </Card>
         </>
       )}

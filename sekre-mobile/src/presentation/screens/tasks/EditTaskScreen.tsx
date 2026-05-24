@@ -24,6 +24,7 @@ import { useTaskQuery } from '@hooks/tasks/useTaskQuery';
 import { useUpdateTaskMutation } from '@hooks/tasks/useUpdateTaskMutation';
 import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
 import { useDivisionMembersOptions } from '@hooks/divisions/useDivisionMembersOptions';
+import { flattenPages } from '@shared/utils/infiniteQueryHelpers';
 import { isDomainError } from '@core/domain/errors/DomainError';
 import type { TasksStackParamList } from '@app/navigation/TasksNavigator';
 
@@ -62,11 +63,11 @@ export const EditTaskScreen: React.FC<Props> = ({ navigation, route }) => {
     useDivisionMembersOptions(selectedDivisionId || null);
 
   const divisionOptions: SelectOption[] =
-    divisionsData?.items.map(d => ({
+    flattenPages(divisionsData).map(d => ({
       label: d.name,
       value: d.id,
       description: d.description ?? undefined,
-    })) ?? [];
+    }));
 
   const onSubmit = (values: TaskFormValues): void => {
     setGlobalError(null);

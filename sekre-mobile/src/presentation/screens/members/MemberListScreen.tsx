@@ -16,6 +16,7 @@ import { useMembersQuery } from '@hooks/members/useMembersQuery';
 import { useDeleteMemberMutation } from '@hooks/members/useDeleteMemberMutation';
 import { useAppSelector } from '@store/hooks';
 import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
+import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Member, OrgRole } from '@core/domain/entities/Member';
 import type { MembersStackParamList } from '@app/navigation/MembersNavigator';
 
@@ -116,11 +117,14 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
   const role = useAppSelector(state => state.auth.role);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
-  const { data, isLoading, isError, refetch, isFetching } = useMembersQuery({
+  const { data, isLoading, isError, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } = useMembersQuery({
     search: debouncedSearch.trim() || undefined,
     role: activeRole,
     pageSize: 20,
   });
+
+  const members = flattenPages(data);
+  const meta = lastPageMeta(data);
 
   const { mutate: deleteMember } = useDeleteMemberMutation();
 
@@ -193,9 +197,9 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
           ))}
         </View>
 
-        {!isLoading && !isError && data ? (
+        {!isLoading && !isError && meta ? (
           <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-            {data.meta.total} anggota ditemukan
+            {meta.total} anggota ditemukan
           </AppText>
         ) : null}
       </View>
@@ -221,13 +225,16 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : (
         <FlashList
-          data={data?.items}
+          data={members}
           keyExtractor={keyExtractor}
           renderItem={renderMember}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           onRefresh={handleRefetch}
           refreshing={isFetching && !isLoading}
+          onEndReached={hasNextPage ? (): void => { void fetchNextPage(); } : undefined}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isFetchingNextPage ? <SkeletonList count={2} /> : null}
           ListEmptyComponent={
             <EmptyState
               icon="people-outline"

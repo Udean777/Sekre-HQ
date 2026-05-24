@@ -15,6 +15,7 @@ import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
 import { useDeleteDivisionMutation } from '@hooks/divisions/useDeleteDivisionMutation';
 import { useAppSelector } from '@store/hooks';
 import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
+import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Division } from '@core/domain/entities/Division';
 import type { DivisionsStackParamList } from '@app/navigation/DivisionsNavigator';
 
@@ -106,10 +107,13 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
   const role = useAppSelector(state => state.auth.role);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
-  const { data, isLoading, isError, refetch, isFetching } = useDivisionsQuery({
+  const { data, isLoading, isError, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } = useDivisionsQuery({
     search: debouncedSearch.trim() || undefined,
     pageSize: 20,
   });
+
+  const divisions = flattenPages(data);
+  const meta = lastPageMeta(data);
 
   const { mutate: deleteDivision } = useDeleteDivisionMutation();
 
@@ -184,9 +188,9 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.searchInput}
         />
 
-        {!isLoading && !isError && data ? (
+        {!isLoading && !isError && meta ? (
           <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-            {data.meta.total} divisi ditemukan
+            {meta.total} divisi ditemukan
           </AppText>
         ) : null}
       </View>
@@ -212,13 +216,16 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : (
         <FlashList
-          data={data?.items}
+          data={divisions}
           keyExtractor={keyExtractor}
           renderItem={renderDivision}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           onRefresh={handleRefetch}
           refreshing={isFetching && !isLoading}
+          onEndReached={hasNextPage ? (): void => { void fetchNextPage(); } : undefined}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isFetchingNextPage ? <SkeletonList count={2} /> : null}
           ListEmptyComponent={
             <EmptyState
               icon="business-outline"

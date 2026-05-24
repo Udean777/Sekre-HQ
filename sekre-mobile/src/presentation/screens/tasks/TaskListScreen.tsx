@@ -11,6 +11,7 @@ import { colors, spacing } from '@presentation/theme';
 import { useTasksQuery } from '@hooks/tasks/useTasksQuery';
 import { useUpdateTaskStatusMutation } from '@hooks/tasks/useUpdateTaskStatusMutation';
 import { useAppSelector } from '@store/hooks';
+import { flattenPages } from '@shared/utils/infiniteQueryHelpers';
 import type { Task, TaskId, TaskStatus } from '@core/domain/entities/Task';
 import type { TasksStackParamList } from '@app/navigation/TasksNavigator';
 import { KanbanBoard } from './kanban/KanbanBoard';
@@ -77,7 +78,7 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
       <KanbanBoard
-        tasks={data?.items ?? []}
+        tasks={flattenPages(data)}
         onTaskPress={handleTaskPress}
         onStatusChange={handleStatusChange}
         canManage={canManage}

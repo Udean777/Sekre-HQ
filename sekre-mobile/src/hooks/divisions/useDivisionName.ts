@@ -1,4 +1,5 @@
 import { useDivisionsQuery } from './useDivisionsQuery';
+import { flattenPages } from '@shared/utils/infiniteQueryHelpers';
 import type { DivisionId } from '@core/domain/ids';
 
 /**
@@ -8,7 +9,7 @@ import type { DivisionId } from '@core/domain/ids';
 export const useDivisionName = (divisionId: string | null): string | null => {
   const { data } = useDivisionsQuery({ pageSize: 100 });
   if (!divisionId || !data) return null;
-  // divisionId dari entity sudah DivisionId — compare langsung aman
+  const items = flattenPages(data);
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return data.items.find(d => d.id === (divisionId as DivisionId))?.name ?? null;
+  return items.find(d => d.id === (divisionId as DivisionId))?.name ?? null;
 };

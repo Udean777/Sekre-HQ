@@ -17,6 +17,7 @@ import { useFinanceSummaryQuery } from '@hooks/finance/useFinanceSummaryQuery';
 import { useDeleteTransactionMutation } from '@hooks/finance/useDeleteTransactionMutation';
 import { useAppSelector } from '@store/hooks';
 import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
+import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Transaction, TransactionType, Money } from '@core/domain/entities/Transaction';
 import type { FinanceStackParamList } from '@app/navigation/FinanceNavigator';
 
@@ -170,11 +171,14 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
   const role = useAppSelector(state => state.auth.role);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
-  const { data, isLoading, isError, refetch, isFetching } = useTransactionsQuery({
+  const { data, isLoading, isError, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } = useTransactionsQuery({
     search: debouncedSearch.trim() || undefined,
     type: typeFilter,
     pageSize: 20,
   });
+
+  const transactions = flattenPages(data);
+  const meta = lastPageMeta(data);
 
   const { data: summary } = useFinanceSummaryQuery();
   const { mutate: deleteTransaction } = useDeleteTransactionMutation();
@@ -275,9 +279,9 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
           ))}
         </View>
 
-        {!isLoading && !isError && data ? (
+        {!isLoading && !isError && meta ? (
           <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-            {data.meta.total} transaksi ditemukan
+            {meta.total} transaksi ditemukan
           </AppText>
         ) : null}
       </View>
@@ -303,11 +307,14 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : (
         <FlashList
-          data={data?.items}
+          data={transactions}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onEndReached={hasNextPage ? (): void => { void fetchNextPage(); } : undefined}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isFetchingNextPage ? <SkeletonList count={2} /> : null}
           onRefresh={handleRefetch}
           refreshing={isFetching && !isLoading}
           ListEmptyComponent={
