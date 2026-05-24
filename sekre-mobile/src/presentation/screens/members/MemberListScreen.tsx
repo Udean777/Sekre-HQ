@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
@@ -14,29 +15,30 @@ import { colors, spacing, fontWeight, fontSize } from '@presentation/theme';
 import { useMembersQuery } from '@hooks/members/useMembersQuery';
 import { useDeleteMemberMutation } from '@hooks/members/useDeleteMemberMutation';
 import { useAppSelector } from '@store/hooks';
+import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
 import type { Member, OrgRole } from '@core/domain/entities/Member';
 import type { MembersStackParamList } from '@app/navigation/MembersNavigator';
 
 type Props = NativeStackScreenProps<MembersStackParamList, 'MemberList'>;
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Constants (module scope — tidak re-create tiap render) ───────────────────
 
-const ROLE_FILTERS: Array<{ label: string; value: OrgRole | undefined }> = [
+const ROLE_FILTERS: ReadonlyArray<{ label: string; value: OrgRole | undefined }> = [
   { label: 'Semua', value: undefined },
   { label: 'Owner', value: 'OWNER' },
   { label: 'Admin', value: 'ADMIN' },
   { label: 'Member', value: 'MEMBER' },
-];
+] as const;
 
-const ROLE_LABEL: Record<OrgRole, string> = {
+const ROLE_LABEL: Readonly<Record<OrgRole, string>> = {
   OWNER: 'Owner',
   ADMIN: 'Admin',
   MEMBER: 'Member',
-};
+} as const;
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
-const Avatar: React.FC<{ name: string }> = ({ name }) => {
+const Avatar: React.FC<{ name: string }> = React.memo(({ name }) => {
   const initials = name
     .split(' ')
     .slice(0, 2)
@@ -48,80 +50,89 @@ const Avatar: React.FC<{ name: string }> = ({ name }) => {
       <AppText style={styles.avatarText}>{initials}</AppText>
     </View>
   );
-};
+});
 
-// ─── Member Card ──────────────────────────────────────────────────────────────
+// ─── Member Card (memoized) ───────────────────────────────────────────────────
 
 interface MemberCardProps {
   member: Member;
   canManage: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: (member: Member) => void;
+  onDelete: (member: Member) => void;
 }
 
-const MemberCard: React.FC<MemberCardProps> = ({ member, canManage, onEdit, onDelete }) => (
-  <Card style={styles.memberCard}>
-    <View style={styles.cardRow}>
-      <Avatar name={member.fullName} />
-      <View style={styles.memberInfo}>
-        <AppText variant="bodyMd" style={styles.memberName} numberOfLines={1}>
-          {member.fullName}
-        </AppText>
-        <AppText variant="bodySm" color={colors.text.secondary} numberOfLines={1}>
-          {member.email}
-        </AppText>
-      </View>
-      <View style={styles.cardRight}>
-        <Badge label={ROLE_LABEL[member.role]} variant={roleVariant(member.role)} />
-        {canManage && member.role !== 'OWNER' ? (
-          <View style={styles.cardActions}>
-            <TouchableOpacity
-              onPress={onEdit}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="pencil-outline" size={17} color={colors.primary[500]} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onDelete}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="trash-outline" size={17} color={colors.danger.main} />
-            </TouchableOpacity>
+const MemberCard: React.FC<MemberCardProps> = React.memo(
+  ({ member, canManage, onEdit, onDelete }) => {
+    const handleEdit = useCallback((): void => onEdit(member), [onEdit, member]);
+    const handleDelete = useCallback((): void => onDelete(member), [onDelete, member]);
+
+    return (
+      <Card style={styles.memberCard}>
+        <View style={styles.cardRow}>
+          <Avatar name={member.fullName} />
+          <View style={styles.memberInfo}>
+            <AppText variant="bodyMd" style={styles.memberName} numberOfLines={1}>
+              {member.fullName}
+            </AppText>
+            <AppText variant="bodySm" color={colors.text.secondary} numberOfLines={1}>
+              {member.email}
+            </AppText>
           </View>
-        ) : null}
-      </View>
-    </View>
-  </Card>
+          <View style={styles.cardRight}>
+            <Badge label={ROLE_LABEL[member.role]} variant={roleVariant(member.role)} />
+            {canManage && member.role !== 'OWNER' ? (
+              <View style={styles.cardActions}>
+                <TouchableOpacity
+                  onPress={handleEdit}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="pencil-outline" size={17} color={colors.primary[500]} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleDelete}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="trash-outline" size={17} color={colors.danger.main} />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </Card>
+    );
+  },
 );
 
-// ─── Screen ──────────────────────────────────────────────────────────────────
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [activeRole, setActiveRole] = useState<OrgRole | undefined>(undefined);
 
+  const debouncedSearch = useDebouncedValue(search, 300);
+
   const role = useAppSelector(state => state.auth.role);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data, isLoading, isError, refetch, isFetching } = useMembersQuery({
-    search: search.trim() || undefined,
+    search: debouncedSearch.trim() || undefined,
     role: activeRole,
     pageSize: 20,
   });
 
   const { mutate: deleteMember } = useDeleteMemberMutation();
 
-  const handleInvite = useCallback(() => navigation.navigate('InviteMember'), [navigation]);
+  const handleInvite = useCallback((): void => navigation.navigate('InviteMember'), [navigation]);
 
   const handleEdit = useCallback(
-    (member: Member) => navigation.navigate('EditMember', { memberId: member.id }),
+    (member: Member): void => navigation.navigate('EditMember', { memberId: member.id }),
     [navigation],
   );
 
   const handleDelete = useCallback(
-    (member: Member) => {
+    (member: Member): void => {
       Alert.alert('Hapus Anggota', `Hapus ${member.fullName} dari organisasi?`, [
         { text: 'Batal', style: 'cancel' },
         { text: 'Hapus', style: 'destructive', onPress: (): void => deleteMember(member.id) },
@@ -130,67 +141,70 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
     [deleteMember],
   );
 
-  const renderMember = useCallback(
-    ({ item }: { item: Member }) => (
+  const handleRefetch = useCallback((): void => { refetch(); }, [refetch]);
+
+  const renderMember = useCallback<ListRenderItem<Member>>(
+    ({ item }) => (
       <MemberCard
         member={item}
         canManage={canManage}
-        onEdit={() => handleEdit(item)}
-        onDelete={() => handleDelete(item)}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
       />
     ),
     [canManage, handleEdit, handleDelete],
   );
 
-  const keyExtractor = useCallback((item: Member) => item.id, []);
+  const keyExtractor = useCallback((item: Member): string => item.id, []);
 
   return (
-    <Screen padded edges={[]}>
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <AppText variant="h3">Anggota</AppText>
-        {canManage ? (
-          <Button label="+ Undang" variant="primary" size="sm" onPress={handleInvite} />
+    <Screen mode="none" edges={[]}>
+      {/* ── Header + Search + Filter (non-scrollable, di atas list) ── */}
+      <View style={styles.headerSection}>
+        <View style={styles.header}>
+          <AppText variant="h3">Anggota</AppText>
+          {canManage ? (
+            <Button label="+ Undang" variant="primary" size="sm" onPress={handleInvite} />
+          ) : null}
+        </View>
+
+        <Input
+          placeholder="Cari anggota..."
+          value={search}
+          onChangeText={setSearch}
+          style={styles.searchInput}
+        />
+
+        <View style={styles.filterRow}>
+          {ROLE_FILTERS.map(opt => (
+            <TouchableOpacity
+              key={opt.value ?? 'all'}
+              onPress={(): void => setActiveRole(opt.value)}
+              style={[styles.filterChip, activeRole === opt.value && styles.filterChipActive]}
+              activeOpacity={0.7}
+            >
+              <AppText
+                variant="bodySm"
+                color={activeRole === opt.value ? colors.text.inverse : colors.text.secondary}
+              >
+                {opt.label}
+              </AppText>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {!isLoading && !isError && data ? (
+          <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
+            {data.meta.total} anggota ditemukan
+          </AppText>
         ) : null}
       </View>
 
-      {/* ── Search ── */}
-      <Input
-        placeholder="Cari anggota..."
-        value={search}
-        onChangeText={setSearch}
-        style={styles.searchInput}
-      />
-
-      {/* ── Role filter ── */}
-      <View style={styles.filterRow}>
-        {ROLE_FILTERS.map(opt => (
-          <TouchableOpacity
-            key={opt.value ?? 'all'}
-            onPress={() => setActiveRole(opt.value)}
-            style={[styles.filterChip, activeRole === opt.value && styles.filterChipActive]}
-            activeOpacity={0.7}
-          >
-            <AppText
-              variant="bodySm"
-              color={activeRole === opt.value ? colors.text.inverse : colors.text.secondary}
-            >
-              {opt.label}
-            </AppText>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* ── Total ── */}
-      {!isLoading && !isError && data ? (
-        <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
-          {data.meta.total} anggota ditemukan
-        </AppText>
-      ) : null}
-
       {/* ── List ── */}
       {isLoading ? (
-        <SkeletonList count={5} />
+        <View style={styles.skeletonWrapper}>
+          <SkeletonList count={5} />
+        </View>
       ) : isError ? (
         <View style={styles.centered}>
           <Ionicons name="alert-circle-outline" size={32} color={colors.danger.main} />
@@ -201,29 +215,19 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
             label="Coba Lagi"
             variant="ghost"
             size="sm"
-            onPress={() => {
-              refetch();
-            }}
+            onPress={handleRefetch}
             style={styles.retryButton}
           />
         </View>
       ) : (
-        <FlatList
-          data={data?.items ?? []}
+        <FlashList
+          data={data?.items}
           keyExtractor={keyExtractor}
           renderItem={renderMember}
-          style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={() => {
-                refetch();
-              }}
-              tintColor={colors.primary[500]}
-            />
-          }
+          onRefresh={handleRefetch}
+          refreshing={isFetching && !isLoading}
           ListEmptyComponent={
             <EmptyState
               icon="people-outline"
@@ -242,6 +246,10 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  headerSection: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[4],
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -270,19 +278,20 @@ const styles = StyleSheet.create({
     borderColor: colors.primary[500],
   },
   totalText: {
-    marginBottom: spacing[3],
+    marginBottom: spacing[2],
   },
-  list: {
-    flex: 1,
+  skeletonWrapper: {
+    paddingHorizontal: spacing[4],
   },
   listContent: {
-    gap: spacing[3],
+    paddingHorizontal: spacing[4],
     paddingBottom: spacing[6],
   },
 
   // Card
   memberCard: {
     paddingVertical: spacing[3],
+    marginBottom: spacing[3],
   },
   cardRow: {
     flexDirection: 'row',

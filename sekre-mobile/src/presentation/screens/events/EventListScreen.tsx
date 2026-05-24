@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, SectionList, StyleSheet, Alert, RefreshControl } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
+import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
@@ -12,6 +13,7 @@ import { colors, spacing } from '@presentation/theme';
 import { useEventsQuery } from '@hooks/events/useEventsQuery';
 import { useDeleteEventMutation } from '@hooks/events/useDeleteEventMutation';
 import { useAppSelector } from '@store/hooks';
+import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
 import type { Event, EventStatus } from '@core/domain/entities/Event';
 import type { EventsStackParamList } from '@app/navigation/EventsNavigator';
 import { EventTimelineCard } from './timeline/EventTimelineCard';
@@ -19,19 +21,31 @@ import { EventTimelineSectionHeader } from './timeline/EventTimelineSectionHeade
 
 type Props = NativeStackScreenProps<EventsStackParamList, 'EventList'>;
 
-// ─── Section order ────────────────────────────────────────────────────────────
+// ─── Constants (module scope) ─────────────────────────────────────────────────
 
-const SECTION_ORDER: EventStatus[] = ['ONGOING', 'UPCOMING', 'DONE'];
+const SECTION_ORDER: readonly EventStatus[] = ['ONGOING', 'UPCOMING', 'DONE'] as const;
+
+// ─── Flat list item types ─────────────────────────────────────────────────────
+// FlashList v2 pakai flat data + getItemType untuk mixed-type list.
+// Ini lebih efisien dari SectionList karena FlashList bisa recycle view
+// berdasarkan type.
+
+type SectionHeaderItem = { kind: 'header'; status: EventStatus; count: number };
+type EventItem = { kind: 'event'; event: Event };
+type FlatItem = SectionHeaderItem | EventItem;
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export const EventListScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
+
+  const debouncedSearch = useDebouncedValue(search, 300);
+
   const role = useAppSelector(state => state.auth.role);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data, isLoading, isError, refetch, isFetching } = useEventsQuery({
-    search: search.trim() || undefined,
+    search: debouncedSearch.trim() || undefined,
     pageSize: 20,
   });
 
@@ -40,19 +54,22 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handlePress = useCallback(
-    (event: Event) => navigation.navigate('EventDetail', { eventId: event.id }),
+    (event: Event): void => navigation.navigate('EventDetail', { eventId: event.id }),
     [navigation],
   );
 
-  const handleCreate = useCallback(() => navigation.navigate('CreateEvent'), [navigation]);
+  const handleCreate = useCallback(
+    (): void => navigation.navigate('CreateEvent'),
+    [navigation],
+  );
 
   const handleEdit = useCallback(
-    (event: Event) => navigation.navigate('EditEvent', { eventId: event.id }),
+    (event: Event): void => navigation.navigate('EditEvent', { eventId: event.id }),
     [navigation],
   );
 
   const handleDelete = useCallback(
-    (event: Event) => {
+    (event: Event): void => {
       Alert.alert('Hapus Acara', `Hapus acara "${event.title}"?`, [
         { text: 'Batal', style: 'cancel' },
         { text: 'Hapus', style: 'destructive', onPress: (): void => deleteEvent(event.id) },
@@ -61,9 +78,11 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
     [deleteEvent],
   );
 
-  // ── Build sections ────────────────────────────────────────────────────────
+  const handleRefetch = useCallback((): void => { refetch(); }, [refetch]);
 
-  const sections = useMemo(() => {
+  // ── Build flat data (header + events per section) ─────────────────────────
+
+  const flatData = useMemo((): readonly FlatItem[] => {
     const events = data?.items ?? [];
 
     const grouped: Record<EventStatus, Event[]> = {
@@ -76,44 +95,53 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
       grouped[event.status].push(event);
     }
 
-    // Sort UPCOMING ascending (soonest first), DONE descending (most recent first)
     grouped.UPCOMING.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
     grouped.DONE.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
     grouped.ONGOING.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
-    return SECTION_ORDER.filter(status => grouped[status].length > 0).map(status => ({
-      status,
-      data: grouped[status],
-    }));
+    const result: FlatItem[] = [];
+    for (const status of SECTION_ORDER) {
+      const sectionEvents = grouped[status];
+      if (sectionEvents.length === 0) continue;
+      result.push({ kind: 'header', status, count: sectionEvents.length });
+      for (const event of sectionEvents) {
+        result.push({ kind: 'event', event });
+      }
+    }
+    return result;
   }, [data?.items]);
 
-  // ── Render helpers ────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
-  const renderItem = useCallback(
-    ({ item }: { item: Event }) => (
-      <View style={styles.cardWrapper}>
-        <EventTimelineCard
-          event={item}
-          canManage={canManage}
-          onPress={() => handlePress(item)}
-          onEdit={() => handleEdit(item)}
-          onDelete={() => handleDelete(item)}
-        />
-      </View>
-    ),
+  const getItemType = useCallback((item: FlatItem): string => item.kind, []);
+
+  const renderItem = useCallback<ListRenderItem<FlatItem>>(
+    ({ item }) => {
+      if (item.kind === 'header') {
+        return (
+          <EventTimelineSectionHeader status={item.status} count={item.count} />
+        );
+      }
+      return (
+        <View style={styles.cardWrapper}>
+          <EventTimelineCard
+            event={item.event}
+            canManage={canManage}
+            onPress={(): void => handlePress(item.event)}
+            onEdit={(): void => handleEdit(item.event)}
+            onDelete={(): void => handleDelete(item.event)}
+          />
+        </View>
+      );
+    },
     [canManage, handlePress, handleEdit, handleDelete],
   );
 
-  const renderSectionHeader = useCallback(
-    ({ section }: { section: { status: EventStatus; data: Event[] } }) => (
-      <EventTimelineSectionHeader status={section.status} count={section.data.length} />
-    ),
-    [],
-  );
+  const keyExtractor = useCallback((item: FlatItem): string =>
+    item.kind === 'header' ? `header-${item.status}` : item.event.id,
+  []);
 
-  const keyExtractor = useCallback((item: Event) => item.id, []);
-
-  // ── Render states ─────────────────────────────────────────────────────────
+  // ── Loading state ─────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -122,12 +150,14 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
           <AppText variant="h3">Acara</AppText>
         </View>
         <View style={styles.searchWrapper}>
-          <Input placeholder="Cari acara." value={search} onChangeText={setSearch} />
+          <Input placeholder="Cari acara..." value={search} onChangeText={setSearch} />
         </View>
         <SkeletonList count={5} />
       </Screen>
     );
   }
+
+  // ── Error state ───────────────────────────────────────────────────────────
 
   if (isError) {
     return (
@@ -147,9 +177,7 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
             label="Coba Lagi"
             variant="ghost"
             size="sm"
-            onPress={() => {
-              refetch();
-            }}
+            onPress={handleRefetch}
             style={styles.retryButton}
           />
         </View>
@@ -160,8 +188,8 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
   // ── Main render ───────────────────────────────────────────────────────────
 
   return (
-    <Screen padded={false} edges={['top']} tabScreen>
-      {/* ── Header ── */}
+    <Screen mode="none" edges={['top']} tabScreen>
+      {/* ── Header + Search (non-scrollable) ── */}
       <View style={styles.header}>
         <AppText variant="h3">Acara</AppText>
         {canManage ? (
@@ -169,37 +197,27 @@ export const EventListScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
       </View>
 
-      {/* ── Search ── */}
       <View style={styles.searchWrapper}>
-        <Input placeholder="Cari acara." value={search} onChangeText={setSearch} />
+        <Input placeholder="Cari acara..." value={search} onChangeText={setSearch} />
       </View>
 
-      {/* ── Total ── */}
       {data ? (
         <AppText variant="bodySm" color={colors.text.secondary} style={styles.totalText}>
           {data.meta.total} acara ditemukan
         </AppText>
       ) : null}
 
-      {/* ── Timeline ── */}
-      <SectionList
-        sections={sections}
+      {/* ── Timeline (FlashList flat dengan mixed item types) ── */}
+      <FlashList
+        data={flatData}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        renderSectionHeader={renderSectionHeader}
-        style={styles.list}
+        getItemType={getItemType}
+        // header ~40px, event card ~120px — estimasi rata-rata
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        stickySectionHeadersEnabled={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isFetching && !isLoading}
-            onRefresh={() => {
-              refetch();
-            }}
-            tintColor={colors.primary[500]}
-          />
-        }
+        onRefresh={handleRefetch}
+        refreshing={isFetching && !isLoading}
         ListEmptyComponent={
           <EmptyState
             icon="calendar-outline"
@@ -233,19 +251,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingBottom: spacing[1],
   },
-  list: {
-    flex: 1,
-  },
   listContent: {
     paddingBottom: spacing[6],
-    flexGrow: 1,
   },
   cardWrapper: {
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[1],
+    paddingVertical: spacing[2],
   },
 
-  // Error / loading states
+  // States
   centered: {
     flex: 1,
     justifyContent: 'center',
