@@ -1,7 +1,7 @@
 import type { Page } from './Page';
+import type { TransactionId } from '@core/domain/ids';
 
-// Branded types untuk type safety
-export type TransactionId = string & { __brand: 'TransactionId' };
+export type { TransactionId };
 
 export type TransactionType = 'INCOME' | 'EXPENSE';
 export type TransactionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';

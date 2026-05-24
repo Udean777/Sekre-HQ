@@ -1,7 +1,7 @@
 import type { Page } from './Page';
+import type { DivisionId } from '@core/domain/ids';
 
-// Branded types untuk type safety
-export type DivisionId = string & { __brand: 'DivisionId' };
+export type { DivisionId };
 
 export type DivisionRole = 'HEAD' | 'STAFF';
 

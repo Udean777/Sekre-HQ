@@ -28,7 +28,7 @@ const supportedLocales = ['id', 'en'] as const;
 type SupportedLocale = (typeof supportedLocales)[number];
 
 const isSupportedLocale = (locale: string): locale is SupportedLocale =>
-  (supportedLocales as readonly string[]).includes(locale);
+  supportedLocales.some(l => l === locale);
 
 const deviceLocale = getDeviceLocale();
 const lng: SupportedLocale = isSupportedLocale(deviceLocale) ? deviceLocale : 'id';

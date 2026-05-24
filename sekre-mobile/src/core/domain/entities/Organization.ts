@@ -1,5 +1,7 @@
-// Branded types untuk type safety
-export type OrgId = string & { __brand: 'OrgId' };
+import type { OrganizationId } from '@core/domain/ids';
+
+export type OrgId = OrganizationId;
+export type { OrganizationId };
 export type SubscriptionPlan = 'FREE' | 'LITE' | 'PRO';
 
 export interface Organization {

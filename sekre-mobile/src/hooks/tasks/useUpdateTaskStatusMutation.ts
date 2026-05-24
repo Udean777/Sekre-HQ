@@ -14,7 +14,7 @@ interface MutationVariables {
 }
 
 interface MutationContext {
-  previousQueries: Array<{ queryKey: unknown[]; data: unknown }>;
+  previousQueries: Array<{ queryKey: readonly unknown[]; data: unknown }>;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ export const useUpdateTaskStatusMutation = (): UseMutationResult<
       });
 
       const previousQueries = taskQueries.map(([queryKey, data]) => ({
-        queryKey: queryKey as unknown[],
+        queryKey,
         data,
       }));
 

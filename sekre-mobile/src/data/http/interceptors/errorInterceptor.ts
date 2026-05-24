@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 import {
   UnauthorizedError,
   ForbiddenError,
@@ -16,6 +16,9 @@ interface BackendErrorResponse {
   errors?: Record<string, string>;
 }
 
+const isBackendErrorResponse = (value: unknown): value is BackendErrorResponse =>
+  typeof value === 'object' && value !== null;
+
 /**
  * Map HTTP error response → DomainError.
  * Setiap error juga dikirim sebagai Sentry breadcrumb supaya ada trail
@@ -23,7 +26,7 @@ interface BackendErrorResponse {
  */
 export const errorInterceptor = (client: AxiosInstance): void => {
   client.interceptors.response.use(
-    (response: AxiosResponse) => response,
+    response => response,
     (error: unknown) => {
       if (!axios.isAxiosError(error)) {
         return Promise.reject(error);
@@ -43,9 +46,10 @@ export const errorInterceptor = (client: AxiosInstance): void => {
         return Promise.reject(new NetworkError());
       }
 
-      const { status, data } = error.response as AxiosResponse<BackendErrorResponse>;
-      const message = data?.message;
-      const fields = data?.errors ?? {};
+      const { status, data, headers } = error.response;
+      const responseData = isBackendErrorResponse(data) ? data : undefined;
+      const message = responseData?.message;
+      const fields = responseData?.errors ?? {};
 
       // Breadcrumb untuk semua HTTP error — muncul di Sentry event trail
       getTelemetry().addBreadcrumb({
@@ -72,14 +76,13 @@ export const errorInterceptor = (client: AxiosInstance): void => {
         case 409:
           return Promise.reject(new ConflictError(message));
         case 429: {
-          const retryAfter = error.response.headers['retry-after']
-            ? Number(error.response.headers['retry-after'])
+          const retryAfter = headers['retry-after']
+            ? Number(headers['retry-after'])
             : undefined;
           return Promise.reject(new RateLimitError(message, retryAfter));
         }
         default:
           if (status >= 500) {
-            // 5xx — capture ke Sentry sebagai exception, bukan hanya breadcrumb
             getTelemetry().captureException(new ServerError(status, message), {
               url: error.config?.url,
               method: error.config?.method?.toUpperCase(),

@@ -32,6 +32,9 @@ const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
   CANCELLED: { label: 'Dibatalkan', color: colors.danger.main },
 };
 
+// Typed keys — hindari Object.keys cast di render
+const STATUS_CONFIG_KEYS: readonly TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'];
+
 const PLAN_VARIANT: Record<string, BadgeVariant> = {
   FREE: 'default',
   LITE: 'info',
@@ -155,7 +158,7 @@ export const DashboardScreen: React.FC = () => {
 
   // Hitung task per status
   const tasksByStatus = React.useMemo(() => {
-    const base = { TODO: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 } as Record<TaskStatus, number>;
+    const base: Record<TaskStatus, number> = { TODO: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 };
     if (!taskData) return base;
     return taskData.items.reduce((acc, task) => {
       acc[task.status] = (acc[task.status] ?? 0) + 1;
@@ -228,7 +231,7 @@ export const DashboardScreen: React.FC = () => {
       ) : (
         <>
           <View style={styles.statsGrid}>
-            {(Object.keys(STATUS_CONFIG) as TaskStatus[]).map(status => (
+            {STATUS_CONFIG_KEYS.map(status => (
               <StatCard
                 key={status}
                 label={STATUS_CONFIG[status].label}

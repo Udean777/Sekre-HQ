@@ -1,7 +1,7 @@
 import type { Page } from './Page';
+import type { TaskId } from '@core/domain/ids';
 
-// Branded types untuk type safety
-export type TaskId = string & { __brand: 'TaskId' };
+export type { TaskId };
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';

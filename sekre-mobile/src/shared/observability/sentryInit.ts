@@ -48,7 +48,7 @@ const redactSensitiveFields = (obj: unknown, depth = 0): unknown => {
   }
 
   const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+  for (const [key, value] of Object.entries(obj)) {
     if (SENSITIVE_FIELDS.has(key.toLowerCase())) {
       result[key] = '[Filtered]';
     } else {
@@ -70,9 +70,9 @@ const redactSensitiveFields = (obj: unknown, depth = 0): unknown => {
 const beforeSend = (event: ErrorEvent, _hint: EventHint): ErrorEvent | null => {
   // Strip Authorization header dari request
   if (event.request?.headers) {
-    const headers = { ...event.request.headers } as Record<string, string>;
-    if (headers.Authorization) headers.Authorization = '[Filtered]';
-    if (headers.authorization) headers.authorization = '[Filtered]';
+    const headers = { ...event.request.headers };
+    if (typeof headers.Authorization === 'string') headers.Authorization = '[Filtered]';
+    if (typeof headers.authorization === 'string') headers.authorization = '[Filtered]';
     event.request.headers = headers;
   }
 
@@ -100,7 +100,7 @@ const beforeSend = (event: ErrorEvent, _hint: EventHint): ErrorEvent | null => {
  */
 const beforeBreadcrumb = (breadcrumb: Breadcrumb): Breadcrumb | null => {
   if (breadcrumb.category === 'http' && breadcrumb.data) {
-    const data = { ...breadcrumb.data } as Record<string, unknown>;
+    const data = { ...breadcrumb.data };
 
     // Strip Authorization header
     if (typeof data.Authorization === 'string') {
@@ -122,7 +122,7 @@ const beforeBreadcrumb = (breadcrumb: Breadcrumb): Breadcrumb | null => {
   if (
     breadcrumb.category === 'http' &&
     typeof breadcrumb.data?.url === 'string' &&
-    (breadcrumb.data.url as string).includes('/auth/')
+    breadcrumb.data.url.includes('/auth/')
   ) {
     return {
       ...breadcrumb,

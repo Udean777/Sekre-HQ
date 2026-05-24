@@ -21,6 +21,9 @@ interface RetryConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
+const isRetryConfig = (config: InternalAxiosRequestConfig | undefined): config is RetryConfig =>
+  config !== undefined;
+
 let isRefreshing = false;
 let pendingQueue: Array<{
   resolve: (token: string) => void;
@@ -64,7 +67,7 @@ export const refreshInterceptor = (client: AxiosInstance): void => {
         return Promise.reject(error);
       }
 
-      const originalRequest = error.config as RetryConfig | undefined;
+      const originalRequest = isRetryConfig(error.config) ? error.config : undefined;
 
       // Hanya handle 401, skip jika sudah retry
       if (error.response?.status !== 401 || originalRequest?._retry) {

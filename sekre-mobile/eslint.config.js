@@ -58,6 +58,31 @@ module.exports = [
       // Allow components passed as props (e.g. react-navigation `headerLeft`,
       // `tabBar`, FlatList `renderItem`) — required pattern oleh React Navigation API.
       'react/no-unstable-nested-components': ['warn', { allowAsProps: true }],
+      // Larang type assertion `as X` dan angle-bracket `<X>` secara global.
+      // Satu-satunya tempat yang boleh pakai `as BrandedId` adalah data/mappers/*
+      // (lihat override di bawah). Ini mencegah branded ID di-cast sembarangan
+      // di luar boundary mapper.
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        { assertionStyle: 'never' },
+      ],
+    },
+  },
+
+  // ── Override: allow `as` cast di mapper boundary ──────────────────────────
+  // Mapper adalah satu-satunya tempat yang boleh cast string → branded ID
+  // (e.g. `dto.id as TaskId`). Di luar mapper, branded ID harus datang dari
+  // mapper itu sendiri — tidak perlu cast ulang.
+  {
+    files: ['src/data/mappers/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        {
+          assertionStyle: 'as',
+          objectLiteralTypeAssertions: 'never',
+        },
+      ],
     },
   },
 ];

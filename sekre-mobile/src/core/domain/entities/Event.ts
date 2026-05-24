@@ -1,7 +1,7 @@
 import type { Page } from './Page';
+import type { EventId } from '@core/domain/ids';
 
-// Branded types untuk type safety
-export type EventId = string & { __brand: 'EventId' };
+export type { EventId };
 
 export type EventStatus = 'UPCOMING' | 'ONGOING' | 'DONE';
 

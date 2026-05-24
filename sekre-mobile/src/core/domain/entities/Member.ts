@@ -1,7 +1,7 @@
 import type { Page } from './Page';
+import type { MemberId } from '@core/domain/ids';
 
-// Branded types untuk type safety
-export type MemberId = string & { __brand: 'MemberId' };
+export type { MemberId };
 
 export type OrgRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 

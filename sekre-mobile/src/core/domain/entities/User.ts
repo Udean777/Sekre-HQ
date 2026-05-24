@@ -1,5 +1,6 @@
-// Branded types untuk type safety
-export type UserId = string & { __brand: 'UserId' };
+import type { UserId } from '@core/domain/ids';
+
+export type { UserId };
 
 export interface User {
   id: UserId;

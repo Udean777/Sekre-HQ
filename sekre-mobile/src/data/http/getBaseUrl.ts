@@ -22,17 +22,14 @@ import Config from 'react-native-config';
  */
 function isIOSSimulator(): boolean {
   if (Platform.OS !== 'ios') return false;
-  // Platform.constants.isSimulator is available on RN 0.64+
-  return (Platform.constants as { isSimulator?: boolean })?.isSimulator === true;
+  const constants = Platform.constants;
+  return 'isSimulator' in constants && constants.isSimulator === true;
 }
 
-/**
- * Returns true when running on an Android Emulator.
- * Uses Platform.constants which is reliable on RN 0.64+.
- */
 function isAndroidEmulator(): boolean {
   if (Platform.OS !== 'android') return false;
-  return (Platform.constants as { isEmulator?: boolean })?.isEmulator === true;
+  const constants = Platform.constants;
+  return 'isEmulator' in constants && constants.isEmulator === true;
 }
 
 /**
