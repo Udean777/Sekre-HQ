@@ -93,14 +93,24 @@ jobs:
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
+      # ── Bundle JS + source map untuk Android release ────────────────────────
+      - name: Bundle JS for Android release
+        run: |
+          bunx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output /tmp/main.jsbundle \
+            --sourcemap-output /tmp/main.jsbundle.map
+
       # ── Upload Android source maps ───────────────────────────────────────────
       - name: Upload Android source maps to Sentry
         run: |
-          bunx sentry-cli releases files "${{ steps.version.outputs.release }}" \
-            upload-sourcemaps \
+          bunx sentry-cli sourcemaps upload \
+            --release "${{ steps.version.outputs.release }}" \
             --dist "${{ steps.version.outputs.version_code }}" \
-            --rewrite \
-            android/app/build/generated/sourcemaps/react/release/index.android.bundle.map
+            /tmp/main.jsbundle \
+            /tmp/main.jsbundle.map
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
