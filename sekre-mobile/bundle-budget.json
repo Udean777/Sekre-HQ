@@ -1,0 +1,12 @@
+{
+  "android": {
+    "maxBytes": 6815744,
+    "maxModules": 3300,
+    "_comment": "6.5 MB / 3300 modules. Baseline PR 5: 6.26 MB / 3246 modules. Update via: node scripts/check-bundle-budget.js --update-baseline"
+  },
+  "ios": {
+    "maxBytes": 6815744,
+    "maxModules": 3300,
+    "_comment": "iOS bundle similar ke Android (shared JS). Adjust setelah baseline iOS terukur di CI macos."
+  }
+}

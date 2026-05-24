@@ -14,7 +14,9 @@
     "pods": "cd ios && pod install && cd ..",
     "sentry:upload-android": "sentry-cli releases files $(cat android/app/build.gradle | grep versionName | head -1 | awk -F'\"' '{print $2}') upload-sourcemaps --dist 1 --rewrite android/app/build/generated/sourcemaps/react/release/index.android.bundle.map",
     "sentry:upload-ios": "sentry-cli releases files $(cat ios/SekreMobile/Info.plist | grep -A1 CFBundleShortVersionString | tail -1 | sed 's/.*<string>\\(.*\\)<\\/string>.*/\\1/') upload-sourcemaps --dist 1 --rewrite ios/main.jsbundle.map",
-    "analyze-bundle": "react-native-bundle-visualizer --platform android --out bundle-visualizer-output/android && react-native-bundle-visualizer --platform ios --out bundle-visualizer-output/ios"
+    "analyze-bundle": "react-native-bundle-visualizer --platform android --out bundle-visualizer-output/android && react-native-bundle-visualizer --platform ios --out bundle-visualizer-output/ios",
+    "check-bundle-budget": "node scripts/check-bundle-budget.js",
+    "check-bundle-budget:update": "node scripts/check-bundle-budget.js --update-baseline"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

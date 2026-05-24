@@ -1,0 +1,178 @@
+name: iOS Release + Sentry Source Maps
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ios-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-release:
+    name: Build iOS Release + Upload Source Maps
+    runs-on: macos-14
+    timeout-minutes: 90
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Setup Bun ────────────────────────────────────────────────────────────
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # ── Cache node_modules ───────────────────────────────────────────────────
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      # ── Install dependencies ─────────────────────────────────────────────────
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # ── Cache Pods ───────────────────────────────────────────────────────────
+      - name: Cache Pods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      # ── Install Pods ─────────────────────────────────────────────────────────
+      - name: Install Pods
+        working-directory: ios
+        run: pod install --repo-update
+
+      # ── Read version from Info.plist ─────────────────────────────────────────
+      - name: Read app version
+        id: version
+        run: |
+          VERSION_NAME=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" ios/SekreMobile/Info.plist)
+          VERSION_CODE=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" ios/SekreMobile/Info.plist)
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "release=$VERSION_NAME+$VERSION_CODE" >> $GITHUB_OUTPUT
+
+      # ── Setup code signing ───────────────────────────────────────────────────
+      # Pakai Apple Distribution certificate + provisioning profile dari Secrets.
+      # Certificate di-encode base64 dan di-store di APPLE_CERTIFICATE_BASE64.
+      - name: Setup code signing
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # Create temp keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+
+          # Import certificate
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > certificate.p12
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+          # Install provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      # ── Build iOS IPA ────────────────────────────────────────────────────────
+      - name: Build iOS IPA
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -workspace SekreMobile.xcworkspace \
+            -scheme SekreMobile \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath $RUNNER_TEMP/SekreMobile.xcarchive \
+            archive | xcpretty
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath $RUNNER_TEMP/SekreMobile.xcarchive \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/ipa | xcpretty
+
+      # ── Extract JS bundle + source map from archive ──────────────────────────
+      # RN iOS release build embed JS bundle di dalam .xcarchive.
+      # Source map di-generate terpisah oleh Metro saat build.
+      - name: Extract source map
+        run: |
+          BUNDLE_PATH=$(find $RUNNER_TEMP/SekreMobile.xcarchive -name "main.jsbundle" | head -1)
+          MAP_PATH=$(find $RUNNER_TEMP/SekreMobile.xcarchive -name "main.jsbundle.map" | head -1)
+
+          if [ -z "$MAP_PATH" ]; then
+            echo "Source map not found in archive — generating from bundle..."
+            bunx react-native bundle \
+              --platform ios \
+              --dev false \
+              --minify true \
+              --entry-file index.js \
+              --bundle-output /tmp/main.jsbundle \
+              --sourcemap-output /tmp/main.jsbundle.map
+            MAP_PATH=/tmp/main.jsbundle.map
+          fi
+
+          echo "SOURCEMAP_PATH=$MAP_PATH" >> $GITHUB_ENV
+
+      # ── Create Sentry release ────────────────────────────────────────────────
+      - name: Create Sentry release
+        run: |
+          bunx sentry-cli releases new "${{ steps.version.outputs.release }}"
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+
+      # ── Upload iOS source maps ───────────────────────────────────────────────
+      - name: Upload iOS source maps to Sentry
+        run: |
+          bunx sentry-cli releases files "${{ steps.version.outputs.release }}" \
+            upload-sourcemaps \
+            --dist "${{ steps.version.outputs.version_code }}" \
+            --rewrite \
+            "${{ env.SOURCEMAP_PATH }}"
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+
+      # ── Finalize Sentry release ──────────────────────────────────────────────
+      - name: Finalize Sentry release
+        run: |
+          bunx sentry-cli releases finalize "${{ steps.version.outputs.release }}"
+          bunx sentry-cli releases deploys "${{ steps.version.outputs.release }}" new -e production
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+
+      # ── Upload IPA artifact ──────────────────────────────────────────────────
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sekre-ios-release-${{ steps.version.outputs.release }}
+          path: ${{ runner.temp }}/ipa/*.ipa
+          retention-days: 30
+
+      # ── Cleanup keychain ─────────────────────────────────────────────────────
+      - name: Cleanup keychain
+        if: always()
+        run: security delete-keychain build.keychain || true
