@@ -12,6 +12,7 @@ import { useAppSelector, useAppDispatch } from '@store/hooks';
 import { clearSession } from '@store/slices/authSlice';
 import { tokenStorage } from '@data/storage/MmkvTokenStorage';
 import { useBootstrapAuth } from '@hooks/auth/useBootstrapAuth';
+import { useDeviceSecurity } from '@hooks/ui/useDeviceSecurity';
 import { ScreenErrorBoundary } from '@presentation/components/ErrorBoundary';
 import { OfflineBanner } from '@presentation/components/OfflineBanner';
 import { colors } from '@presentation/theme';
@@ -38,6 +39,7 @@ export const RootNavigator: React.FC = () => {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
   const { isBootstrapping } = useBootstrapAuth();
+  useDeviceSecurity();
 
   // navigationRef dipakai oleh Sentry untuk melacak screen transitions
   // sebagai performance transactions di Sentry Performance dashboard
