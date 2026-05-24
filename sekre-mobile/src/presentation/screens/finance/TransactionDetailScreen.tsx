@@ -7,66 +7,23 @@ import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
 import { Button } from '@presentation/components/Button';
 import { Badge, txTypeVariant, txStatusVariant } from '@presentation/components/Badge';
+import { InfoRow } from '@presentation/components/InfoRow';
 import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useTransactionQuery } from '@hooks/finance/useTransactionQuery';
 import { useDeleteTransactionMutation } from '@hooks/finance/useDeleteTransactionMutation';
 import { useAppSelector } from '@store/hooks';
 import { selectAuthRole } from '@store/slices/authSlice';
-import type { Money } from '@core/domain/entities/Transaction';
+import { formatMoney } from '@shared/utils/formatMoney';
+import { formatDateTime } from '@shared/utils/formatDate';
 import type { FinanceStackParamList } from '@app/navigation/FinanceNavigator';
 
 type Props = NativeStackScreenProps<FinanceStackParamList, 'TransactionDetail'>;
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const formatMoney = (money: Money): string => {
-  const amount = money.amountCents / 100;
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: money.currency,
-    minimumFractionDigits: 0,
-  }).format(amount);
-};
-
-const formatDate = (date: Date): string =>
-  date.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL: Readonly<Record<string, string>> = {
   APPROVED: 'Disetujui',
   REJECTED: 'Ditolak',
   PENDING: 'Menunggu',
-};
-
-// ─── Info Row ─────────────────────────────────────────────────────────────────
-
-const InfoRow: React.FC<{ icon: string; label: string; value: string; valueColor?: string }> = ({
-  icon,
-  label,
-  value,
-  valueColor,
-}) => (
-  <View style={styles.infoRow}>
-    <View style={styles.infoIcon}>
-      <Ionicons name={icon} size={16} color={colors.primary[500]} />
-    </View>
-    <View style={styles.infoContent}>
-      <AppText variant="bodySm" color={colors.text.secondary}>
-        {label}
-      </AppText>
-      <AppText variant="bodyMd" style={styles.infoValue} color={valueColor}>
-        {value}
-      </AppText>
-    </View>
-  </View>
-);
-
-// ─── Screen ──────────────────────────────────────────────────────────────────
+} as const;
 
 export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { transactionId } = route.params;
@@ -94,7 +51,6 @@ export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) 
     ]);
   }, [deleteTransaction, transactionId, navigation]);
 
-  // ── Loading ──
   if (isLoading) {
     return (
       <Screen>
@@ -105,7 +61,6 @@ export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) 
     );
   }
 
-  // ── Error ──
   if (isError || !tx) {
     return (
       <Screen padded>
@@ -201,9 +156,9 @@ export const TransactionDetailScreen: React.FC<Props> = ({ navigation, route }) 
 
         {/* ── Meta ── */}
         <Card style={styles.infoCard}>
-          <InfoRow icon="create-outline" label="Dibuat" value={formatDate(tx.createdAt)} />
+          <InfoRow icon="create-outline" label="Dibuat" value={formatDateTime(tx.createdAt)} />
           <View style={styles.infoDivider} />
-          <InfoRow icon="refresh-outline" label="Diperbarui" value={formatDate(tx.updatedAt)} />
+          <InfoRow icon="refresh-outline" label="Diperbarui" value={formatDateTime(tx.updatedAt)} />
         </Card>
 
         {/* ── Actions ── */}
@@ -261,8 +216,6 @@ const styles = StyleSheet.create({
   backButton: {
     marginTop: spacing[1],
   },
-
-  // Hero
   hero: {
     alignItems: 'center',
     gap: spacing[3],
@@ -283,8 +236,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing[2],
   },
-
-  // Description
   descCard: {
     marginBottom: spacing[4],
     gap: spacing[2],
@@ -292,39 +243,14 @@ const styles = StyleSheet.create({
   descLabel: {
     marginBottom: spacing[1],
   },
-
-  // Info card
   infoCard: {
     marginBottom: spacing[4],
     gap: 0,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[3],
-    paddingVertical: spacing[2],
-  },
-  infoIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 7,
-    backgroundColor: colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoContent: {
-    flex: 1,
-    gap: spacing[1],
-  },
-  infoValue: {
-    fontWeight: fontWeight.medium,
   },
   infoDivider: {
     height: 1,
     backgroundColor: colors.border.default,
   },
-
-  // Actions
   actions: {
     gap: spacing[3],
   },

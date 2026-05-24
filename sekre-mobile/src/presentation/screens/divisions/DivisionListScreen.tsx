@@ -1,16 +1,15 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
-import { Card } from '@presentation/components/Card';
 import { Input } from '@presentation/components/Input';
 import { Button } from '@presentation/components/Button';
 import { SkeletonList } from '@presentation/components/Skeleton';
 import { EmptyState } from '@presentation/components/EmptyState';
-import { colors, spacing, fontWeight } from '@presentation/theme';
+import { colors, spacing } from '@presentation/theme';
 import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
 import { useDeleteDivisionMutation } from '@hooks/divisions/useDeleteDivisionMutation';
 import { useAppSelector } from '@store/hooks';
@@ -19,86 +18,9 @@ import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
 import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Division } from '@core/domain/entities/Division';
 import type { DivisionsStackParamList } from '@app/navigation/DivisionsNavigator';
+import { DivisionCard } from './components';
 
 type Props = NativeStackScreenProps<DivisionsStackParamList, 'DivisionList'>;
-
-// ─── Division Card (memoized) ─────────────────────────────────────────────────
-
-interface DivisionCardProps {
-  division: Division;
-  canManage: boolean;
-  onPress: (division: Division) => void;
-  onEdit: (division: Division) => void;
-  onDelete: (division: Division) => void;
-}
-
-const DivisionCard: React.FC<DivisionCardProps> = React.memo(
-  ({ division, canManage, onPress, onEdit, onDelete }) => {
-    const handlePress = useCallback((): void => onPress(division), [onPress, division]);
-    const handleEdit = useCallback(
-      (e: { stopPropagation: () => void }): void => {
-        e.stopPropagation();
-        onEdit(division);
-      },
-      [onEdit, division],
-    );
-    const handleDelete = useCallback(
-      (e: { stopPropagation: () => void }): void => {
-        e.stopPropagation();
-        onDelete(division);
-      },
-      [onDelete, division],
-    );
-
-    return (
-      <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
-        <Card style={styles.divisionCard}>
-          <View style={styles.cardHeader}>
-            <View style={styles.divisionIcon}>
-              <Ionicons name="git-branch-outline" size={20} color={colors.primary[500]} />
-            </View>
-
-            <View style={styles.cardInfo}>
-              <AppText variant="bodyMd" style={styles.divisionName} numberOfLines={1}>
-                {division.name}
-              </AppText>
-              <AppText variant="bodySm" color={colors.text.secondary}>
-                {division.memberCount > 0
-                  ? `${division.memberCount} anggota`
-                  : 'Belum ada anggota'}
-              </AppText>
-            </View>
-
-            {canManage ? (
-              <View style={styles.cardActions}>
-                <TouchableOpacity
-                  onPress={handleEdit}
-                  style={styles.iconButton}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Ionicons name="pencil-outline" size={18} color={colors.primary[500]} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleDelete}
-                  style={styles.iconButton}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Ionicons name="trash-outline" size={18} color={colors.danger.main} />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
-            )}
-          </View>
-        </Card>
-      </TouchableOpacity>
-    );
-  },
-);
-
-// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
@@ -108,7 +30,16 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
   const role = useAppSelector(selectAuthRole);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
-  const { data, isLoading, isError, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } = useDivisionsQuery({
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useDivisionsQuery({
     search: debouncedSearch.trim() || undefined,
     pageSize: 20,
   });
@@ -138,23 +69,21 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleDelete = useCallback(
     (division: Division): void => {
-      Alert.alert(
-        'Hapus Divisi',
-        `Apakah Anda yakin ingin menghapus divisi "${division.name}"?`,
-        [
-          { text: 'Batal', style: 'cancel' },
-          {
-            text: 'Hapus',
-            style: 'destructive',
-            onPress: (): void => deleteDivision(division.id),
-          },
-        ],
-      );
+      Alert.alert('Hapus Divisi', `Apakah Anda yakin ingin menghapus divisi "${division.name}"?`, [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: (): void => deleteDivision(division.id),
+        },
+      ]);
     },
     [deleteDivision],
   );
 
-  const handleRefetch = useCallback((): void => { refetch(); }, [refetch]);
+  const handleRefetch = useCallback((): void => {
+    refetch();
+  }, [refetch]);
 
   const renderDivision = useCallback<ListRenderItem<Division>>(
     ({ item }) => (
@@ -173,7 +102,7 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <Screen mode="none" edges={[]}>
-      {/* ── Header + Search (non-scrollable, di atas list) ── */}
+      {/* ── Header + Search ── */}
       <View style={styles.headerSection}>
         <View style={styles.header}>
           <AppText variant="h3">Divisi</AppText>
@@ -224,7 +153,13 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           onRefresh={handleRefetch}
           refreshing={isFetching && !isLoading}
-          onEndReached={hasNextPage ? (): void => { void fetchNextPage(); } : undefined}
+          onEndReached={
+            hasNextPage
+              ? (): void => {
+                  void fetchNextPage();
+                }
+              : undefined
+          }
           onEndReachedThreshold={0.5}
           ListFooterComponent={isFetchingNextPage ? <SkeletonList count={2} /> : null}
           ListEmptyComponent={
@@ -268,41 +203,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingBottom: spacing[6],
   },
-
-  // Card
-  divisionCard: {
-    paddingVertical: spacing[3],
-    marginBottom: spacing[3],
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  divisionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardInfo: {
-    flex: 1,
-    gap: spacing[1],
-  },
-  divisionName: {
-    fontWeight: fontWeight.semiBold,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  iconButton: {
-    padding: spacing[1],
-  },
-
-  // States
   centered: {
     flex: 1,
     justifyContent: 'center',

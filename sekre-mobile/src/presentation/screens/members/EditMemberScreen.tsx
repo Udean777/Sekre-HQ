@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '@presentation/components/Screen';
@@ -11,24 +17,20 @@ import { Button } from '@presentation/components/Button';
 import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useUpdateMemberMutation } from '@hooks/members/useUpdateMemberMutation';
 import { isDomainError } from '@core/domain/errors/DomainError';
+import { editMemberSchema, type EditMemberFormValues } from '@shared/utils/memberSchemas';
 import type { MembersStackParamList } from '@app/navigation/MembersNavigator';
 import type { OrgRole } from '@core/domain/entities/Member';
 
 type Props = NativeStackScreenProps<MembersStackParamList, 'EditMember'>;
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
-
-const editMemberSchema = z.object({
-  role: z.enum(['ADMIN', 'MEMBER'], {
-    error: 'Peran wajib dipilih.',
-  }),
-});
-
-type EditMemberFormValues = z.infer<typeof editMemberSchema>;
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ROLE_OPTIONS: Array<{ label: string; value: OrgRole; description: string; icon: string }> = [
+const ROLE_OPTIONS: ReadonlyArray<{
+  label: string;
+  value: OrgRole;
+  description: string;
+  icon: string;
+}> = [
   {
     label: 'Admin',
     value: 'ADMIN',
@@ -41,7 +43,7 @@ const ROLE_OPTIONS: Array<{ label: string; value: OrgRole; description: string; 
     description: 'Akses standar ke konten organisasi',
     icon: 'person-outline',
   },
-];
+] as const;
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
@@ -85,104 +87,108 @@ export const EditMemberScreen: React.FC<Props> = ({ navigation, route }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <View style={styles.headerIcon}>
-            <Ionicons name="person-outline" size={28} color={colors.primary[500]} />
-          </View>
-          <AppText variant="h3">Edit Peran Anggota</AppText>
-          <AppText variant="bodyMd" color={colors.text.secondary} style={styles.subtitle}>
-            Ubah peran anggota dalam organisasi
-          </AppText>
-        </View>
-
-        {/* ── Error banner ── */}
-        {globalError ? (
-          <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle-outline" size={16} color={colors.danger.main} />
-            <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
-              {globalError}
+          {/* ── Header ── */}
+          <View style={styles.header}>
+            <View style={styles.headerIcon}>
+              <Ionicons name="person-outline" size={28} color={colors.primary[500]} />
+            </View>
+            <AppText variant="h3">Edit Peran Anggota</AppText>
+            <AppText variant="bodyMd" color={colors.text.secondary} style={styles.subtitle}>
+              Ubah peran anggota dalam organisasi
             </AppText>
           </View>
-        ) : null}
 
-        {/* ── Role selector ── */}
-        <View style={styles.form}>
-          <Controller
-            control={control}
-            name="role"
-            render={({ field: { onChange, value } }) => (
-              <View>
-                <AppText variant="label" color={colors.text.secondary} style={styles.fieldLabel}>
-                  Pilih Peran
-                </AppText>
-                <View style={styles.roleOptions}>
-                  {ROLE_OPTIONS.map(opt => {
-                    const active = value === opt.value;
-                    return (
-                      <TouchableOpacity
-                        key={opt.value}
-                        onPress={() => onChange(opt.value)}
-                        style={[styles.roleCard, active && styles.roleCardActive]}
-                        activeOpacity={0.7}
-                      >
-                        <View style={[styles.roleIconBox, active && styles.roleIconBoxActive]}>
-                          <Ionicons
-                            name={opt.icon}
-                            size={20}
-                            color={active ? colors.primary[600] : colors.text.secondary}
-                          />
-                        </View>
-                        <View style={styles.roleText}>
-                          <AppText
-                            variant="bodyMd"
-                            style={styles.roleLabel}
-                            color={active ? colors.primary[700] : colors.text.primary}
-                          >
-                            {opt.label}
-                          </AppText>
-                          <AppText
-                            variant="bodySm"
-                            color={active ? colors.primary[500] : colors.text.secondary}
-                          >
-                            {opt.description}
-                          </AppText>
-                        </View>
-                        {active ? (
-                          <Ionicons name="checkmark-circle" size={20} color={colors.primary[500]} />
-                        ) : null}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                {errors.role ? (
-                  <AppText variant="bodySm" color={colors.danger.main} style={styles.fieldError}>
-                    {errors.role.message}
+          {/* ── Error banner ── */}
+          {globalError ? (
+            <View style={styles.errorBanner}>
+              <Ionicons name="alert-circle-outline" size={16} color={colors.danger.main} />
+              <AppText variant="bodySm" color={colors.danger.main} style={styles.errorText}>
+                {globalError}
+              </AppText>
+            </View>
+          ) : null}
+
+          {/* ── Role selector ── */}
+          <View style={styles.form}>
+            <Controller
+              control={control}
+              name="role"
+              render={({ field: { onChange, value } }) => (
+                <View>
+                  <AppText variant="label" color={colors.text.secondary} style={styles.fieldLabel}>
+                    Pilih Peran
                   </AppText>
-                ) : null}
-              </View>
-            )}
-          />
-        </View>
+                  <View style={styles.roleOptions}>
+                    {ROLE_OPTIONS.map(opt => {
+                      const active = value === opt.value;
+                      return (
+                        <TouchableOpacity
+                          key={opt.value}
+                          onPress={() => onChange(opt.value)}
+                          style={[styles.roleCard, active && styles.roleCardActive]}
+                          activeOpacity={0.7}
+                        >
+                          <View style={[styles.roleIconBox, active && styles.roleIconBoxActive]}>
+                            <Ionicons
+                              name={opt.icon}
+                              size={20}
+                              color={active ? colors.primary[600] : colors.text.secondary}
+                            />
+                          </View>
+                          <View style={styles.roleText}>
+                            <AppText
+                              variant="bodyMd"
+                              style={styles.roleLabel}
+                              color={active ? colors.primary[700] : colors.text.primary}
+                            >
+                              {opt.label}
+                            </AppText>
+                            <AppText
+                              variant="bodySm"
+                              color={active ? colors.primary[500] : colors.text.secondary}
+                            >
+                              {opt.description}
+                            </AppText>
+                          </View>
+                          {active ? (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={20}
+                              color={colors.primary[500]}
+                            />
+                          ) : null}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  {errors.role ? (
+                    <AppText variant="bodySm" color={colors.danger.main} style={styles.fieldError}>
+                      {errors.role.message}
+                    </AppText>
+                  ) : null}
+                </View>
+              )}
+            />
+          </View>
 
-        {/* ── Actions ── */}
-        <Button
-          label="Simpan Perubahan"
-          variant="primary"
-          size="lg"
-          fullWidth
-          loading={isPending}
-          onPress={handleSubmit(onSubmit)}
-        />
-        <Button
-          label="Batal"
-          variant="ghost"
-          size="lg"
-          fullWidth
-          onPress={() => navigation.goBack()}
-          style={styles.cancelButton}
-        />
-      </ScrollView>
+          {/* ── Actions ── */}
+          <Button
+            label="Simpan Perubahan"
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={isPending}
+            onPress={handleSubmit(onSubmit)}
+          />
+          <Button
+            label="Batal"
+            variant="ghost"
+            size="lg"
+            fullWidth
+            onPress={() => navigation.goBack()}
+            style={styles.cancelButton}
+          />
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -198,8 +204,6 @@ const styles = StyleSheet.create({
     padding: spacing[4],
     paddingBottom: spacing[10],
   },
-
-  // Header
   header: {
     alignItems: 'center',
     gap: spacing[2],
@@ -218,8 +222,6 @@ const styles = StyleSheet.create({
   subtitle: {
     textAlign: 'center',
   },
-
-  // Error
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -232,8 +234,6 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
   },
-
-  // Form
   form: {
     marginBottom: spacing[6],
   },
@@ -243,8 +243,6 @@ const styles = StyleSheet.create({
   fieldError: {
     marginTop: spacing[1],
   },
-
-  // Role selector
   roleOptions: {
     gap: spacing[2],
   },
@@ -280,8 +278,6 @@ const styles = StyleSheet.create({
   roleLabel: {
     fontWeight: fontWeight.semiBold,
   },
-
-  // Actions
   cancelButton: {
     marginTop: spacing[2],
   },

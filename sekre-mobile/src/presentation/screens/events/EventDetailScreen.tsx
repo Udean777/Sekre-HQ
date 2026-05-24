@@ -6,51 +6,16 @@ import { Screen } from '@presentation/components/Screen';
 import { AppText } from '@presentation/components/Text';
 import { Card } from '@presentation/components/Card';
 import { Button } from '@presentation/components/Button';
+import { InfoRow } from '@presentation/components/InfoRow';
 import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useEventQuery } from '@hooks/events/useEventQuery';
 import { useDeleteEventMutation } from '@hooks/events/useDeleteEventMutation';
 import { useAppSelector } from '@store/hooks';
 import { selectAuthRole } from '@store/slices/authSlice';
+import { formatDateLong, formatTime } from '@shared/utils/formatDate';
 import type { EventsStackParamList } from '@app/navigation/EventsNavigator';
 
 type Props = NativeStackScreenProps<EventsStackParamList, 'EventDetail'>;
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const formatDateLong = (date: Date): string =>
-  date.toLocaleDateString('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-
-const formatTime = (date: Date): string =>
-  date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-
-// ─── Info Row ─────────────────────────────────────────────────────────────────
-
-const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({
-  icon,
-  label,
-  value,
-}) => (
-  <View style={styles.infoRow}>
-    <View style={styles.infoIcon}>
-      <Ionicons name={icon} size={18} color={colors.primary[500]} />
-    </View>
-    <View style={styles.infoContent}>
-      <AppText variant="bodySm" color={colors.text.secondary}>
-        {label}
-      </AppText>
-      <AppText variant="bodyMd" style={styles.infoValue}>
-        {value}
-      </AppText>
-    </View>
-  </View>
-);
-
-// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { eventId } = route.params;
@@ -75,7 +40,6 @@ export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     ]);
   }, [deleteEvent, eventId, navigation]);
 
-  // ── Loading ──
   if (isLoading) {
     return (
       <Screen>
@@ -86,7 +50,6 @@ export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  // ── Error ──
   if (isError || !event) {
     return (
       <Screen padded>
@@ -157,6 +120,7 @@ export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
             icon="calendar-outline"
             label="Tanggal Mulai"
             value={`${formatDateLong(event.startDate)} · ${formatTime(event.startDate)}`}
+            iconSize={18}
           />
           {event.endDate ? (
             <>
@@ -165,13 +129,19 @@ export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
                 icon="calendar-clear-outline"
                 label="Tanggal Selesai"
                 value={`${formatDateLong(event.endDate)} · ${formatTime(event.endDate)}`}
+                iconSize={18}
               />
             </>
           ) : null}
           {event.location ? (
             <>
               <View style={styles.infoDivider} />
-              <InfoRow icon="location-outline" label="Lokasi" value={event.location} />
+              <InfoRow
+                icon="location-outline"
+                label="Lokasi"
+                value={event.location}
+                iconSize={18}
+              />
             </>
           ) : null}
         </Card>
@@ -190,12 +160,18 @@ export const EventDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
         {/* ── Meta ── */}
         <Card style={styles.metaCard}>
-          <InfoRow icon="create-outline" label="Dibuat" value={formatDateLong(event.createdAt)} />
+          <InfoRow
+            icon="create-outline"
+            label="Dibuat"
+            value={formatDateLong(event.createdAt)}
+            iconSize={18}
+          />
           <View style={styles.infoDivider} />
           <InfoRow
             icon="refresh-outline"
             label="Diperbarui"
             value={formatDateLong(event.updatedAt)}
+            iconSize={18}
           />
         </Card>
 
@@ -244,8 +220,6 @@ const styles = StyleSheet.create({
   backButton: {
     marginTop: spacing[1],
   },
-
-  // Hero
   hero: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -267,23 +241,14 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     color: colors.text.secondary,
   },
-  heroDayUpcoming: {
-    color: colors.primary[600],
-  },
   heroMonth: {
     fontSize: 12,
     color: colors.text.secondary,
     textTransform: 'capitalize',
   },
-  heroMonthUpcoming: {
-    color: colors.primary[500],
-  },
   heroYear: {
     fontSize: 11,
     color: colors.text.disabled,
-  },
-  heroYearUpcoming: {
-    color: colors.primary[400],
   },
   heroInfo: {
     flex: 1,
@@ -320,39 +285,14 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.medium,
     color: colors.text.secondary,
   },
-
-  // Info card
   infoCard: {
     marginBottom: spacing[4],
     gap: 0,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[3],
-    paddingVertical: spacing[2],
-  },
-  infoIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoContent: {
-    flex: 1,
-    gap: spacing[1],
-  },
-  infoValue: {
-    fontWeight: fontWeight.medium,
   },
   infoDivider: {
     height: 1,
     backgroundColor: colors.border.default,
   },
-
-  // Description
   descCard: {
     marginBottom: spacing[4],
     gap: spacing[2],
@@ -363,14 +303,10 @@ const styles = StyleSheet.create({
   descText: {
     lineHeight: 22,
   },
-
-  // Meta
   metaCard: {
     marginBottom: spacing[5],
     gap: 0,
   },
-
-  // Actions
   actions: {
     gap: spacing[3],
   },
