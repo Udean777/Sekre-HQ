@@ -7,6 +7,6 @@
   "ios": {
     "maxBytes": 6815744,
     "maxModules": 3300,
-    "_comment": "iOS bundle similar ke Android (shared JS). Adjust setelah baseline iOS terukur di CI macos."
+    "_comment": "PLACEHOLDER — iOS workflow currently disabled (see .github/workflows/ios-release.yml). Adjust maxBytes/maxModules setelah baseline iOS terukur. Update via: node scripts/check-bundle-budget.js --platform=ios --update-baseline"
   }
 }

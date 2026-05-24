@@ -1,11 +1,29 @@
+# ╔═══════════════════════════════════════════════════════════════════╗
+# ║ STATUS: DISABLED                                                  ║
+# ║                                                                   ║
+# ║ Workflow ini di-disable sampai Apple Developer account aktif.     ║
+# ║ Trigger di-set ke workflow_dispatch (manual only) supaya tidak    ║
+# ║ auto-run di push ke main / tag.                                   ║
+# ║                                                                   ║
+# ║ Untuk aktifkan:                                                   ║
+# ║ 1. Setup Apple Developer account (developer.apple.com, $99/year)  ║
+# ║ 2. Setup 4 secrets di GitHub repo Settings > Secrets:             ║
+# ║    - APPLE_CERTIFICATE_BASE64 (export .p12 dari Keychain Access)  ║
+# ║    - APPLE_CERTIFICATE_PASSWORD (password .p12)                   ║
+# ║    - APPLE_PROVISIONING_PROFILE_BASE64 (App Store profile)        ║
+# ║    - KEYCHAIN_PASSWORD (random string untuk temp CI keychain)     ║
+# ║ 3. Update teamID di ios/ExportOptions.plist dengan Team ID        ║
+# ║    dari developer.apple.com/account (10-char alphanumeric)        ║
+# ║ 4. Ganti on: block di bawah ke push trigger:                      ║
+# ║    on:                                                             ║
+# ║      push:                                                         ║
+# ║        branches: [main]                                            ║
+# ║        tags: ['v*']                                                ║
+# ╚═══════════════════════════════════════════════════════════════════╝
 name: iOS Release + Sentry Source Maps
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+  workflow_dispatch: # Manual trigger only — auto-trigger disabled, see header above
 
 concurrency:
   group: ios-release-${{ github.ref }}
