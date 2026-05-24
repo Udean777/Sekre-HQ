@@ -15,10 +15,10 @@ export const defaultNS = 'translation';
 const getDeviceLocale = (): string => {
   const locale: string =
     Platform.OS === 'ios'
-      ? NativeModules.SettingsManager?.settings?.AppleLocale ??
-        NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ??
+      ? NativeModules['SettingsManager']?.settings?.AppleLocale ??
+        NativeModules['SettingsManager']?.settings?.AppleLanguages?.[0] ??
         'id'
-      : NativeModules.I18nManager?.localeIdentifier ?? 'id';
+      : NativeModules['I18nManager']?.localeIdentifier ?? 'id';
 
   // Ambil hanya kode bahasa (misal 'id' dari 'id_ID', 'en' dari 'en_US')
   return locale.split(/[-_]/)[0] ?? 'id';

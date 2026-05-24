@@ -19,6 +19,7 @@ import { colors, spacing, fontWeight, fontSize } from '@presentation/theme';
 import { useDivisionQuery } from '@hooks/divisions/useDivisionQuery';
 import { useRemoveDivisionMemberMutation } from '@hooks/divisions/useRemoveDivisionMemberMutation';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthRole } from '@store/slices/authSlice';
 import type { DivisionMember, DivisionRole } from '@core/domain/entities/Division';
 import type { DivisionsStackParamList } from '@app/navigation/DivisionsNavigator';
 
@@ -90,7 +91,7 @@ const MemberRow: React.FC<MemberRowProps> = ({ member, canManage, onRemove }) =>
 
 export const DivisionDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { divisionId } = route.params;
-  const role = useAppSelector(state => state.auth.role);
+  const role = useAppSelector(selectAuthRole);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data: division, isLoading, isError } = useDivisionQuery(divisionId);

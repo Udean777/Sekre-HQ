@@ -10,6 +10,7 @@ import { Card } from '@presentation/components/Card';
 import { Badge, taskStatusVariant, type BadgeVariant } from '@presentation/components/Badge';
 import { colors, spacing, fontSize, fontWeight } from '@presentation/theme';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthUser, selectAuthOrganization, selectAuthRole } from '@store/slices/authSlice';
 import { useTasksQuery } from '@hooks/tasks/useTasksQuery';
 import { useEventsQuery } from '@hooks/events/useEventsQuery';
 import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
@@ -146,9 +147,9 @@ const MenuShortcut: React.FC<{
 
 export const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<DashboardNavProp>();
-  const user = useAppSelector(state => state.auth.user);
-  const organization = useAppSelector(state => state.auth.organization);
-  const role = useAppSelector(state => state.auth.role);
+  const user = useAppSelector(selectAuthUser);
+  const organization = useAppSelector(selectAuthOrganization);
+  const role = useAppSelector(selectAuthRole);
 
   const {
     data: taskData,
@@ -172,9 +173,7 @@ export const DashboardScreen: React.FC = () => {
 
   // 3 task terbaru (urut berdasarkan updatedAt desc)
   const recentTasks = React.useMemo(() => {
-    return [...taskItems]
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-      .slice(0, 3);
+    return [...taskItems].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 3);
   }, [taskItems]);
 
   // 3 event mendatang (startDate >= sekarang, urut asc)

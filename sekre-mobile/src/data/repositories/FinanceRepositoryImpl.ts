@@ -31,15 +31,15 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
   async getTransactions(filter?: TransactionFilter): Promise<TransactionPage> {
     const params: Record<string, string | number> = {};
-    if (filter?.divisionId) params.division_id = filter.divisionId;
-    if (filter?.type) params.type = filter.type;
-    if (filter?.startDate) params.start_date = filter.startDate;
-    if (filter?.endDate) params.end_date = filter.endDate;
-    if (filter?.search) params.search = filter.search;
-    if (filter?.minAmount !== undefined) params.min_amount = filter.minAmount;
-    if (filter?.maxAmount !== undefined) params.max_amount = filter.maxAmount;
-    if (filter?.page) params.page = filter.page;
-    if (filter?.pageSize) params.page_size = filter.pageSize;
+    if (filter?.divisionId) params['division_id'] = filter.divisionId;
+    if (filter?.type) params['type'] = filter.type;
+    if (filter?.startDate) params['start_date'] = filter.startDate;
+    if (filter?.endDate) params['end_date'] = filter.endDate;
+    if (filter?.search) params['search'] = filter.search;
+    if (filter?.minAmount !== undefined) params['min_amount'] = filter.minAmount;
+    if (filter?.maxAmount !== undefined) params['max_amount'] = filter.maxAmount;
+    if (filter?.page) params['page'] = filter.page;
+    if (filter?.pageSize) params['page_size'] = filter.pageSize;
 
     const { data } = await this.http.get<TransactionListResponseDTO>(
       ENDPOINTS.FINANCE.TRANSACTIONS_LIST,
@@ -98,9 +98,9 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
   async getSummary(filter?: SummaryFilter): Promise<FinanceSummary> {
     const params: Record<string, string> = {};
-    if (filter?.divisionId) params.division_id = filter.divisionId;
-    if (filter?.startDate) params.start_date = filter.startDate;
-    if (filter?.endDate) params.end_date = filter.endDate;
+    if (filter?.divisionId) params['division_id'] = filter.divisionId;
+    if (filter?.startDate) params['start_date'] = filter.startDate;
+    if (filter?.endDate) params['end_date'] = filter.endDate;
 
     const { data } = await this.http.get<FinanceSummaryResponseDTO>(ENDPOINTS.FINANCE.SUMMARY, {
       params,

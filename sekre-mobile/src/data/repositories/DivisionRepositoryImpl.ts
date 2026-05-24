@@ -34,9 +34,9 @@ export class DivisionRepositoryImpl implements IDivisionRepository {
 
   async getDivisions(filter?: DivisionFilter): Promise<DivisionPage> {
     const params: Record<string, string | number> = {};
-    if (filter?.search) params.search = filter.search;
-    if (filter?.page) params.page = filter.page;
-    if (filter?.pageSize) params.page_size = filter.pageSize;
+    if (filter?.search) params['search'] = filter.search;
+    if (filter?.page) params['page'] = filter.page;
+    if (filter?.pageSize) params['page_size'] = filter.pageSize;
 
     const { data } = await this.http.get<DivisionListResponseDTO>(ENDPOINTS.DIVISIONS.LIST, {
       params,

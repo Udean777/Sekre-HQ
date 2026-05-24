@@ -24,7 +24,7 @@ export const getTokenStorage = (): typeof tokenStorage => tokenStorage;
 let _telemetry: ITelemetry | null = null;
 export const getTelemetry = (): ITelemetry => {
   if (!_telemetry) {
-    _telemetry = Config.SENTRY_DSN ? new SentryTelemetry() : new NoopTelemetry();
+    _telemetry = Config['SENTRY_DSN'] ? new SentryTelemetry() : new NoopTelemetry();
   }
   return _telemetry;
 };

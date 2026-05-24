@@ -71,8 +71,8 @@ const beforeSend = (event: ErrorEvent, _hint: EventHint): ErrorEvent | null => {
   // Strip Authorization header dari request
   if (event.request?.headers) {
     const headers = { ...event.request.headers };
-    if (typeof headers.Authorization === 'string') headers.Authorization = '[Filtered]';
-    if (typeof headers.authorization === 'string') headers.authorization = '[Filtered]';
+    if (typeof headers['Authorization'] === 'string') headers['Authorization'] = '[Filtered]';
+    if (typeof headers['authorization'] === 'string') headers['authorization'] = '[Filtered]';
     event.request.headers = headers;
   }
 
@@ -82,7 +82,7 @@ const beforeSend = (event: ErrorEvent, _hint: EventHint): ErrorEvent | null => {
   }
 
   // Strip email dari user context di production (GDPR/privacy)
-  const isProd = Config.APP_ENV === 'production';
+  const isProd = Config['APP_ENV'] === 'production';
   if (isProd && event.user?.email) {
     event.user = { ...event.user, email: '[Filtered]' };
   }
@@ -103,16 +103,16 @@ const beforeBreadcrumb = (breadcrumb: Breadcrumb): Breadcrumb | null => {
     const data = { ...breadcrumb.data };
 
     // Strip Authorization header
-    if (typeof data.Authorization === 'string') {
-      data.Authorization = '[Filtered]';
+    if (typeof data['Authorization'] === 'string') {
+      data['Authorization'] = '[Filtered]';
     }
-    if (typeof data.authorization === 'string') {
-      data.authorization = '[Filtered]';
+    if (typeof data['authorization'] === 'string') {
+      data['authorization'] = '[Filtered]';
     }
 
     // Redact body jika ada
-    if (data.body) {
-      data.body = redactSensitiveFields(data.body);
+    if (data['body']) {
+      data['body'] = redactSensitiveFields(data['body']);
     }
 
     breadcrumb.data = data;
@@ -121,8 +121,8 @@ const beforeBreadcrumb = (breadcrumb: Breadcrumb): Breadcrumb | null => {
   // Drop breadcrumb dari endpoint auth — bisa mengandung credentials di URL params
   if (
     breadcrumb.category === 'http' &&
-    typeof breadcrumb.data?.url === 'string' &&
-    breadcrumb.data.url.includes('/auth/')
+    typeof breadcrumb.data?.['url'] === 'string' &&
+    breadcrumb.data['url'].includes('/auth/')
   ) {
     return {
       ...breadcrumb,
@@ -137,7 +137,7 @@ const beforeBreadcrumb = (breadcrumb: Breadcrumb): Breadcrumb | null => {
 };
 
 export const initSentry = (): void => {
-  const dsn = Config.SENTRY_DSN;
+  const dsn = Config['SENTRY_DSN'];
 
   if (!dsn) {
     if (__DEV__) {
@@ -146,7 +146,7 @@ export const initSentry = (): void => {
     return;
   }
 
-  const isProd = Config.APP_ENV === 'production';
+  const isProd = Config['APP_ENV'] === 'production';
 
   Sentry.init({
     dsn,
@@ -167,7 +167,7 @@ export const initSentry = (): void => {
     attachScreenshot: isProd,
 
     // ── Environment tagging ──────────────────────────────────────────────
-    environment: Config.APP_ENV ?? 'development',
+    environment: Config['APP_ENV'] ?? 'development',
 
     // ── Debug logging (dev only) ─────────────────────────────────────────
     debug: __DEV__,

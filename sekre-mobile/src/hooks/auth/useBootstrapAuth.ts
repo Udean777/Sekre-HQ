@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/hooks';
-import { setSession, clearSession } from '@store/slices/authSlice';
+import { setSession, clearSession, selectIsAuthenticated } from '@store/slices/authSlice';
 import { GetMeUseCase } from '@core/usecases/auth/GetMeUseCase';
 import { getAuthRepository, getTokenStorage, getTelemetry } from '@di/container';
 
@@ -21,7 +21,7 @@ import { getAuthRepository, getTokenStorage, getTelemetry } from '@di/container'
  */
 export const useBootstrapAuth = (): { isBootstrapping: boolean } => {
   const dispatch = useAppDispatch();
-  const isAlreadyAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
+  const isAlreadyAuthenticated = useAppSelector(selectIsAuthenticated);
 
   // Jika Redux persist sudah punya session, tidak perlu blocking spinner —
   // langsung false supaya BootSplash bisa hide dan app render.

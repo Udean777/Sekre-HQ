@@ -85,7 +85,7 @@ const shouldDehydrateQuery = (query: {
   meta?: Record<string, unknown>;
 }): boolean => {
   if (query.state.status !== 'success') return false;
-  if (query.meta?.persist === false) return false;
+  if (query.meta?.['persist'] === false) return false;
   return true;
 };
 

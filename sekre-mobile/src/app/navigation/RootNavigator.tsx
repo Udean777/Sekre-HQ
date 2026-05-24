@@ -9,7 +9,7 @@ import { AppNavigator } from './AppNavigator';
 import { MembersNavigator } from './MembersNavigator';
 import { DivisionsNavigator } from './DivisionsNavigator';
 import { useAppSelector, useAppDispatch } from '@store/hooks';
-import { clearSession } from '@store/slices/authSlice';
+import { clearSession, selectIsAuthenticated } from '@store/slices/authSlice';
 import { tokenStorage } from '@data/storage/MmkvTokenStorage';
 import { useBootstrapAuth } from '@hooks/auth/useBootstrapAuth';
 import { useDeviceSecurity } from '@hooks/ui/useDeviceSecurity';
@@ -37,7 +37,7 @@ export const navigationIntegration = Sentry.reactNavigationIntegration();
 
 export const RootNavigator: React.FC = () => {
   const dispatch = useAppDispatch();
-  const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const { isBootstrapping } = useBootstrapAuth();
   useDeviceSecurity();
 

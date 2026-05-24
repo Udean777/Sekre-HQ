@@ -4,12 +4,7 @@ import type {
   CreateMemberParams,
   UpdateMemberParams,
 } from '@core/ports/IMemberRepository';
-import type {
-  Member,
-  MemberId,
-  MemberFilter,
-  MemberPage,
-} from '@core/domain/entities/Member';
+import type { Member, MemberId, MemberFilter, MemberPage } from '@core/domain/entities/Member';
 import { ENDPOINTS } from '@data/http/endpoints';
 import type { MemberListResponseDTO } from '@data/dto/member.dto';
 import { mapMemberListDTOToPage } from '@data/mappers/member.mapper';
@@ -19,10 +14,10 @@ export class MemberRepositoryImpl implements IMemberRepository {
 
   async getMembers(filter?: MemberFilter): Promise<MemberPage> {
     const params: Record<string, string | number> = {};
-    if (filter?.search) params.search = filter.search;
-    if (filter?.role) params.role = filter.role;
-    if (filter?.page) params.page = filter.page;
-    if (filter?.pageSize) params.page_size = filter.pageSize;
+    if (filter?.search) params['search'] = filter.search;
+    if (filter?.role) params['role'] = filter.role;
+    if (filter?.page) params['page'] = filter.page;
+    if (filter?.pageSize) params['page_size'] = filter.pageSize;
 
     const { data } = await this.http.get<MemberListResponseDTO>(ENDPOINTS.MEMBERS.LIST, { params });
     return mapMemberListDTOToPage(data);

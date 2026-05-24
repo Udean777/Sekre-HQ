@@ -14,6 +14,7 @@ import { colors, spacing, fontWeight } from '@presentation/theme';
 import { useDivisionsQuery } from '@hooks/divisions/useDivisionsQuery';
 import { useDeleteDivisionMutation } from '@hooks/divisions/useDeleteDivisionMutation';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthRole } from '@store/slices/authSlice';
 import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
 import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Division } from '@core/domain/entities/Division';
@@ -104,7 +105,7 @@ export const DivisionListScreen: React.FC<Props> = ({ navigation }) => {
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
-  const role = useAppSelector(state => state.auth.role);
+  const role = useAppSelector(selectAuthRole);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data, isLoading, isError, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } = useDivisionsQuery({

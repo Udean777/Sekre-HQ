@@ -16,6 +16,7 @@ import { useTransactionsQuery } from '@hooks/finance/useTransactionsQuery';
 import { useFinanceSummaryQuery } from '@hooks/finance/useFinanceSummaryQuery';
 import { useDeleteTransactionMutation } from '@hooks/finance/useDeleteTransactionMutation';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthRole } from '@store/slices/authSlice';
 import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
 import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Transaction, TransactionType, Money } from '@core/domain/entities/Transaction';
@@ -168,7 +169,7 @@ export const FinanceScreen: React.FC<Props> = ({ navigation }) => {
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
-  const role = useAppSelector(state => state.auth.role);
+  const role = useAppSelector(selectAuthRole);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data, isLoading, isError, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } = useTransactionsQuery({

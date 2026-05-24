@@ -4,13 +4,7 @@ import type {
   CreateTaskParams,
   UpdateTaskParams,
 } from '@core/ports/ITaskRepository';
-import type {
-  Task,
-  TaskId,
-  TaskFilter,
-  TaskPage,
-  TaskStatus,
-} from '@core/domain/entities/Task';
+import type { Task, TaskId, TaskFilter, TaskPage, TaskStatus } from '@core/domain/entities/Task';
 import { ENDPOINTS } from '@data/http/endpoints';
 import type {
   TaskListResponseDTO,
@@ -26,13 +20,13 @@ export class TaskRepositoryImpl implements ITaskRepository {
 
   async getTasks(filter?: TaskFilter): Promise<TaskPage> {
     const params: Record<string, string | number> = {};
-    if (filter?.status) params.status = filter.status;
-    if (filter?.priority) params.priority = filter.priority;
-    if (filter?.assigneeId) params.assignee_id = filter.assigneeId;
-    if (filter?.divisionId) params.division_id = filter.divisionId;
-    if (filter?.search) params.search = filter.search;
-    if (filter?.page) params.page = filter.page;
-    if (filter?.pageSize) params.page_size = filter.pageSize;
+    if (filter?.status) params['status'] = filter.status;
+    if (filter?.priority) params['priority'] = filter.priority;
+    if (filter?.assigneeId) params['assignee_id'] = filter.assigneeId;
+    if (filter?.divisionId) params['division_id'] = filter.divisionId;
+    if (filter?.search) params['search'] = filter.search;
+    if (filter?.page) params['page'] = filter.page;
+    if (filter?.pageSize) params['page_size'] = filter.pageSize;
 
     const { data } = await this.http.get<TaskListResponseDTO>(ENDPOINTS.TASKS.LIST, { params });
     return mapTaskListDTOToPage(data);

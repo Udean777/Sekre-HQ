@@ -15,6 +15,7 @@ import { colors, spacing, fontWeight, fontSize } from '@presentation/theme';
 import { useMembersQuery } from '@hooks/members/useMembersQuery';
 import { useDeleteMemberMutation } from '@hooks/members/useDeleteMemberMutation';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthRole } from '@store/slices/authSlice';
 import { useDebouncedValue } from '@hooks/ui/useDebouncedValue';
 import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { Member, OrgRole } from '@core/domain/entities/Member';
@@ -114,7 +115,7 @@ export const MemberListScreen: React.FC<Props> = ({ navigation }) => {
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
-  const role = useAppSelector(state => state.auth.role);
+  const role = useAppSelector(selectAuthRole);
   const canManage = role === 'OWNER' || role === 'ADMIN';
 
   const { data, isLoading, isError, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } = useMembersQuery({

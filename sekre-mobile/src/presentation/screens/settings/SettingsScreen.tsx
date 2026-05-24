@@ -8,6 +8,7 @@ import { Card } from '@presentation/components/Card';
 import { Badge, type BadgeVariant } from '@presentation/components/Badge';
 import { colors, spacing, fontWeight, fontSize } from '@presentation/theme';
 import { useAppSelector } from '@store/hooks';
+import { selectAuthUser, selectAuthOrganization, selectAuthRole } from '@store/slices/authSlice';
 import { useLogoutMutation } from '@hooks/auth/useLogoutMutation';
 import type { SettingsStackParamList } from '@app/navigation/SettingsNavigator';
 
@@ -68,9 +69,9 @@ const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) =
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
-  const user = useAppSelector(state => state.auth.user);
-  const organization = useAppSelector(state => state.auth.organization);
-  const role = useAppSelector(state => state.auth.role);
+  const user = useAppSelector(selectAuthUser);
+  const organization = useAppSelector(selectAuthOrganization);
+  const role = useAppSelector(selectAuthRole);
 
   const { mutate: logout, isPending } = useLogoutMutation();
   const canManageOrg = role === 'OWNER' || role === 'ADMIN';
