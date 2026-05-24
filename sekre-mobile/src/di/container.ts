@@ -12,9 +12,22 @@ import type { IMemberRepository } from '@core/ports/IMemberRepository';
 import type { IDivisionRepository } from '@core/ports/IDivisionRepository';
 import type { IEventRepository } from '@core/ports/IEventRepository';
 import type { IFinanceRepository } from '@core/ports/IFinanceRepository';
+import type { ITelemetry } from '@shared/observability';
+import { SentryTelemetry, NoopTelemetry } from '@shared/observability';
+import Config from 'react-native-config';
 
 // Storage
 export const getTokenStorage = (): typeof tokenStorage => tokenStorage;
+
+// Telemetry — singleton
+// Pakai SentryTelemetry kalau DSN tersedia, NoopTelemetry sebagai fallback
+let _telemetry: ITelemetry | null = null;
+export const getTelemetry = (): ITelemetry => {
+  if (!_telemetry) {
+    _telemetry = Config.SENTRY_DSN ? new SentryTelemetry() : new NoopTelemetry();
+  }
+  return _telemetry;
+};
 
 // HTTP Client
 export const getHttpClient = (): typeof httpClient => httpClient;

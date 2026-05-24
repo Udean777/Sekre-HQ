@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet, DeviceEventEmitter } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as Sentry from '@sentry/react-native';
 import BootSplash from 'react-native-bootsplash';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
@@ -22,10 +23,23 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+/**
+ * navigationIntegration dibuat di module scope supaya instance yang sama
+ * dipakai di sentryInit.ts (integrations: [navigationIntegration]) dan
+ * di NavigationContainer onReady (registerNavigationContainer).
+ *
+ * Pola ini adalah cara resmi Sentry RN v8 untuk React Navigation.
+ */
+export const navigationIntegration = Sentry.reactNavigationIntegration();
+
 export const RootNavigator: React.FC = () => {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
   const { isBootstrapping } = useBootstrapAuth();
+
+  // navigationRef dipakai oleh Sentry untuk melacak screen transitions
+  // sebagai performance transactions di Sentry Performance dashboard
+  const navigationRef = useRef<React.ComponentRef<typeof NavigationContainer>>(null);
 
   // Listen untuk event logout dari refreshInterceptor
   useEffect(() => {
@@ -54,7 +68,14 @@ export const RootNavigator: React.FC = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={(): void => {
+        // Daftarkan navigationRef ke Sentry supaya setiap screen transition
+        // otomatis menjadi transaction di Sentry Performance
+        navigationIntegration.registerNavigationContainer(navigationRef);
+      }}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         {isAuthenticated ? (
           <>

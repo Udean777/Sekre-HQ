@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useAppDispatch } from '@store/hooks';
 import { setSession, clearSession } from '@store/slices/authSlice';
 import { GetMeUseCase } from '@core/usecases/auth/GetMeUseCase';
-import { getAuthRepository, getTokenStorage } from '@di/container';
+import { getAuthRepository, getTokenStorage, getTelemetry } from '@di/container';
 
 /**
  * Bootstrap auth state on app start.
  * - Jika access token ada di storage → call /auth/me → populate Redux
  * - Jika gagal (token expired/invalid) → clear session → redirect ke Login
+ * - Set Sentry user context setelah berhasil bootstrap
  */
 export const useBootstrapAuth = (): { isBootstrapping: boolean } => {
   const dispatch = useAppDispatch();
@@ -44,9 +45,18 @@ export const useBootstrapAuth = (): { isBootstrapping: boolean } => {
             role,
           }),
         );
+
+        // Set Sentry user context setelah bootstrap berhasil
+        getTelemetry().setUser({
+          id: user.id,
+          email: user.email,
+          orgId: organization.id,
+        });
       } catch {
         getTokenStorage().clear();
         dispatch(clearSession());
+        // Clear Sentry user context kalau bootstrap gagal
+        getTelemetry().setUser(null);
       } finally {
         setIsBootstrapping(false);
       }

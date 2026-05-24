@@ -9,6 +9,7 @@ import {
   NetworkError,
   ServerError,
 } from '@core/domain/errors/DomainError';
+import { getTelemetry } from '@di/container';
 
 interface BackendErrorResponse {
   message?: string;
@@ -16,7 +17,9 @@ interface BackendErrorResponse {
 }
 
 /**
- * Map HTTP error response → DomainError
+ * Map HTTP error response → DomainError.
+ * Setiap error juga dikirim sebagai Sentry breadcrumb supaya ada trail
+ * request yang gagal sebelum crash / error boundary terpicu.
  */
 export const errorInterceptor = (client: AxiosInstance): void => {
   client.interceptors.response.use(
@@ -28,13 +31,34 @@ export const errorInterceptor = (client: AxiosInstance): void => {
 
       // Network error / timeout / no response
       if (!error.response) {
+        getTelemetry().addBreadcrumb({
+          category: 'http',
+          message: `Network error: ${error.config?.url ?? 'unknown'}`,
+          level: 'error',
+          data: {
+            url: error.config?.url,
+            method: error.config?.method?.toUpperCase(),
+          },
+        });
         return Promise.reject(new NetworkError());
       }
 
-      const { status, data } =
-        error.response as AxiosResponse<BackendErrorResponse>;
+      const { status, data } = error.response as AxiosResponse<BackendErrorResponse>;
       const message = data?.message;
       const fields = data?.errors ?? {};
+
+      // Breadcrumb untuk semua HTTP error — muncul di Sentry event trail
+      getTelemetry().addBreadcrumb({
+        category: 'http',
+        message: `HTTP ${status}: ${error.config?.url ?? 'unknown'}`,
+        level: status >= 500 ? 'error' : 'warning',
+        data: {
+          url: error.config?.url,
+          method: error.config?.method?.toUpperCase(),
+          status,
+          responseMessage: message,
+        },
+      });
 
       switch (status) {
         case 400:
@@ -55,6 +79,12 @@ export const errorInterceptor = (client: AxiosInstance): void => {
         }
         default:
           if (status >= 500) {
+            // 5xx — capture ke Sentry sebagai exception, bukan hanya breadcrumb
+            getTelemetry().captureException(new ServerError(status, message), {
+              url: error.config?.url,
+              method: error.config?.method?.toUpperCase(),
+              status,
+            });
             return Promise.reject(new ServerError(status, message));
           }
           return Promise.reject(error);

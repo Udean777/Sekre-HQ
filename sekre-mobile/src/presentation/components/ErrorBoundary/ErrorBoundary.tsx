@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, spacing, fontWeight, fontSize } from '@presentation/theme';
+import { getTelemetry } from '@di/container';
 
 interface Props {
   children: React.ReactNode;
@@ -22,8 +23,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
-    // TODO: kirim ke crash reporting (Sentry, Crashlytics)
-    console.error('[ErrorBoundary] Uncaught error:', error, info.componentStack);
+    // Kirim ke Sentry (atau NoopTelemetry kalau DSN tidak ada)
+    getTelemetry().captureException(error, {
+      componentStack: info.componentStack ?? undefined,
+    });
+
+    if (__DEV__) {
+      console.error('[ErrorBoundary] Uncaught error:', error, info.componentStack);
+    }
   }
 
   handleReset = (): void => {

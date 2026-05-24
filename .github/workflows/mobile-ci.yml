@@ -116,6 +116,12 @@ jobs:
           MYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
 
+      # ── Inject Sentry DSN ke .env.production ──
+      # react-native-config membaca .env.production saat release build
+      - name: Inject Sentry DSN
+        run: |
+          echo "SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env.production
+
       # ── Cache Gradle ──
       # Includes:
       #   ~/.gradle/caches            — downloaded artifacts + transforms
@@ -170,6 +176,48 @@ jobs:
         working-directory: sekre-mobile/android
         run: ./gradlew assembleRelease --no-daemon --build-cache --parallel
 
+      # ── Upload Sentry source maps ──
+      # Source maps memungkinkan Sentry menampilkan stack trace yang readable
+      # (bukan minified) di Issues dan Performance dashboard.
+      # SENTRY_AUTH_TOKEN dibuat di: https://sentry.io/settings/account/api/auth-tokens/
+      # Scope yang dibutuhkan: project:releases, org:read
+      - name: Upload source maps to Sentry
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: sekre-mobile
+        run: |
+          # Bundle JS + source map untuk Android release
+          bunx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output /tmp/main.jsbundle \
+            --sourcemap-output /tmp/main.jsbundle.map
+
+          # Dapatkan versionName dari build.gradle
+          VERSION=$(grep -m1 'versionName' android/app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
+
+          # Upload ke Sentry
+          bunx @sentry/cli releases \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT" \
+            new "$VERSION"
+
+          bunx @sentry/cli releases \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT" \
+            files "$VERSION" upload-sourcemaps \
+            --dist 1 \
+            --rewrite \
+            /tmp/main.jsbundle \
+            /tmp/main.jsbundle.map
+
+          bunx @sentry/cli releases \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT" \
+            finalize "$VERSION"
+
       # ── Get versionName + short SHA ──
       - name: Get version name
         id: version
@@ -220,6 +268,7 @@ jobs:
             - Minified with ProGuard/R8 + resource shrinking
             - Signed with release keystore
             - ABI: `armeabi-v7a`, `arm64-v8a` (no x86)
+            - Source maps uploaded to Sentry
           files: |
             sekre-mobile/android/app/build/outputs/apk/release/*.apk
             sekre-mobile/android/app/build/outputs/bundle/release/*.aab

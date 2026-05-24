@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
@@ -11,7 +12,7 @@ import { initTokenStorage } from '@data/storage/MmkvTokenStorage';
 import { colors } from '@presentation/theme';
 import '@shared/i18n';
 
-const App: React.FC = () => {
+const AppRoot: React.FC = () => {
   const [storageReady, setStorageReady] = useState(false);
 
   useEffect(() => {
@@ -58,4 +59,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+// Sentry.wrap menambahkan:
+// - TouchEventBoundary (track user interactions sebagai breadcrumb)
+// - Error boundary level atas untuk crash yang lolos ErrorBoundary kita
+export default Sentry.wrap(AppRoot);
