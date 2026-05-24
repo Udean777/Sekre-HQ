@@ -3,18 +3,24 @@ import Config from 'react-native-config';
 
 /**
  * Resolves the correct backend base URL based on:
- * - APP_ENV (production vs development)
+ * - __DEV__ (React Native global — false di release build, tidak bergantung .env)
+ * - APP_ENV (react-native-config — production vs development)
  * - Platform (ios / android)
  * - Device type (simulator / emulator vs physical device)
  *
  * Priority:
- * 1. If APP_ENV=production → always use API_BASE_URL (Render)
- * 2. If APP_ENV=development:
+ * 1. Release build (!__DEV__) → selalu pakai production URL
+ *    - Gunakan API_BASE_URL dari .env.production kalau ada
+ *    - Fallback eksplisit ke https://sekre-backend.onrender.com
+ *    - __DEV__ di-inject langsung oleh Metro bundler, tidak bergantung .env
+ * 2. Debug build (__DEV__):
  *    - iOS Simulator     → API_BASE_URL_IOS_SIMULATOR
  *    - Android Emulator  → API_BASE_URL_ANDROID_EMULATOR
  *    - iOS Physical      → API_BASE_URL_IOS_PHYSICAL
  *    - Android Physical  → API_BASE_URL_ANDROID_PHYSICAL
  */
+
+const PRODUCTION_URL = 'https://sekre-backend.onrender.com';
 
 function isIOSSimulator(): boolean {
   if (Platform.OS !== 'ios') return false;
@@ -29,12 +35,13 @@ function isAndroidEmulator(): boolean {
 }
 
 export function getBaseUrl(): string {
-  const isProduction = Config['APP_ENV'] === 'production';
-
-  if (isProduction) {
-    return Config['API_BASE_URL'] ?? 'https://sekre-backend.onrender.com';
+  // Release build — __DEV__ adalah false, di-inject oleh Metro bundler
+  // Tidak bergantung pada react-native-config sama sekali untuk deteksi ini
+  if (!__DEV__) {
+    return Config['API_BASE_URL'] ?? PRODUCTION_URL;
   }
 
+  // Development build — gunakan URL sesuai platform/device
   if (isIOSSimulator()) {
     return Config['API_BASE_URL_IOS_SIMULATOR'] ?? 'http://localhost:8080';
   }
@@ -51,5 +58,5 @@ export function getBaseUrl(): string {
     return Config['API_BASE_URL_ANDROID_PHYSICAL'] ?? 'http://192.168.1.5:8080';
   }
 
-  return Config['API_BASE_URL'] ?? 'http://localhost:8080';
+  return Config['API_BASE_URL'] ?? PRODUCTION_URL;
 }

@@ -142,18 +142,10 @@ jobs:
           restore-keys: |
             gradle-
 
-      # ── Cache Metro bundler ──
-      # Metro caches the JS bundle transform; rebuilding from cache is ~10x
-      # faster than a cold bundle. Key on JS-relevant inputs only.
-      - name: Cache Metro bundler
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ runner.temp }}/metro-cache
-            sekre-mobile/node_modules/.cache
-          key: metro-${{ hashFiles('sekre-mobile/bun.lock', 'sekre-mobile/babel.config.js', 'sekre-mobile/metro.config.js') }}
-          restore-keys: |
-            metro-
+      # Metro cache dihapus intentionally — react-native-config embed env vars
+      # ke JS bundle saat Metro bundling. Cache lama bisa bawa nilai env yang
+      # salah (.env.production tidak di-repo, dibuat fresh tiap CI run).
+      # Trade-off: build ~2-3 menit lebih lama, tapi env vars selalu benar.
 
       - name: Make gradlew executable
         working-directory: sekre-mobile/android

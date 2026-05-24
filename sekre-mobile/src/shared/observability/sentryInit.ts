@@ -176,14 +176,21 @@ export const initSentry = (): void => {
     maxBreadcrumbs: 50,
 
     // ── Ignore noise ─────────────────────────────────────────────────────
+    // NetworkError TIDAK di-ignore supaya koneksi gagal ke backend terdeteksi
     ignoreErrors: [
-      'Network request failed',
-      'NetworkError',
       'The action was not handled by any navigator',
     ],
 
     // ── PII / security filters ───────────────────────────────────────────
     beforeSend,
     beforeBreadcrumb,
+  });
+
+  // Log baseURL + APP_ENV ke Sentry context supaya mudah debug di production
+  const { getBaseUrl } = require('@data/http/getBaseUrl');
+  Sentry.setContext('app_config', {
+    app_env: Config['APP_ENV'] ?? 'unknown',
+    api_base_url: getBaseUrl(),
+    sentry_dsn_present: !!dsn,
   });
 };
