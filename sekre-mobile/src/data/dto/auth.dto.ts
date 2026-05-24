@@ -58,7 +58,7 @@ export interface LoginRequestDTO {
 }
 
 export interface RegisterRequestDTO {
-  org_name: string;
+  organization_name: string;
   subdomain: string;
   full_name: string;
   email: string;
