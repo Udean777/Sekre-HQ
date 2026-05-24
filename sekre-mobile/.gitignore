@@ -76,3 +76,6 @@ yarn-error.log
 
 # Environment variables
 .env*
+
+# Bundle visualizer output — generated artifact, regen with `bun run analyze-bundle`
+bundle-visualizer-output/
