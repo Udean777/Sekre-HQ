@@ -17,13 +17,7 @@ import { flattenPages, lastPageMeta } from '@shared/utils/infiniteQueryHelpers';
 import type { TaskStatus } from '@core/domain/entities/Task';
 import type { RootStackParamList } from '@app/navigation/RootNavigator';
 import type { AppTabParamList } from '@app/navigation/AppNavigator';
-import {
-  StatCard,
-  SectionHeader,
-  TaskRow,
-  EventRow,
-  MenuShortcut,
-} from './components';
+import { StatCard, TaskRow, EventRow, MenuShortcut, SectionHeader } from './components';
 
 type DashboardNavProp = CompositeNavigationProp<
   BottomTabNavigationProp<AppTabParamList, 'Dashboard'>,
