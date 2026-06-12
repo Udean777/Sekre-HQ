@@ -1,15 +1,70 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import '../global.css';
+
+import { DarkTheme, DefaultTheme, ThemeProvider, Slot, useRouter, useSegments } from 'expo-router';
 import { useColorScheme } from 'react-native';
+import { useEffect, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { useAuthStore } from '@/core/store/use-auth-store';
 
-export default function TabLayout() {
+const queryClient = new QueryClient();
+
+function AuthGuard() {
+  const { isAuthenticated, isLoading, setLoading, login } = useAuthStore();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check token on mount
+    const checkToken = async () => {
+      try {
+        const { SecureStorage } = require('@/core/storage/secure-storage');
+        const token = await SecureStorage.get('access_token');
+        if (token) {
+          const { authRepository } = require('@/data/repositories/auth.repository.impl');
+          const result = await authRepository.getProfile();
+          login(result.user, result.organization, result.role); 
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkToken();
+  }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (
+      // If the user is not authenticated and the initial segment is not '(auth)'
+      !isAuthenticated &&
+      !inAuthGroup
+    ) {
+      // Redirect to the login page.
+      router.replace('/(auth)/login');
+    } else if (isAuthenticated && inAuthGroup) {
+      // Redirect away from the login page.
+      router.replace('/(app)');
+    }
+  }, [isAuthenticated, segments, isLoading]);
+
+  return <Slot />;
+}
+
+export default function RootLayout() {
   const colorScheme = useColorScheme();
+  
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <AnimatedSplashOverlay />
+        <AuthGuard />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
