@@ -9,11 +9,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-blue-600 active:bg-blue-700',
-        secondary: 'bg-gray-200 active:bg-gray-300',
-        outline: 'border-2 border-blue-600 bg-transparent active:bg-blue-50',
-        ghost: 'bg-transparent active:bg-gray-100',
-        destructive: 'bg-red-500 active:bg-red-600',
+        primary: 'bg-blue-600 active:bg-blue-700 dark:bg-blue-700 dark:active:bg-blue-800',
+        secondary: 'bg-gray-200 active:bg-gray-300 dark:bg-gray-800 dark:active:bg-gray-700',
+        outline: 'border-2 border-blue-600 bg-transparent active:bg-blue-50 dark:border-blue-500 dark:active:bg-blue-900/30',
+        ghost: 'bg-transparent active:bg-gray-100 dark:active:bg-gray-800',
+        destructive: 'bg-red-500 active:bg-red-600 dark:bg-red-600 dark:active:bg-red-700',
       },
       size: {
         sm: 'py-2 px-4 rounded-md',
@@ -33,9 +33,9 @@ const buttonTextVariants = cva('text-center font-semibold', {
   variants: {
     variant: {
       primary: 'text-white',
-      secondary: 'text-gray-900',
-      outline: 'text-blue-600',
-      ghost: 'text-blue-600',
+      secondary: 'text-gray-900 dark:text-gray-100',
+      outline: 'text-blue-600 dark:text-blue-400',
+      ghost: 'text-blue-600 dark:text-blue-400',
       destructive: 'text-white',
     },
   },

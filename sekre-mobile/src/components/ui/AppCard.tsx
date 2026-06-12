@@ -3,12 +3,12 @@ import { View, ViewProps, Pressable, PressableProps } from 'react-native';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/core/utils/cn';
 
-const cardVariants = cva('bg-white rounded-xl', {
+const cardVariants = cva('bg-white dark:bg-gray-800 rounded-xl', {
   variants: {
     variant: {
-      elevated: 'shadow-sm border border-gray-100',
-      outlined: 'border border-gray-200',
-      flat: 'bg-gray-50',
+      elevated: 'shadow-sm border border-gray-100 dark:border-gray-700',
+      outlined: 'border border-gray-200 dark:border-gray-700',
+      flat: 'bg-gray-50 dark:bg-gray-900',
     },
     padding: {
       none: 'p-0',

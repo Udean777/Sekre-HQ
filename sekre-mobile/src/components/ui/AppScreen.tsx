@@ -26,7 +26,7 @@ export function AppScreen({
   children,
   className,
   edges = ['top'], // default hanya top, karena bottom ditangani TabBar
-  backgroundColor = 'bg-gray-50',
+  backgroundColor = 'bg-gray-50 dark:bg-gray-900',
   scrollable = false,
   ...props
 }: AppScreenProps) {

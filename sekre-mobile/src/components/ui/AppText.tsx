@@ -3,7 +3,7 @@ import { Text, TextProps } from 'react-native';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/core/utils/cn';
 
-const textVariants = cva('text-gray-900', {
+const textVariants = cva('text-gray-900 dark:text-gray-100', {
   variants: {
     variant: {
       h1: 'text-3xl font-bold tracking-tight',
@@ -11,8 +11,8 @@ const textVariants = cva('text-gray-900', {
       h3: 'text-xl font-bold',
       p: 'text-base leading-relaxed',
       body: 'text-sm leading-normal',
-      caption: 'text-xs text-gray-500',
-      label: 'text-sm font-medium text-gray-700',
+      caption: 'text-xs text-gray-500 dark:text-gray-400',
+      label: 'text-sm font-medium text-gray-700 dark:text-gray-300',
     },
     weight: {
       regular: 'font-normal',

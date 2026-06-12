@@ -1,12 +1,13 @@
 import '../global.css';
 
 import { DarkTheme, DefaultTheme, ThemeProvider, Slot, useRouter, useSegments } from 'expo-router';
-import { useColorScheme } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useColorScheme } from 'nativewind';
+import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { useAuthStore } from '@/core/store/use-auth-store';
+import { useThemeStore } from '@/core/store/use-theme-store';
 
 const queryClient = new QueryClient();
 
@@ -57,7 +58,15 @@ function AuthGuard() {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const theme = useThemeStore((state) => state.theme);
+
+  useEffect(() => {
+    // Sync theme store with NativeWind
+    if (theme !== colorScheme) {
+      setColorScheme(theme);
+    }
+  }, [theme]);
   
   return (
     <QueryClientProvider client={queryClient}>

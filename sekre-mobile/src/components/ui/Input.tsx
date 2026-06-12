@@ -36,10 +36,10 @@ export const Input = React.forwardRef<TextInput, InputProps>(
 
         <View
           className={cn(
-            'flex-row items-center border rounded-lg bg-white px-3 py-1 min-h-[48px]',
+            'flex-row items-center border rounded-lg bg-white dark:bg-gray-800 px-3 py-1 min-h-[48px]',
             error
-              ? 'border-red-500 bg-red-50'
-              : 'border-gray-300 focus-within:border-blue-500 focus-within:bg-blue-50/10'
+              ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+              : 'border-gray-300 dark:border-gray-700 focus-within:border-blue-500 focus-within:bg-blue-50/10 dark:focus-within:bg-blue-900/10'
           )}
         >
           {leftIcon && <View className="mr-2">{leftIcon}</View>}
@@ -47,7 +47,7 @@ export const Input = React.forwardRef<TextInput, InputProps>(
           <TextInput
             ref={ref}
             className={cn(
-              'flex-1 text-base text-gray-900 placeholder:text-gray-400',
+              'flex-1 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500',
               className
             )}
             placeholderTextColor="#9ca3af"

@@ -1,4 +1,5 @@
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
+import { AppText } from './AppText';
 
 interface AvatarProps {
   name?: string;
@@ -12,12 +13,12 @@ export function Avatar({ name, size = 48, className = '' }: AvatarProps) {
 
   return (
     <View 
-      className={`items-center justify-center bg-blue-100 rounded-full ${className}`}
+      className={`items-center justify-center bg-blue-100 dark:bg-blue-900/40 rounded-full ${className}`}
       style={{ width: size, height: size }}
     >
-      <Text className="text-blue-600 font-bold" style={{ fontSize: size * 0.4 }}>
+      <AppText variant="body" className="text-blue-600 dark:text-blue-400 font-bold" style={{ fontSize: size * 0.4 }}>
         {initial}
-      </Text>
+      </AppText>
     </View>
   );
 }

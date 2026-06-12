@@ -1,25 +1,27 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Pressable, Platform } from 'react-native';
+import { AppText } from './AppText';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, withSpring, withTiming, interpolateColor, useDerivedValue } from 'react-native-reanimated';
 import { House, ClipboardList, Wallet, CalendarDays, Settings2 } from 'lucide-react-native';
+import { useColorScheme } from 'nativewind';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const TabIcon = ({ name, color, focused }: { name: string; color: string; focused: boolean }) => {
   switch (name) {
     case 'index':
-      return <House size={24} color={color} strokeWidth={focused ? 2.5 : 2} />;
+      return <House size={20} color={color} strokeWidth={focused ? 2.5 : 2} />;
     case 'tasks/index':
-      return <ClipboardList size={24} color={color} strokeWidth={focused ? 2.5 : 2} />;
+      return <ClipboardList size={20} color={color} strokeWidth={focused ? 2.5 : 2} />;
     case 'finance/index':
-      return <Wallet size={24} color={color} strokeWidth={focused ? 2.5 : 2} />;
+      return <Wallet size={20} color={color} strokeWidth={focused ? 2.5 : 2} />;
     case 'events/index':
-      return <CalendarDays size={24} color={color} strokeWidth={focused ? 2.5 : 2} />;
+      return <CalendarDays size={20} color={color} strokeWidth={focused ? 2.5 : 2} />;
     case 'settings/index':
-      return <Settings2 size={24} color={color} strokeWidth={focused ? 2.5 : 2} />;
+      return <Settings2 size={20} color={color} strokeWidth={focused ? 2.5 : 2} />;
     default:
-      return <House size={24} color={color} strokeWidth={focused ? 2.5 : 2} />;
+      return <House size={20} color={color} strokeWidth={focused ? 2.5 : 2} />;
   }
 };
 
@@ -40,16 +42,67 @@ const TabLabel = ({ name }: { name: string }) => {
   }
 };
 
-const TabItem = ({ isFocused, options, onPress, onLongPress, route, color }: any) => {
+interface TabRoute {
+  key: string;
+  name: string;
+  params?: any;
+}
+
+interface TabState {
+  index: number;
+  routes: TabRoute[];
+}
+
+interface TabDescriptor {
+  options: {
+    tabBarAccessibilityLabel?: string;
+    tabBarTestID?: string;
+    [key: string]: any;
+  };
+}
+
+interface TabNavigation {
+  emit: (event: any) => any;
+  navigate: (name: string, params?: any) => void;
+}
+
+interface TabBarProps {
+  state: TabState;
+  descriptors: Record<string, TabDescriptor>;
+  navigation: TabNavigation;
+}
+
+interface TabItemProps {
+  isFocused: boolean;
+  options: TabDescriptor['options'];
+  onPress: () => void;
+  onLongPress: () => void;
+  route: TabRoute;
+  color: string;
+}
+
+const TabItem = ({ isFocused, options, onPress, onLongPress, route, color }: TabItemProps) => {
+  const progress = useDerivedValue(() => {
+    return withTiming(isFocused ? 1 : 0, { duration: 150 });
+  }, [isFocused]);
+
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
+
   const animatedIconStyle = useAnimatedStyle(() => {
     return {
       transform: [
         {
-          scale: withSpring(isFocused ? 1.15 : 1, { damping: 12, stiffness: 150 }),
+          scale: withSpring(isFocused ? 1.05 : 1, { damping: 15, stiffness: 200 }),
         },
       ],
+      backgroundColor: interpolateColor(
+        progress.value,
+        [0, 1],
+        ['transparent', isDarkMode ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.08)']
+      ),
     };
-  }, [isFocused]);
+  }, [isFocused, isDarkMode]);
 
   return (
     <AnimatedPressable
@@ -59,29 +112,40 @@ const TabItem = ({ isFocused, options, onPress, onLongPress, route, color }: any
       testID={options.tabBarTestID}
       onPress={onPress}
       onLongPress={onLongPress}
-      className="flex-1 items-center justify-center"
+      className="flex-1 items-center justify-center py-1"
     >
-      <Animated.View style={animatedIconStyle} className={`items-center justify-center rounded-2xl px-4 py-1.5 ${isFocused ? 'bg-blue-50' : ''}`}>
+      <Animated.View style={[animatedIconStyle]} className="items-center justify-center rounded-2xl px-4 py-2 mb-0.5">
         <TabIcon name={route.name} color={color} focused={isFocused} />
       </Animated.View>
-      <Text
-        className={`text-[10px] mt-1 ${isFocused ? 'text-blue-600 font-bold' : 'text-gray-400 font-medium'}`}
+      <AppText
+        variant="caption"
+        className={`text-[10px] ${isFocused ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-400 dark:text-gray-500 font-medium'}`}
       >
         <TabLabel name={route.name} />
-      </Text>
+      </AppText>
     </AnimatedPressable>
   );
 };
 
-export function TabBar({ state, descriptors, navigation }: any) {
+export function TabBar({ state, descriptors, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
 
   return (
     <View
-      className="flex-row items-center justify-between bg-white pt-3 pb-2 px-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] border-t border-gray-100"
-      style={{ paddingBottom: insets.bottom + 8 }}
+      className="flex-row items-center justify-between bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800/80 px-2"
+      style={{
+        paddingTop: 8,
+        paddingBottom: Platform.OS === 'ios' ? insets.bottom : 12,
+        shadowColor: isDarkMode ? '#000' : '#1e293b',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: isDarkMode ? 0.3 : 0.06,
+        shadowRadius: 12,
+        elevation: 8,
+      }}
     >
-      {state.routes.map((route: any, index: number) => {
+      {state.routes.map((route: TabRoute, index: number) => {
         const { options } = descriptors[route.key];
         const isFocused = state.index === index;
 
@@ -104,7 +168,9 @@ export function TabBar({ state, descriptors, navigation }: any) {
           });
         };
 
-        const color = isFocused ? '#2563eb' : '#9ca3af';
+        const color = isFocused 
+          ? (isDarkMode ? '#60a5fa' : '#2563eb') 
+          : (isDarkMode ? '#6b7280' : '#9ca3af');
 
         return (
           <TabItem
