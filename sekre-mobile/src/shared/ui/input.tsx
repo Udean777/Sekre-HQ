@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  TextInput,
-  View,
-  StyleSheet,
-  TextInputProps,
-} from "react-native";
+import { TextInput, View, StyleSheet, TextInputProps } from "react-native";
 import { useTheme } from "../lib/hooks/use-theme";
 import { ThemedText } from "./themed-text";
 
@@ -18,11 +13,7 @@ export function Input({ label, error, style, ...props }: InputProps) {
 
   return (
     <View style={styles.container}>
-      {label && (
-        <ThemedText style={styles.label}>
-          {label}
-        </ThemedText>
-      )}
+      {label && <ThemedText style={styles.label}>{label}</ThemedText>}
       <TextInput
         style={[
           styles.input,

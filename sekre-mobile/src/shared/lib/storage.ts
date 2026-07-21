@@ -1,11 +1,11 @@
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
 
 export const storage = {
   async setToken(key: string, value: string) {
     try {
       await SecureStore.setItemAsync(key, value);
     } catch (e) {
-      console.error('Error saving secure store item', e);
+      console.error("Error saving secure store item", e);
     }
   },
 
@@ -13,7 +13,7 @@ export const storage = {
     try {
       return await SecureStore.getItemAsync(key);
     } catch (e) {
-      console.error('Error getting secure store item', e);
+      console.error("Error getting secure store item", e);
       return null;
     }
   },
@@ -22,7 +22,7 @@ export const storage = {
     try {
       await SecureStore.deleteItemAsync(key);
     } catch (e) {
-      console.error('Error deleting secure store item', e);
+      console.error("Error deleting secure store item", e);
     }
-  }
+  },
 };

@@ -1,20 +1,26 @@
-import React from 'react';
-import { StyleSheet, Alert, KeyboardAvoidingView, Platform, View } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Link } from 'expo-router';
+import React from "react";
+import {
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  View,
+} from "react-native";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Link } from "expo-router";
 
-import { Input } from '../../shared/ui/input';
-import { Button } from '../../shared/ui/button';
-import { ThemedView } from '../../shared/ui/themed-view';
-import { ThemedText } from '../../shared/ui/themed-text';
-import { ThemedSafeAreaView } from '../../shared/ui/themed-safe-area';
-import { useLogin } from '../../features/auth/use-login';
+import { Input } from "../../shared/ui/input";
+import { Button } from "../../shared/ui/button";
+import { ThemedView } from "../../shared/ui/themed-view";
+import { ThemedText } from "../../shared/ui/themed-text";
+import { ThemedSafeAreaView } from "../../shared/ui/themed-safe-area";
+import { useLogin } from "../../features/auth/use-login";
 
 const loginSchema = z.object({
-  email: z.string().email('Email tidak valid'),
-  password: z.string().min(1, 'Password harus diisi'),
+  email: z.string().email("Email tidak valid"),
+  password: z.string().min(1, "Password harus diisi"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -43,15 +49,18 @@ export default function LoginScreen() {
 
   return (
     <ThemedSafeAreaView>
-      <KeyboardAvoidingView 
-        style={styles.keyboardView} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ThemedView style={styles.container}>
-          
           <View style={styles.header}>
-            <ThemedText type="title" style={styles.title}>Masuk</ThemedText>
-            <ThemedText style={styles.subtitle}>Selamat datang kembali di Sekre</ThemedText>
+            <ThemedText type="title" style={styles.title}>
+              Masuk
+            </ThemedText>
+            <ThemedText style={styles.subtitle}>
+              Selamat datang kembali di Sekre
+            </ThemedText>
           </View>
 
           <View style={styles.form}>
@@ -95,12 +104,15 @@ export default function LoginScreen() {
           </View>
 
           <ThemedView style={styles.footer}>
-            <ThemedText style={styles.footerText}>Belum punya akun organisasi? </ThemedText>
+            <ThemedText style={styles.footerText}>
+              Belum punya akun organisasi?{" "}
+            </ThemedText>
             <Link href="/(auth)/register" asChild>
-              <ThemedText type="linkPrimary" style={styles.link}>Daftar di sini</ThemedText>
+              <ThemedText type="linkPrimary" style={styles.link}>
+                Daftar di sini
+              </ThemedText>
             </Link>
           </ThemedView>
-
         </ThemedView>
       </KeyboardAvoidingView>
     </ThemedSafeAreaView>
@@ -114,18 +126,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   header: {
     marginBottom: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   subtitle: {
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.7,
   },
   form: {
@@ -135,15 +147,15 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: 40,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   footerText: {
     opacity: 0.8,
   },
   link: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });

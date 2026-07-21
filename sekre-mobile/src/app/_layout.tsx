@@ -62,7 +62,7 @@ function RootLayoutNav() {
       router.replace("/(auth)/login");
     } else if (isAuthenticated && inAuthGroup) {
       // Redirect away from the sign-in page.
-      router.replace("/(dashboard)");
+      router.replace("/(tabs)");
     }
   }, [isAuthenticated, segments, isReady]);
 
@@ -80,10 +80,14 @@ function RootLayoutNav() {
   return <Stack screenOptions={{ headerShown: false }} />;
 }
 
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <RootLayoutNav />
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <RootLayoutNav />
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }

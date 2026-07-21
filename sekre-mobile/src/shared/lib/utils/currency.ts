@@ -5,11 +5,11 @@
  * @returns String terformat "Rp 50.000"
  */
 export function formatRupiah(amount: number): string {
-  if (isNaN(amount)) return 'Rp 0';
-  
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
+  if (isNaN(amount)) return "Rp 0";
+
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);

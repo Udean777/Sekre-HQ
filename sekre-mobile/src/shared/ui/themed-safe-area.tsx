@@ -1,5 +1,6 @@
 import React from "react";
-import { SafeAreaView, type ViewProps, StyleSheet } from "react-native";
+import { type ViewProps, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../lib/hooks/use-theme";
 import { ThemeColor } from "../config/theme";
 

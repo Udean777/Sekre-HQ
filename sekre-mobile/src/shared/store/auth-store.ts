@@ -1,17 +1,25 @@
-import { create } from 'zustand';
-import { User, Organization } from '../../entities/user/user.types';
-import { storage } from '../lib/storage';
+import { create } from "zustand";
+import { User, Organization } from "../../entities/user/user.types";
+import { storage } from "../lib/storage";
 
 interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   organization: Organization | null;
   role: string | null;
-  
+
   // Actions
-  login: (authData: { user: User; organization: Organization; role: string }, access: string, refresh: string) => Promise<void>;
+  login: (
+    authData: { user: User; organization: Organization; role: string },
+    access: string,
+    refresh: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
-  setAuthRestored: (authData: { user: User; organization: Organization; role: string }) => void;
+  setAuthRestored: (authData: {
+    user: User;
+    organization: Organization;
+    role: string;
+  }) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -21,9 +29,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   role: null,
 
   login: async (authData, access, refresh) => {
-    await storage.setToken('access_token', access);
-    await storage.setToken('refresh_token', refresh);
-    
+    await storage.setToken("access_token", access);
+    await storage.setToken("refresh_token", refresh);
+
     set({
       isAuthenticated: true,
       user: authData.user,
@@ -33,9 +41,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    await storage.deleteToken('access_token');
-    await storage.deleteToken('refresh_token');
-    
+    await storage.deleteToken("access_token");
+    await storage.deleteToken("refresh_token");
+
     set({
       isAuthenticated: false,
       user: null,
@@ -51,5 +59,5 @@ export const useAuthStore = create<AuthState>((set) => ({
       organization: authData.organization,
       role: authData.role,
     });
-  }
+  },
 }));
