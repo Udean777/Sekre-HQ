@@ -14,6 +14,7 @@ interface ButtonProps extends Omit<PressableProps, "style"> {
   variant?: "primary" | "secondary" | "outline";
   isLoading?: boolean;
   style?: any;
+  textStyle?: any;
 }
 
 export function Button({
@@ -21,6 +22,7 @@ export function Button({
   variant = "primary",
   isLoading = false,
   style,
+  textStyle,
   disabled,
   onPressIn,
   onPressOut,
@@ -100,7 +102,9 @@ export function Button({
         {isLoading ? (
           <ActivityIndicator color={getTextColor()} />
         ) : (
-          <ThemedText style={[styles.text, { color: getTextColor() }]}>
+          <ThemedText
+            style={[styles.text, { color: getTextColor() }, textStyle]}
+          >
             {title}
           </ThemedText>
         )}

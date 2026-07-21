@@ -215,3 +215,26 @@ func (r *userProfileRepository) CheckEmailExists(ctx context.Context, email stri
 	}
 	return count > 0, nil
 }
+
+func (r *userProfileRepository) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
+	result := dbFor(ctx, r.db).Delete(&models.User{}, "id = ?", userID)
+	if result.Error != nil {
+		return domainerrors.Internal("delete account", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return domainerrors.ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *userProfileRepository) CheckIsOwner(ctx context.Context, userID uuid.UUID) (bool, error) {
+	var count int64
+	err := dbFor(ctx, r.db).
+		Table("user_organizations").
+		Where("user_id = ? AND role = ?", userID, types.RoleOwner).
+		Count(&count).Error
+	if err != nil {
+		return false, domainerrors.Internal("check is owner", err)
+	}
+	return count > 0, nil
+}

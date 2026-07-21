@@ -27,6 +27,7 @@ func (h *UserHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/users", h.ListUsers).Methods("GET")
 	router.HandleFunc("/users/me/profile", h.UpdateProfile).Methods("PATCH")
 	router.HandleFunc("/users/me/change-password", h.ChangePassword).Methods("POST")
+	router.HandleFunc("/users/me", h.DeleteAccount).Methods("DELETE")
 }
 
 // SearchUsers searches for users in the organization
@@ -126,4 +127,20 @@ func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Success(w, http.StatusOK, "password changed successfully", nil)
+}
+
+// DeleteAccount handles the deletion of the current user's account
+func (h *UserHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid user context"))
+		return
+	}
+
+	if err := h.usecase.DeleteAccount(r.Context(), userID); err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
+	response.Success(w, http.StatusOK, "account deleted successfully", nil)
 }

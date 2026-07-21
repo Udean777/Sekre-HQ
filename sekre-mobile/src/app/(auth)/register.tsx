@@ -18,19 +18,16 @@ import { ThemedText } from "../../shared/ui/themed-text";
 import { ThemedSafeAreaView } from "../../shared/ui/themed-safe-area";
 import { ThemedScrollView } from "../../shared/ui/themed-scroll-view";
 import { useRegister } from "../../features/auth/use-register";
-
-const registerSchema = z.object({
-  organization_name: z.string().min(2, "Minimal 2 karakter"),
-  subdomain: z.string().min(2, "Minimal 2 karakter"),
-  full_name: z.string().min(2, "Minimal 2 karakter"),
-  email: z.string().email("Email tidak valid"),
-  password: z.string().min(8, "Minimal 8 karakter"),
-});
-
-type RegisterForm = z.infer<typeof registerSchema>;
+import { useAlert } from "../../shared/context/alert-context";
+import {
+  registerSchema,
+  type RegisterForm,
+} from "../../features/auth/auth.schema";
 
 export default function RegisterScreen() {
   const registerMutation = useRegister();
+
+  const { alert } = useAlert();
 
   const {
     control,
@@ -43,7 +40,7 @@ export default function RegisterScreen() {
   const onSubmit = (data: RegisterForm) => {
     registerMutation.mutate(data, {
       onError: (err: any) => {
-        Alert.alert(
+        alert(
           "Registrasi Gagal",
           err?.response?.data?.message || "Terjadi kesalahan",
         );

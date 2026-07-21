@@ -17,16 +17,13 @@ import { ThemedView } from "../../shared/ui/themed-view";
 import { ThemedText } from "../../shared/ui/themed-text";
 import { ThemedSafeAreaView } from "../../shared/ui/themed-safe-area";
 import { useLogin } from "../../features/auth/use-login";
-
-const loginSchema = z.object({
-  email: z.string().email("Email tidak valid"),
-  password: z.string().min(1, "Password harus diisi"),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
+import { useAlert } from "../../shared/context/alert-context";
+import { loginSchema, type LoginForm } from "../../features/auth/auth.schema";
 
 export default function LoginScreen() {
   const loginMutation = useLogin();
+
+  const { alert } = useAlert();
 
   const {
     control,
@@ -39,7 +36,7 @@ export default function LoginScreen() {
   const onSubmit = (data: LoginForm) => {
     loginMutation.mutate(data, {
       onError: (err: any) => {
-        Alert.alert(
+        alert(
           "Login Gagal",
           err?.response?.data?.message || "Terjadi kesalahan",
         );

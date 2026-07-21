@@ -81,13 +81,16 @@ function RootLayoutNav() {
 }
 
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AlertProvider } from "../shared/context/alert-context";
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <RootLayoutNav />
-      </QueryClientProvider>
+      <AlertProvider>
+        <QueryClientProvider client={queryClient}>
+          <RootLayoutNav />
+        </QueryClientProvider>
+      </AlertProvider>
     </SafeAreaProvider>
   );
 }

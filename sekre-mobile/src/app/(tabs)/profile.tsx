@@ -5,21 +5,29 @@ import {
   EnvelopeSimpleIcon,
   IdentificationCardIcon,
   ShieldCheckIcon,
+  PencilSimpleIcon,
 } from "phosphor-react-native";
+import { useRouter } from "expo-router";
 
 import { ThemedScrollView } from "../../shared/ui/themed-scroll-view";
 import { ThemedText } from "../../shared/ui/themed-text";
 import { ThemedCard } from "../../shared/ui/themed-card";
 import { ThemedHeader } from "../../shared/ui/themed-header";
 import { Button } from "../../shared/ui/button";
+import { BouncingPressable } from "../../shared/ui/bouncing-pressable";
 import { useAuthStore } from "../../shared/store/auth-store";
 import { useLogout } from "../../features/auth/use-logout";
+import { useDeleteAccount } from "../../features/user/use-delete-account";
 import { useTheme } from "../../shared/lib/hooks/use-theme";
+import { useAlert } from "../../shared/context/alert-context";
 
 export default function ProfileScreen() {
+  const { alert } = useAlert();
   const { user, organization, role } = useAuthStore();
   const logoutMutation = useLogout();
+  const deleteAccountMutation = useDeleteAccount();
   const theme = useTheme();
+  const router = useRouter();
 
   // Helper to get initials
   const getInitials = (name?: string) => {
@@ -49,9 +57,48 @@ export default function ProfileScreen() {
     </View>
   );
 
+  const handleDeleteAccount = () => {
+    alert(
+      "Hapus Akun Permanen",
+      "Apakah Anda yakin ingin menghapus akun Anda secara permanen? Tindakan ini tidak dapat dibatalkan dan semua data pribadi Anda akan terhapus.",
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Ya, Hapus Akun Saya",
+          style: "destructive",
+          onPress: () => {
+            deleteAccountMutation.mutate(undefined, {
+              onError: (error: any) => {
+                let errorMessage = "Terjadi kesalahan saat menghapus akun.";
+                if (error?.response?.data?.message) {
+                  errorMessage = error.response.data.message;
+                } else if (error?.response?.data?.error) {
+                  errorMessage = error.response.data.error;
+                } else if (error?.message) {
+                  errorMessage = error.message;
+                }
+                alert("Gagal", errorMessage);
+              },
+            });
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View style={styles.wrapper}>
-      <ThemedHeader title="Profil Pengguna" />
+      <ThemedHeader
+        title="Profil Pengguna"
+        right={
+          <BouncingPressable
+            style={styles.editButton}
+            onPress={() => router.push("/edit-profile")}
+          >
+            <PencilSimpleIcon color={theme.tint} size={20} weight="bold" />
+          </BouncingPressable>
+        }
+      />
       <ThemedScrollView contentContainerStyle={styles.container}>
         {/* Header / Avatar Area */}
         <View style={styles.header}>
@@ -109,11 +156,42 @@ export default function ProfileScreen() {
             label="Email Terdaftar"
             value={user?.email}
           />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: theme.backgroundSelected },
+            ]}
+          />
+
+          <Button
+            title="Ganti Kata Sandi"
+            variant="secondary"
+            onPress={() => router.push("/change-password")}
+            style={styles.changePasswordButton}
+          />
+        </ThemedCard>
+
+        {/* Danger Zone */}
+        <ThemedText style={styles.sectionTitle}>ZONA BERBAHAYA</ThemedText>
+        <ThemedCard
+          style={[styles.card, { borderColor: "#ef4444", borderWidth: 1 }]}
+        >
+          <ThemedText style={styles.dangerText}>
+            Tindakan ini bersifat permanen dan tidak dapat dibatalkan.
+          </ThemedText>
+          <Button
+            title="Hapus Akun Saya"
+            variant="secondary"
+            onPress={handleDeleteAccount}
+            isLoading={deleteAccountMutation.isPending}
+            style={styles.deleteButton}
+            textStyle={{ color: "#ef4444" }}
+          />
         </ThemedCard>
 
         {/* Actions */}
         <Button
-          title="Keluar dari Sesi"
+          title="Keluar (Logout)"
           variant="outline"
           onPress={() => logoutMutation.mutate()}
           isLoading={logoutMutation.isPending}
@@ -211,8 +289,25 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     marginLeft: 52, // Align with text
   },
+  editButton: {
+    padding: 8,
+    marginRight: -8,
+  },
+  changePasswordButton: {
+    marginTop: 16,
+  },
   logoutButton: {
-    marginTop: 32,
+    marginTop: 24,
+  },
+  dangerText: {
+    fontSize: 14,
+    opacity: 0.8,
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  deleteButton: {
+    backgroundColor: "transparent",
     borderColor: "#ef4444",
+    borderWidth: 1,
   },
 });

@@ -20,6 +20,7 @@ interface AuthState {
     organization: Organization;
     role: string;
   }) => void;
+  updateUser: (data: Partial<User>) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -59,5 +60,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       organization: authData.organization,
       role: authData.role,
     });
+  },
+
+  updateUser: (data) => {
+    set((state) => ({
+      user: state.user ? { ...state.user, ...data } : null,
+    }));
   },
 }));

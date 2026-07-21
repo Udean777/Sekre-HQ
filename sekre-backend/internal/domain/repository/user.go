@@ -30,6 +30,8 @@ type UserProfileRepository interface {
 	GetUserWithPasswordByID(ctx context.Context, userID uuid.UUID) (*entity.User, error)
 	UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) error
 	CheckEmailExists(ctx context.Context, email string, excludeUserID uuid.UUID) (bool, error)
+	CheckIsOwner(ctx context.Context, userID uuid.UUID) (bool, error)
+	DeleteAccount(ctx context.Context, userID uuid.UUID) error
 }
 
 // OrganizationRepository handles organization persistence (auth flow)
