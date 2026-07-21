@@ -1,79 +1,89 @@
-import '../global.css';
-
-import { DarkTheme, DefaultTheme, ThemeProvider, Slot, useRouter, useSegments } from 'expo-router';
-import { useColorScheme } from 'nativewind';
-import { useEffect } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import { useAuthStore } from '@/core/store/use-auth-store';
-import { useThemeStore } from '@/core/store/use-theme-store';
+import React, { useEffect, useState } from "react";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ActivityIndicator } from "react-native";
+import { useAuthStore } from "../shared/store/auth-store";
+import { storage } from "../shared/lib/storage";
+import { apiClient } from "../shared/api/api-client";
+import { ThemedView } from "../shared/ui/themed-view";
+import { useTheme } from "../shared/lib/hooks/use-theme";
 
 const queryClient = new QueryClient();
 
-function AuthGuard() {
-  const { isAuthenticated, isLoading, setLoading, login } = useAuthStore();
+function RootLayoutNav() {
+  const { isAuthenticated, setAuthRestored, logout } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
+  const theme = useTheme();
 
   useEffect(() => {
-    // Check token on mount
-    const checkToken = async () => {
+    const initializeAuth = async () => {
       try {
-        const { SecureStorage } = require('@/core/storage/secure-storage');
-        const token = await SecureStorage.get('access_token');
-        if (token) {
-          const { authRepository } = require('@/data/repositories/auth.repository.impl');
-          const result = await authRepository.getProfile();
-          login(result.user, result.organization, result.role); 
+        const token = await storage.getToken("access_token");
+        if (!token) {
+          setIsReady(true);
+          return;
         }
-      } catch (e) {
-        console.error(e);
+
+        if (!isAuthenticated) {
+          // Kita punya token, mari cek keasliannya ke backend sekalian ambil data user
+          const response = await apiClient.get("/auth/me");
+          const data = response.data.data;
+
+          setAuthRestored({
+            user: data.user,
+            organization: data.organization,
+            role: data.role,
+          });
+        }
+      } catch (error) {
+        console.error(
+          "Gagal mengambil data user saat startup, token mungkin kadaluwarsa:",
+          error,
+        );
+        // Token tidak valid atau sesi habis, bersihkan state
+        await logout();
       } finally {
-        setLoading(false);
+        setIsReady(true);
       }
     };
-    checkToken();
+
+    initializeAuth();
   }, []);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (!isReady) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const inAuthGroup = segments[0] === "(auth)";
 
-    if (
-      // If the user is not authenticated and the initial segment is not '(auth)'
-      !isAuthenticated &&
-      !inAuthGroup
-    ) {
-      // Redirect to the login page.
-      router.replace('/(auth)/login');
+    if (!isAuthenticated && !inAuthGroup) {
+      // Redirect to the sign-in page.
+      router.replace("/(auth)/login");
     } else if (isAuthenticated && inAuthGroup) {
-      // Redirect away from the login page.
-      router.replace('/(app)');
+      // Redirect away from the sign-in page.
+      router.replace("/(dashboard)");
     }
-  }, [isAuthenticated, segments, isLoading]);
+  }, [isAuthenticated, segments, isReady]);
 
-  return <Slot />;
+  if (!isReady) {
+    // Splash/Loading Screen yang anggun sambil ngecek token
+    return (
+      <ThemedView
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      >
+        <ActivityIndicator size="large" color={theme.tint} />
+      </ThemedView>
+    );
+  }
+
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
 
 export default function RootLayout() {
-  const { colorScheme, setColorScheme } = useColorScheme();
-  const theme = useThemeStore((state) => state.theme);
-
-  useEffect(() => {
-    // Sync theme store with NativeWind
-    if (theme !== colorScheme) {
-      setColorScheme(theme);
-    }
-  }, [theme]);
-  
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AnimatedSplashOverlay />
-        <AuthGuard />
-      </ThemeProvider>
+      <RootLayoutNav />
     </QueryClientProvider>
   );
 }

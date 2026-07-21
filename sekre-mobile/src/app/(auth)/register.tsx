@@ -1,265 +1,205 @@
-import { View, Alert, ScrollView, TouchableOpacity, Platform } from 'react-native';
-import { useRouter, Link } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Alert, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import * as z from 'zod';
+import { Link } from 'expo-router';
 
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { AppText } from '@/components/ui/AppText';
-import { SocialButton } from '@/components/ui/SocialButton';
-import { useRegister } from '@/hooks/use-auth';
-import { registerSchema, RegisterFormValues } from '@/core/validations/auth.validation';
-import { Eye, EyeOff, Building2, User, Globe, Mail, Lock } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
+import { Input } from '../../shared/ui/input';
+import { Button } from '../../shared/ui/button';
+import { ThemedView } from '../../shared/ui/themed-view';
+import { ThemedText } from '../../shared/ui/themed-text';
+import { ThemedSafeAreaView } from '../../shared/ui/themed-safe-area';
+import { ThemedScrollView } from '../../shared/ui/themed-scroll-view';
+import { useRegister } from '../../features/auth/use-register';
 
-import { AxiosError } from 'axios';
+const registerSchema = z.object({
+  organization_name: z.string().min(2, 'Minimal 2 karakter'),
+  subdomain: z.string().min(2, 'Minimal 2 karakter'),
+  full_name: z.string().min(2, 'Minimal 2 karakter'),
+  email: z.string().email('Email tidak valid'),
+  password: z.string().min(8, 'Minimal 8 karakter'),
+});
+
+type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterScreen() {
-  const router = useRouter();
-  const { mutate: register, isPending } = useRegister();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const [showPassword, setShowPassword] = useState(false);
+  const registerMutation = useRegister();
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormValues>({
+  const { control, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      organization_name: '',
-      subdomain: '',
-      full_name: '',
-      email: '',
-      password: '',
-    },
   });
 
-  const onSubmit = (data: RegisterFormValues) => {
-    register(data, {
-      onError: (error) => {
-        const axiosError = error as AxiosError<{ message?: string }>;
-        Alert.alert('Registrasi Gagal', axiosError.response?.data?.message || 'Terjadi kesalahan');
-      },
-      onSuccess: () => {
-        Alert.alert('Berhasil! 🎉', 'Organisasi Anda berhasil dibuat. Selamat datang di Sekre!');
-        router.replace('/(app)');
-      },
+  const onSubmit = (data: RegisterForm) => {
+    registerMutation.mutate(data, {
+      onError: (err: any) => {
+        Alert.alert('Registrasi Gagal', err?.response?.data?.message || 'Terjadi kesalahan');
+      }
     });
   };
 
-  const handleGoogleRegister = () => {
-    Alert.alert('Segera Hadir', 'Daftar dengan Google akan segera tersedia.');
-  };
-
-  const handleAppleRegister = () => {
-    Alert.alert('Segera Hadir', 'Daftar dengan Apple akan segera tersedia.');
-  };
-
-  const iconColor = isDark ? '#6b7280' : '#9ca3af';
-
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50 dark:bg-gray-950"
-      contentContainerStyle={{ paddingTop: 64, paddingBottom: 40, paddingHorizontal: 24 }}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
-      <View className="items-center mb-8">
-        <View className="w-16 h-16 rounded-2xl bg-blue-600 items-center justify-center mb-5">
-          <AppText variant="h1" className="text-white text-2xl">S</AppText>
-        </View>
-        <AppText variant="h1" className="text-center text-[28px] tracking-tight">
-          Bentuk Himpunan
-        </AppText>
-        <AppText variant="body" className="text-center text-gray-500 dark:text-gray-400 mt-1.5">
-          Daftarkan organisasi Anda dan mulai berkolaborasi
-        </AppText>
-      </View>
-
-      {/* OAuth Buttons */}
-      <View className="gap-y-3 mb-6">
-        <SocialButton provider="google" onPress={handleGoogleRegister} />
-        {Platform.OS === 'ios' && (
-          <SocialButton provider="apple" onPress={handleAppleRegister} />
-        )}
-      </View>
-
-      {/* Divider */}
-      <View className="flex-row items-center mb-6">
-        <View className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-        <AppText variant="caption" className="mx-4 text-gray-400 dark:text-gray-500">
-          atau daftar dengan email
-        </AppText>
-        <View className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-      </View>
-
-      {/* Form Card: Informasi Organisasi */}
-      <AppText variant="label" className="mb-3 text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs px-1">
-        Informasi Organisasi
-      </AppText>
-      <View
-        className="bg-white dark:bg-gray-900 rounded-2xl px-5 py-5 border border-gray-100 dark:border-gray-800 mb-4"
-        style={{
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDark ? 0 : 0.06,
-          shadowRadius: 12,
-          elevation: isDark ? 0 : 3,
-        }}
+    <ThemedSafeAreaView>
+      <KeyboardAvoidingView 
+        style={styles.keyboardView} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Controller
-          control={control}
-          name="organization_name"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input
-              label="Nama Organisasi"
-              placeholder="BEM Universitas X"
-              leftIcon={<Building2 size={18} color={iconColor} />}
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              error={errors.organization_name?.message}
+        <ThemedScrollView contentContainerStyle={styles.scrollContent}>
+          
+          <View style={styles.header}>
+            <ThemedText type="title" style={styles.title}>Daftar</ThemedText>
+            <ThemedText style={styles.subtitle}>Buat organisasi baru di Sekre</ThemedText>
+          </View>
+
+          <View style={styles.form}>
+            {/* Row 1: Org Name & Subdomain */}
+            <View style={styles.row}>
+              <View style={styles.flex1}>
+                <Controller
+                  control={control}
+                  name="organization_name"
+                  render={({ field: { onChange, value } }) => (
+                    <Input
+                      label="Nama Organisasi"
+                      placeholder="BEM..."
+                      value={value}
+                      onChangeText={onChange}
+                      error={errors.organization_name?.message}
+                    />
+                  )}
+                />
+              </View>
+              <View style={styles.flex1}>
+                <Controller
+                  control={control}
+                  name="subdomain"
+                  render={({ field: { onChange, value } }) => (
+                    <Input
+                      label="Subdomain (URL)"
+                      placeholder="bem-url"
+                      autoCapitalize="none"
+                      value={value}
+                      onChangeText={onChange}
+                      error={errors.subdomain?.message}
+                    />
+                  )}
+                />
+              </View>
+            </View>
+
+            {/* Row 2: Full Name */}
+            <Controller
+              control={control}
+              name="full_name"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label="Nama Anda (Owner)"
+                  placeholder="John Doe"
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.full_name?.message}
+                />
+              )}
             />
-          )}
-        />
 
-        <Controller
-          control={control}
-          name="subdomain"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input
-              label="Subdomain (URL Khusus)"
-              placeholder="nama-organisasi"
-              autoCapitalize="none"
-              leftIcon={<Globe size={18} color={iconColor} />}
-              helperText="Digunakan untuk identifikasi unik organisasi Anda"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              error={errors.subdomain?.message}
+            {/* Row 3: Email */}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label="Email Pribadi"
+                  placeholder="owner@email.com"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.email?.message}
+                />
+              )}
             />
-          )}
-        />
-      </View>
 
-      {/* Form Card: Informasi Akun */}
-      <AppText variant="label" className="mb-3 text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs px-1">
-        Informasi Akun Pemilik
-      </AppText>
-      <View
-        className="bg-white dark:bg-gray-900 rounded-2xl px-5 py-5 border border-gray-100 dark:border-gray-800 mb-6"
-        style={{
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDark ? 0 : 0.06,
-          shadowRadius: 12,
-          elevation: isDark ? 0 : 3,
-        }}
-      >
-        <Controller
-          control={control}
-          name="full_name"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input
-              label="Nama Lengkap"
-              placeholder="John Doe"
-              leftIcon={<User size={18} color={iconColor} />}
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              error={errors.full_name?.message}
+            {/* Row 4: Password */}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label="Password"
+                  placeholder="••••••••"
+                  secureTextEntry
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.password?.message}
+                />
+              )}
             />
-          )}
-        />
 
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input
-              label="Email"
-              placeholder="nama@organisasi.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              leftIcon={<Mail size={18} color={iconColor} />}
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              error={errors.email?.message}
+            <Button 
+              title="Daftar Organisasi" 
+              onPress={handleSubmit(onSubmit)} 
+              isLoading={registerMutation.isPending} 
+              style={styles.button}
             />
-          )}
-        />
+          </View>
 
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input
-              label="Password"
-              placeholder="Minimal 8 karakter"
-              secureTextEntry={!showPassword}
-              leftIcon={<Lock size={18} color={iconColor} />}
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              error={errors.password?.message}
-              rightIcon={
-                <TouchableOpacity
-                  onPress={() => setShowPassword((v) => !v)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  {showPassword
-                    ? <EyeOff size={18} color={iconColor} />
-                    : <Eye size={18} color={iconColor} />
-                  }
-                </TouchableOpacity>
-              }
-            />
-          )}
-        />
-      </View>
+          <ThemedView style={styles.footer}>
+            <ThemedText style={styles.footerText}>Sudah punya akun? </ThemedText>
+            <Link href="/(auth)/login" asChild>
+              <ThemedText type="linkPrimary" style={styles.link}>Masuk di sini</ThemedText>
+            </Link>
+          </ThemedView>
 
-      {/* Submit Button */}
-      <Button
-        onPress={handleSubmit(onSubmit)}
-        isLoading={isPending}
-        className="rounded-xl"
-        size="lg"
-      >
-        Buat Akun Sekarang
-      </Button>
-
-      {/* Footer */}
-      <View className="flex-row justify-center mt-8">
-        <AppText variant="body" className="text-gray-500 dark:text-gray-400">
-          Sudah punya akun?{' '}
-        </AppText>
-        <Link href="/(auth)/login" asChild>
-          <TouchableOpacity>
-            <AppText variant="body" className="text-blue-600 dark:text-blue-400 font-semibold">
-              Masuk
-            </AppText>
-          </TouchableOpacity>
-        </Link>
-      </View>
-
-      {/* Terms & Privacy */}
-      <AppText variant="caption" align="center" className="mt-4 text-gray-400 dark:text-gray-500 px-4">
-        Dengan mendaftar, Anda menyetujui{' '}
-        <AppText variant="caption" className="text-blue-500 dark:text-blue-400">
-          Syarat & Ketentuan
-        </AppText>
-        {' '}serta{' '}
-        <AppText variant="caption" className="text-blue-500 dark:text-blue-400">
-          Kebijakan Privasi
-        </AppText>
-        {' '}kami.
-      </AppText>
-    </ScrollView>
+        </ThemedScrollView>
+      </KeyboardAvoidingView>
+    </ThemedSafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 24,
+    justifyContent: 'center',
+  },
+  header: {
+    marginBottom: 32,
+    alignItems: 'center',
+  },
+  title: {
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    textAlign: 'center',
+    opacity: 0.7,
+  },
+  form: {
+    gap: 0,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12, // Requires modern React Native / Expo
+  },
+  flex1: {
+    flex: 1,
+  },
+  button: {
+    marginTop: 24,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 32,
+    backgroundColor: 'transparent',
+  },
+  footerText: {
+    opacity: 0.8,
+  },
+  link: {
+    fontWeight: 'bold',
+  }
+});
