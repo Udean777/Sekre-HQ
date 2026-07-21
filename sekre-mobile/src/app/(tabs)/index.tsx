@@ -18,18 +18,16 @@ import { BouncingPressable } from "../../shared/ui/bouncing-pressable";
 import { useAuthStore } from "../../shared/store/auth-store";
 import { useTheme } from "../../shared/lib/hooks/use-theme";
 
-export default function DashboardScreen() {
-  const { user, organization } = useAuthStore();
+// Helper component for Quick Actions
+const QuickAction = ({
+  icon,
+  label,
+}: {
+  icon: React.ReactNode;
+  label: string;
+}) => {
   const theme = useTheme();
-
-  // Helper component for Quick Actions
-  const QuickAction = ({
-    icon,
-    label,
-  }: {
-    icon: React.ReactNode;
-    label: string;
-  }) => (
+  return (
     <BouncingPressable style={styles.actionItem} scaleTo={0.9}>
       <View
         style={[
@@ -44,25 +42,30 @@ export default function DashboardScreen() {
       </ThemedText>
     </BouncingPressable>
   );
+};
 
-  // Helper for Stat Cards
-  const StatCard = ({
-    title,
-    value,
-    icon,
-  }: {
-    title: string;
-    value: string;
-    icon: React.ReactNode;
-  }) => (
-    <ThemedCard style={styles.statCard}>
-      <View style={styles.statHeader}>
-        {icon}
-        <ThemedText style={styles.statTitle}>{title}</ThemedText>
-      </View>
-      <ThemedText style={styles.statValue}>{value}</ThemedText>
-    </ThemedCard>
-  );
+// Helper for Stat Cards
+const StatCard = ({
+  title,
+  value,
+  icon,
+}: {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+}) => (
+  <ThemedCard style={styles.statCard}>
+    <View style={styles.statHeader}>
+      {icon}
+      <ThemedText style={styles.statTitle}>{title}</ThemedText>
+    </View>
+    <ThemedText style={styles.statValue}>{value}</ThemedText>
+  </ThemedCard>
+);
+
+export default function DashboardScreen() {
+  const { user, organization } = useAuthStore();
+  const theme = useTheme();
 
   return (
     <ThemedSafeAreaView style={styles.wrapper}>

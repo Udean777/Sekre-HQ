@@ -100,6 +100,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # ── Generate native Android directory ──
+      - name: Prebuild Android
+        run: bunx expo prebuild --platform android --no-install
+
       # ── Decode keystore dari secret ──
       - name: Decode keystore
         run: |
@@ -185,7 +189,7 @@ jobs:
           bunx react-native bundle \
             --platform android \
             --dev false \
-            --entry-file index.js \
+            --entry-file node_modules/expo-router/entry.js \
             --bundle-output /tmp/main.jsbundle \
             --sourcemap-output /tmp/main.jsbundle.map
 

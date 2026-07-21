@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   Animated,
   Pressable,
@@ -18,11 +18,12 @@ export function BouncingPressable({
   style,
   scaleTo = 0.95,
   activeOpacity = 0.8,
+  disabled,
   onPressIn,
   onPressOut,
   ...props
 }: BouncingPressableProps) {
-  const scale = useRef(new Animated.Value(1)).current;
+  const [scale] = useState(() => new Animated.Value(1));
 
   const handlePressIn = (e: any) => {
     Animated.spring(scale, {

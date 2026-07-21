@@ -12,7 +12,7 @@ export function formatDate(isoString: string): string {
       month: "short",
       year: "numeric",
     }).format(date);
-  } catch (error) {
+  } catch (e) {
     return isoString;
   }
 }

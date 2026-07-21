@@ -29,7 +29,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const theme = useTheme();
-  const scale = useRef(new Animated.Value(1)).current;
+  const [scale] = React.useState(() => new Animated.Value(1));
 
   const getBackgroundColor = () => {
     if (disabled) return theme.backgroundSelected;

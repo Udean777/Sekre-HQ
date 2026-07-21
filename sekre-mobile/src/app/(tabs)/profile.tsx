@@ -21,6 +21,26 @@ import { useDeleteAccount } from "../../features/user/use-delete-account";
 import { useTheme } from "../../shared/lib/hooks/use-theme";
 import { useAlert } from "../../shared/context/alert-context";
 
+const InfoRow = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: string;
+}) => (
+  <View style={styles.infoRow}>
+    <View style={styles.infoIconWrapper}>{icon}</View>
+    <View style={styles.infoTextContainer}>
+      <ThemedText style={styles.infoLabel}>{label}</ThemedText>
+      <ThemedText style={styles.infoValue} numberOfLines={1}>
+        {value || "-"}
+      </ThemedText>
+    </View>
+  </View>
+);
+
 export default function ProfileScreen() {
   const { alert } = useAlert();
   const { user, organization, role } = useAuthStore();
@@ -36,26 +56,6 @@ export default function ProfileScreen() {
     if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
     return name.substring(0, 2).toUpperCase();
   };
-
-  const InfoRow = ({
-    icon,
-    label,
-    value,
-  }: {
-    icon: React.ReactNode;
-    label: string;
-    value?: string;
-  }) => (
-    <View style={styles.infoRow}>
-      <View style={styles.infoIconWrapper}>{icon}</View>
-      <View style={styles.infoTextContainer}>
-        <ThemedText style={styles.infoLabel}>{label}</ThemedText>
-        <ThemedText style={styles.infoValue} numberOfLines={1}>
-          {value || "-"}
-        </ThemedText>
-      </View>
-    </View>
-  );
 
   const handleDeleteAccount = () => {
     alert(

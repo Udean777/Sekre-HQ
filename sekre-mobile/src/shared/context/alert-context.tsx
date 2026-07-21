@@ -34,8 +34,8 @@ export function AlertProvider({ children }: { children: ReactNode }) {
   const [options, setOptions] = useState<AlertOptions | null>(null);
   const theme = useTheme();
 
-  const scale = React.useRef(new Animated.Value(0.9)).current;
-  const opacity = React.useRef(new Animated.Value(0)).current;
+  const [scale] = useState(() => new Animated.Value(0.9));
+  const [opacity] = useState(() => new Animated.Value(0));
 
   const animateIn = () => {
     Animated.parallel([
