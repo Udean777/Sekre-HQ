@@ -30,6 +30,8 @@ export interface Member {
 
 interface FetchMembersParams extends PaginationParams {
   search?: string;
+  role?: string;
+  status?: string;
 }
 
 const fetchMembers = async (params: FetchMembersParams) => {

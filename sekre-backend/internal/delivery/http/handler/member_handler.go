@@ -52,17 +52,25 @@ func (h *MemberHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse optional search
+	// Parse optional search, role, status
 	var search *string
 	if s := r.URL.Query().Get("search"); s != "" {
 		search = &s
+	}
+	var role *string
+	if r := r.URL.Query().Get("role"); r != "" {
+		role = &r
+	}
+	var status *string
+	if st := r.URL.Query().Get("status"); st != "" {
+		status = &st
 	}
 
 	// Parse pagination params
 	paginationParams := pagination.ParseParams(r)
 	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
 
-	members, total, err := h.usecase.ListMembersPaginatedFiltered(r.Context(), orgID, search, domainPagination)
+	members, total, err := h.usecase.ListMembersPaginatedFiltered(r.Context(), orgID, search, role, status, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return

@@ -60,10 +60,10 @@ func (r *memberRepository) GetOrganizationMembers(ctx context.Context, orgID uui
 }
 
 func (r *memberRepository) GetOrganizationMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
-	return r.GetOrganizationMembersPaginatedFiltered(ctx, orgID, nil, pagination)
+	return r.GetOrganizationMembersPaginatedFiltered(ctx, orgID, nil, nil, nil, pagination)
 }
 
-func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, role *string, status *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
 	baseQuery := dbFor(ctx, r.db).
 		Table("users AS u").
 		Joins("INNER JOIN user_organizations AS uo ON u.id = uo.user_id").
@@ -71,6 +71,12 @@ func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.C
 
 	if search != nil && *search != "" {
 		baseQuery = baseQuery.Where("(u.full_name ILIKE ? OR u.email ILIKE ?)", "%"+*search+"%", "%"+*search+"%")
+	}
+	if role != nil && *role != "" {
+		baseQuery = baseQuery.Where("uo.role = ?", *role)
+	}
+	if status != nil && *status != "" {
+		baseQuery = baseQuery.Where("uo.status = ?", *status)
 	}
 
 	// Get total count
@@ -96,6 +102,12 @@ func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.C
 
 	if search != nil && *search != "" {
 		query = query.Where("(u.full_name ILIKE ? OR u.email ILIKE ?)", "%"+*search+"%", "%"+*search+"%")
+	}
+	if role != nil && *role != "" {
+		query = query.Where("uo.role = ?", *role)
+	}
+	if status != nil && *status != "" {
+		query = query.Where("uo.status = ?", *status)
 	}
 
 	var rows []row
