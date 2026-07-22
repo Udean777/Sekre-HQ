@@ -32,8 +32,10 @@ import { useUpdateMemberStatus } from "@/features/member/use-update-member-statu
 import { useRemoveMember } from "@/features/member/use-remove-member";
 import { useUpdateMemberRole } from "@/features/member/use-update-member-role";
 import { useAuthStore } from "@/shared/store/auth-store";
+import { useTranslation } from "react-i18next";
 
 export default function MembersScreen() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
   const { alert } = useAlert();
@@ -97,7 +99,7 @@ export default function MembersScreen() {
       `${action} Akun`,
       `Apakah Anda yakin ingin ${action.toLowerCase()} akun ${member.full_name}?`,
       [
-        { text: "Batal", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
           text: "Ya, Lanjutkan",
           style: isSuspended ? "default" : "destructive",
@@ -107,14 +109,14 @@ export default function MembersScreen() {
               {
                 onError: (error: any) => {
                   alert(
-                    "Gagal",
-                    extractErrorMessage(error, "Terjadi kesalahan."),
+                    t("division.error"),
+                    extractErrorMessage(error, t("members.suspendError")),
                   );
                 },
                 onSuccess: () => {
                   alert(
-                    "Berhasil",
-                    `Akun ${member.full_name} telah ${isSuspended ? "diaktifkan" : "ditangguhkan"}.`,
+                    t("division.success"),
+                    t("members.suspendSuccess"),
                   );
                 },
               },
@@ -136,7 +138,7 @@ export default function MembersScreen() {
       "Ubah Peran",
       `Apakah Anda yakin ingin mengubah peran ${member.full_name} menjadi ${newRole}?`,
       [
-        { text: "Batal", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
           text: "Ya, Ubah",
           onPress: () => {
@@ -145,14 +147,14 @@ export default function MembersScreen() {
               {
                 onError: (error: any) => {
                   alert(
-                    "Gagal",
-                    extractErrorMessage(error, "Terjadi kesalahan."),
+                    t("division.error"),
+                    extractErrorMessage(error, t("members.roleError")),
                   );
                 },
                 onSuccess: () => {
                   alert(
-                    "Berhasil",
-                    `Peran ${member.full_name} berhasil diubah.`,
+                    t("division.success"),
+                    t("members.roleSuccess"),
                   );
                 },
               },
@@ -184,7 +186,7 @@ export default function MembersScreen() {
       "Keluarkan Anggota",
       `Apakah Anda yakin ingin mengeluarkan ${member.full_name} dari organisasi? Tindakan ini tidak dapat dibatalkan.`,
       [
-        { text: "Batal", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
           text: "Ya, Keluarkan",
           style: "destructive",
@@ -192,14 +194,14 @@ export default function MembersScreen() {
             removeMemberMutation.mutate(member.id, {
               onError: (error: any) => {
                 alert(
-                  "Gagal",
-                  extractErrorMessage(error, "Terjadi kesalahan."),
+                  t("division.error"),
+                  extractErrorMessage(error, t("members.deleteError")),
                 );
               },
               onSuccess: () => {
                 alert(
-                  "Berhasil",
-                  `Anggota ${member.full_name} telah dikeluarkan.`,
+                  t("division.success"),
+                  t("members.deleteSuccess"),
                 );
               },
             });
@@ -263,7 +265,7 @@ export default function MembersScreen() {
                 <View style={[styles.badge, { backgroundColor: "#fee2e2" }]}>
                   <WarningCircleIcon color="#ef4444" size={14} weight="fill" />
                   <ThemedText style={[styles.badgeText, { color: "#ef4444" }]}>
-                    DITANGGUHKAN
+                    {t("members.suspended")}
                   </ThemedText>
                 </View>
               )}
@@ -279,7 +281,7 @@ export default function MembersScreen() {
                   fontStyle: "italic",
                 }}
               >
-                (Ini adalah Anda)
+                ({t("members.isYou")})
               </ThemedText>
             </View>
           )}
@@ -289,7 +291,7 @@ export default function MembersScreen() {
             {currentRole === "OWNER" && item.role !== "OWNER" && (
               <Button
                 title={
-                  item.role === "ADMIN" ? "Turunkan ke Member" : "Jadikan Admin"
+                  item.role === "ADMIN" ? t("members.demote") : t("members.promote")
                 }
                 variant="outline"
                 style={styles.actionButton}
@@ -301,7 +303,7 @@ export default function MembersScreen() {
               />
             )}
             <Button
-              title={isSuspended ? "Aktifkan Akun" : "Tangguhkan Akun"}
+              title={isSuspended ? t("common.activate") : t("common.suspend")}
               variant={isSuspended ? "outline" : "danger-outline"}
               style={styles.actionButton}
               onPress={() => handleToggleStatus(item)}
@@ -312,7 +314,7 @@ export default function MembersScreen() {
               disabled={removeMemberMutation.isPending}
             />
             <Button
-              title="Keluarkan"
+              title={t("common.remove")}
               variant="danger"
               style={styles.actionButton}
               onPress={() => handleRemove(item)}
@@ -332,7 +334,7 @@ export default function MembersScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ThemedHeader
-        title="Manajemen Member"
+        title={t("members.title")}
         showBackButton
         right={
           currentRole === "OWNER" || currentRole === "ADMIN" ? (
@@ -351,7 +353,7 @@ export default function MembersScreen() {
           <MagnifyingGlassIcon color={theme.textSecondary} size={20} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Cari anggota..."
+            placeholder={t("members.searchPlaceholder")}
             placeholderTextColor={theme.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -366,7 +368,7 @@ export default function MembersScreen() {
             ]}
             onPress={() => setFilterRole("")}
           >
-            <ThemedText style={[styles.chipText, !filterRole && { color: "#fff" }]}>Semua</ThemedText>
+            <ThemedText style={[styles.chipText, !filterRole && { color: "#fff" }]}>{t("common.all")}</ThemedText>
           </Pressable>
           <Pressable
             style={[
@@ -375,7 +377,7 @@ export default function MembersScreen() {
             ]}
             onPress={() => setFilterRole("ADMIN")}
           >
-            <ThemedText style={[styles.chipText, filterRole === "ADMIN" && { color: "#fff" }]}>Admin</ThemedText>
+            <ThemedText style={[styles.chipText, filterRole === "ADMIN" && { color: "#fff" }]}>{t("common.admin")}</ThemedText>
           </Pressable>
           <Pressable
             style={[
@@ -384,7 +386,7 @@ export default function MembersScreen() {
             ]}
             onPress={() => setFilterRole("MEMBER")}
           >
-            <ThemedText style={[styles.chipText, filterRole === "MEMBER" && { color: "#fff" }]}>Member</ThemedText>
+            <ThemedText style={[styles.chipText, filterRole === "MEMBER" && { color: "#fff" }]}>{t("common.member")}</ThemedText>
           </Pressable>
         </ScrollView>
       </View>
@@ -408,7 +410,7 @@ export default function MembersScreen() {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <ThemedText>Tidak ada member yang ditemukan.</ThemedText>
+              <ThemedText>{t("members.noMembersFound")}</ThemedText>
             </View>
           }
         />

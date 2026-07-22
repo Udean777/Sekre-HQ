@@ -19,6 +19,7 @@ import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
 import { useAuthStore } from "@/shared/store/auth-store";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 // Helper component for Quick Actions
 const QuickAction = ({
@@ -72,6 +73,7 @@ const StatCard = ({
 );
 
 export default function DashboardScreen() {
+  const { t } = useTranslation();
   const { user, organization } = useAuthStore();
   const theme = useTheme();
   const router = useRouter();
@@ -83,7 +85,7 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View>
             <ThemedText style={styles.greeting}>
-              Halo, selamat datang!
+              {t("dashboard.welcome")}
             </ThemedText>
             <ThemedText type="subtitle" style={styles.name}>
               {user?.full_name}
@@ -103,10 +105,10 @@ export default function DashboardScreen() {
         <View style={[styles.banner, { backgroundColor: theme.tint }]}>
           <View style={styles.bannerContent}>
             <ThemedText style={styles.bannerTitle}>
-              Musyawarah Besar 2026
+              {t("dashboard.eventTitle")}
             </ThemedText>
             <ThemedText style={styles.bannerSubtitle}>
-              Acara terdekat dalam 14 hari
+              {t("dashboard.eventSubtitle")}
             </ThemedText>
           </View>
           <CalendarBlankIcon
@@ -119,40 +121,40 @@ export default function DashboardScreen() {
 
         {/* Quick Actions */}
         <ThemedText type="smallBold" style={styles.sectionTitle}>
-          AKSI CEPAT
+          {t("dashboard.quickActions")}
         </ThemedText>
         <View style={styles.actionsContainer}>
           <QuickAction
             icon={<UsersIcon size={24} color={theme.tint} weight="fill" />}
-            label="Member"
+            label={t("dashboard.actionMember")}
             onPress={() => router.push("/members")}
           />
           <QuickAction
             icon={
               <CheckCircleIcon size={24} color={theme.tint} weight="fill" />
             }
-            label="Divisi"
+            label={t("dashboard.actionDivision")}
             onPress={() => router.push("/divisions")}
           />
           <QuickAction
             icon={<WalletIcon size={24} color={theme.tint} weight="fill" />}
-            label="Tugas"
+            label={t("dashboard.actionTask")}
             onPress={() => router.push("/(tabs)/tasks")}
           />
           <QuickAction
             icon={<ChartBarIcon size={24} color={theme.tint} weight="fill" />}
-            label="Keuangan"
+            label={t("dashboard.actionFinance")}
             onPress={() => router.push("/(tabs)/finance")}
           />
         </View>
 
         {/* Statistics Row */}
         <ThemedText type="smallBold" style={styles.sectionTitle}>
-          RINGKASAN
+          {t("dashboard.summary")}
         </ThemedText>
         <View style={styles.statsRow}>
           <StatCard
-            title="Tugas Aktif"
+            title={t("dashboard.activeTasks")}
             value="12"
             icon={
               <CheckSquareOffsetIcon
@@ -163,7 +165,7 @@ export default function DashboardScreen() {
             }
           />
           <StatCard
-            title="Saldo Kas"
+            title={t("dashboard.cashBalance")}
             value="Rp 4.5M"
             icon={<WalletIcon color="#10b981" size={18} weight="fill" />}
           />
@@ -171,11 +173,11 @@ export default function DashboardScreen() {
 
         {/* Recent Activity Placeholder */}
         <ThemedText type="smallBold" style={styles.sectionTitle}>
-          AKTIVITAS TERBARU
+          {t("dashboard.recentActivity")}
         </ThemedText>
         <ThemedCard style={styles.activityCard}>
           <ThemedText style={styles.emptyText}>
-            Belum ada aktivitas terbaru minggu ini.
+            {t("dashboard.noActivity")}
           </ThemedText>
         </ThemedCard>
       </ThemedScrollView>

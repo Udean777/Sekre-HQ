@@ -21,12 +21,14 @@ import { useRemoveDivisionMember } from "@/features/division/use-remove-division
 import { useUpdateDivisionRole } from "@/features/division/use-update-division-role";
 import { useAlert } from "@/shared/context/alert-context";
 import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
+import { useTranslation } from "react-i18next";
 
 export function DivisionMembersManager({
   division,
 }: {
   division: DivisionWithMembers;
 }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { alert } = useAlert();
   const [isAddModalVisible, setAddModalVisible] = useState(false);
@@ -55,11 +57,11 @@ export function DivisionMembersManager({
       { user_id: userId, role: "STAFF" },
       {
         onSuccess: () => {
-          alert("Berhasil", "Anggota berhasil ditambahkan ke divisi.");
+          alert(t("division.success"), t("division.addSuccess"));
           setAddModalVisible(false);
         },
         onError: () => {
-          alert("Gagal", "Terjadi kesalahan saat menambahkan anggota.");
+          alert(t("division.error"), t("division.addError"));
         },
       },
     );
@@ -68,10 +70,10 @@ export function DivisionMembersManager({
   const handleRemoveMember = (userId: string) => {
     removeMemberMutation.mutate(userId, {
       onSuccess: () => {
-        alert("Berhasil", "Anggota berhasil dihapus dari divisi.");
+        alert(t("division.success"), t("division.removeSuccess"));
       },
       onError: () => {
-        alert("Gagal", "Terjadi kesalahan saat menghapus anggota.");
+        alert(t("division.error"), t("division.removeError"));
       },
     });
   };
@@ -82,10 +84,10 @@ export function DivisionMembersManager({
       { userId: member.user.id, data: { role: newRole } },
       {
         onSuccess: () => {
-          alert("Berhasil", "Peran anggota berhasil diperbarui.");
+          alert(t("division.success"), t("division.roleSuccess"));
         },
         onError: () => {
-          alert("Gagal", "Terjadi kesalahan saat memperbarui peran.");
+          alert(t("division.error"), t("division.roleError"));
         },
       },
     );
@@ -95,9 +97,16 @@ export function DivisionMembersManager({
     const isHead = item.division_role === "HEAD";
 
     return (
-      <View style={[styles.memberItem, { borderBottomColor: theme.backgroundElement }]}>
+      <View
+        style={[
+          styles.memberItem,
+          { borderBottomColor: theme.backgroundElement },
+        ]}
+      >
         <View style={styles.memberInfo}>
-          <ThemedText style={{ fontWeight: "600" }}>{item.user.full_name}</ThemedText>
+          <ThemedText style={{ fontWeight: "600" }}>
+            {item.user.full_name}
+          </ThemedText>
           <ThemedText style={{ color: theme.text + "80", fontSize: 13 }}>
             {item.user.email}
           </ThemedText>
@@ -109,7 +118,7 @@ export function DivisionMembersManager({
               fontWeight: "600",
             }}
           >
-            {isHead ? "Head of Division" : "Staff"}
+            {isHead ? t("division.headOfDivision") : t("division.staff")}
           </ThemedText>
         </View>
 
@@ -118,7 +127,11 @@ export function DivisionMembersManager({
             onPress={() => handleToggleRole(item)}
             style={[
               styles.actionButton,
-              { backgroundColor: isHead ? theme.tint + "20" : theme.backgroundElement },
+              {
+                backgroundColor: isHead
+                  ? theme.tint + "20"
+                  : theme.backgroundElement,
+              },
             ]}
           >
             <CrownIcon
@@ -141,14 +154,14 @@ export function DivisionMembersManager({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <ThemedText type="subtitle">Anggota Divisi</ThemedText>
+        <ThemedText type="subtitle">{t("division.title")}</ThemedText>
         <BouncingPressable
           style={[styles.addButton, { backgroundColor: theme.tint }]}
           onPress={() => setAddModalVisible(true)}
         >
           <UserPlusIcon color="#fff" size={16} />
           <ThemedText type="smallBold" style={{ color: "#fff", marginLeft: 8 }}>
-            Tambah
+            {t("division.add")}
           </ThemedText>
         </BouncingPressable>
       </View>
@@ -157,7 +170,7 @@ export function DivisionMembersManager({
         {division.members.length === 0 ? (
           <View style={styles.emptyState}>
             <ThemedText style={{ color: theme.text + "80" }}>
-              Belum ada anggota di divisi ini.
+              {t("division.emptyMembers")}
             </ThemedText>
           </View>
         ) : (
@@ -171,14 +184,16 @@ export function DivisionMembersManager({
 
       <Modal visible={isAddModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+          <View
+            style={[styles.modalContent, { backgroundColor: theme.background }]}
+          >
             <View
               style={[
                 styles.modalHeader,
                 { borderBottomColor: theme.backgroundElement },
               ]}
             >
-              <ThemedText type="subtitle">Tambah Anggota</ThemedText>
+              <ThemedText type="subtitle">{t("division.addMember")}</ThemedText>
               <Pressable
                 onPress={() => setAddModalVisible(false)}
                 style={styles.closeButton}
@@ -189,13 +204,11 @@ export function DivisionMembersManager({
 
             {isOrgMembersLoading ? (
               <View style={styles.emptyState}>
-                <ThemedText>Memuat...</ThemedText>
+                <ThemedText>{t("division.loading")}</ThemedText>
               </View>
             ) : availableMembers.length === 0 ? (
               <View style={styles.emptyState}>
-                <ThemedText>
-                  Semua anggota organisasi sudah ada di divisi ini.
-                </ThemedText>
+                <ThemedText>{t("division.allMembersAdded")}</ThemedText>
               </View>
             ) : (
               <FlatList
@@ -219,9 +232,13 @@ export function DivisionMembersManager({
                       </ThemedText>
                     </View>
                     <Button
-                      title="Tambah"
+                      title={t("division.add")}
                       onPress={() => handleAddMember(item.id)}
-                      style={{ paddingHorizontal: 12, paddingVertical: 6, minHeight: 0 }}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        minHeight: 0,
+                      }}
                     />
                   </View>
                 )}

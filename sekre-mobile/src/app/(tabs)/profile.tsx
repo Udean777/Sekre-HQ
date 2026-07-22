@@ -6,8 +6,11 @@ import {
   IdentificationCardIcon,
   ShieldCheckIcon,
   PencilSimpleIcon,
+  Translate,
 } from "phosphor-react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { storage } from "@/shared/lib/storage";
 
 import { ThemedScrollView } from "@/shared/ui/themed-scroll-view";
 import { ThemedText } from "@/shared/ui/themed-text";
@@ -21,6 +24,7 @@ import { extractErrorMessage } from "@/shared/lib/utils/error";
 import { useDeleteAccount } from "@/features/user/use-delete-account";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
 import { useAlert } from "@/shared/context/alert-context";
+import { LanguageSwitcher } from "@/shared/ui/language-switcher";
 
 const InfoRow = ({
   icon,
@@ -43,6 +47,7 @@ const InfoRow = ({
 );
 
 export default function ProfileScreen() {
+  const { t, i18n } = useTranslation();
   const { alert } = useAlert();
   const { user, organization, role } = useAuthStore();
   const logoutMutation = useLogout();
@@ -60,19 +65,19 @@ export default function ProfileScreen() {
 
   const handleDeleteAccount = () => {
     alert(
-      "Hapus Akun Permanen",
-      "Apakah Anda yakin ingin menghapus akun Anda secara permanen? Tindakan ini tidak dapat dibatalkan dan semua data pribadi Anda akan terhapus.",
+      t("profile.deleteConfirmTitle"),
+      t("profile.deleteConfirmMessage"),
       [
-        { text: "Batal", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Ya, Hapus Akun Saya",
+          text: t("profile.yesDelete"),
           style: "destructive",
           onPress: () => {
             deleteAccountMutation.mutate(undefined, {
               onError: (error: any) => {
                 const errorMessage = extractErrorMessage(
                   error,
-                  "Terjadi kesalahan saat menghapus akun.",
+                  t("profile.deleteError"),
                 );
                 alert("Gagal", errorMessage);
               },
@@ -86,7 +91,7 @@ export default function ProfileScreen() {
   return (
     <View style={styles.wrapper}>
       <ThemedHeader
-        title="Profil Pengguna"
+        title={t("profile.title")}
         right={
           <BouncingPressable
             style={styles.editButton}
@@ -122,12 +127,12 @@ export default function ProfileScreen() {
 
         {/* Organization Card */}
         <ThemedText type="smallBold" style={styles.sectionTitle}>
-          ORGANISASI
+          {t("profile.organization")}
         </ThemedText>
         <ThemedCard style={styles.card}>
           <InfoRow
             icon={<BuildingsIcon color={theme.text} size={24} />}
-            label="Nama Organisasi"
+            label={t("profile.orgName")}
             value={organization?.name}
           />
           <View
@@ -138,7 +143,7 @@ export default function ProfileScreen() {
           />
           <InfoRow
             icon={<IdentificationCardIcon color={theme.text} size={24} />}
-            label="Subdomain"
+            label={t("profile.subdomain")}
             value={`${organization?.subdomain}.sekre.co`}
           />
 
@@ -151,7 +156,7 @@ export default function ProfileScreen() {
                 ]}
               />
               <Button
-                title="Pengaturan Organisasi"
+                title={t("profile.orgSettings")}
                 variant="secondary"
                 onPress={() => router.push("/organization")}
               />
@@ -161,12 +166,12 @@ export default function ProfileScreen() {
 
         {/* Account Card */}
         <ThemedText type="smallBold" style={styles.sectionTitle}>
-          AKUN PRIBADI
+          {t("profile.personalAccount")}
         </ThemedText>
         <ThemedCard style={styles.card}>
           <InfoRow
             icon={<EnvelopeSimpleIcon color={theme.text} size={24} />}
-            label="Email Terdaftar"
+            label={t("profile.email")}
             value={user?.email}
           />
           <View
@@ -177,22 +182,30 @@ export default function ProfileScreen() {
           />
 
           <Button
-            title="Ganti Kata Sandi"
+            title={t("profile.changePassword")}
             variant="secondary"
             onPress={() => router.push("/change-password")}
             style={styles.changePasswordButton}
           />
         </ThemedCard>
 
+        {/* Preferences */}
+        <ThemedText type="smallBold" style={styles.sectionTitle}>
+          {t("profile.preferences")}
+        </ThemedText>
+        <ThemedCard style={styles.card}>
+          <LanguageSwitcher style={styles.infoRow} />
+        </ThemedCard>
+
         {/* Admin Zone */}
         {role && (role === "OWNER" || role === "ADMIN") && (
           <>
             <ThemedText type="smallBold" style={styles.sectionTitle}>
-              ADMINISTRASI
+              {t("profile.administration")}
             </ThemedText>
             <ThemedCard style={styles.card}>
               <Button
-                title="Manajemen Member & Akses"
+                title={t("profile.manageMembers")}
                 variant="primary"
                 onPress={() => router.push("/members")}
               />
@@ -201,15 +214,15 @@ export default function ProfileScreen() {
         )}
 
         {/* Danger Zone */}
-        <ThemedText style={styles.sectionTitle}>ZONA BERBAHAYA</ThemedText>
+        <ThemedText style={styles.sectionTitle}>{t("profile.dangerZone")}</ThemedText>
         <ThemedCard
           style={[styles.card, { borderColor: "#ef4444", borderWidth: 1 }]}
         >
           <ThemedText style={styles.dangerText}>
-            Tindakan ini bersifat permanen dan tidak dapat dibatalkan.
+            {t("profile.dangerWarning")}
           </ThemedText>
           <Button
-            title="Hapus Akun Saya"
+            title={t("profile.deleteAccount")}
             variant="secondary"
             onPress={handleDeleteAccount}
             isLoading={deleteAccountMutation.isPending}
@@ -220,7 +233,7 @@ export default function ProfileScreen() {
 
         {/* Actions */}
         <Button
-          title="Keluar (Logout)"
+          title={t("profile.logout")}
           variant="outline"
           onPress={() => logoutMutation.mutate()}
           isLoading={logoutMutation.isPending}

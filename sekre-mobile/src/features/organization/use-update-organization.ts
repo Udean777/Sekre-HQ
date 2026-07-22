@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiClient } from "@/shared/api/api-client";
 import { useAuthStore } from "@/shared/store/auth-store";
 import { OrganizationFormData } from "./organization.schema";
-import { Organization } from "@/entities/user/user.types";
+import { Organization } from "@/shared/types";
 
 interface UpdateOrganizationResponse {
   message: string;

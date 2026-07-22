@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
 import {
   HouseIcon,
@@ -8,6 +9,7 @@ import {
 } from "phosphor-react-native";
 
 export default function TabLayout() {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   return (
@@ -31,8 +33,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Dashboard",
-          tabBarLabel: "Home",
+          title: t("tabs.dashboard"),
+          tabBarLabel: t("tabs.dashboard"),
           tabBarIcon: ({ color, size, focused }) => (
             <HouseIcon
               color={color as string}
@@ -45,8 +47,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tasks"
         options={{
-          title: "Tugas",
-          tabBarLabel: "Tasks",
+          title: t("tabs.tasks"),
+          tabBarLabel: t("tabs.tasks"),
           tabBarIcon: ({ color, size, focused }) => (
             <CheckSquareIcon
               color={color as string}
@@ -59,8 +61,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="finance"
         options={{
-          title: "Keuangan",
-          tabBarLabel: "Finance",
+          title: t("tabs.finance"),
+          tabBarLabel: t("tabs.finance"),
           tabBarIcon: ({ color, size, focused }) => (
             <WalletIcon
               color={color as string}
@@ -73,8 +75,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profil",
-          tabBarLabel: "Profile",
+          title: t("tabs.profile"),
+          tabBarLabel: t("tabs.profile"),
           tabBarIcon: ({ color, size, focused }) => (
             <UserCircleIcon
               color={color as string}

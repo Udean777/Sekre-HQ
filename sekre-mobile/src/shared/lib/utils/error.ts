@@ -1,6 +1,8 @@
+import i18n from "../i18n";
+
 export function extractErrorMessage(
   error: any,
-  fallbackMessage: string = "Terjadi kesalahan.",
+  fallbackMessage?: string,
 ): string {
   if (error?.response?.data?.message) {
     return error.response.data.message;
@@ -14,5 +16,5 @@ export function extractErrorMessage(
     return error.message;
   }
 
-  return fallbackMessage;
+  return fallbackMessage || i18n.t("common.errorFallback");
 }

@@ -18,8 +18,10 @@ import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
 import { useLogin } from "@/features/auth/use-login";
 import { useAlert } from "@/shared/context/alert-context";
 import { loginSchema, type LoginForm } from "@/features/auth/auth.schema";
+import { useTranslation } from "react-i18next";
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const loginMutation = useLogin();
 
   const { alert } = useAlert();
@@ -36,8 +38,8 @@ export default function LoginScreen() {
     loginMutation.mutate(data, {
       onError: (err: any) => {
         alert(
-          "Login Gagal",
-          err?.response?.data?.message || "Terjadi kesalahan",
+          t("auth.loginFailed"),
+          err?.response?.data?.message || t("common.errorFallback"),
         );
       },
     });
@@ -52,10 +54,10 @@ export default function LoginScreen() {
         <ThemedView style={styles.container}>
           <View style={styles.header}>
             <ThemedText type="title" style={styles.title}>
-              Masuk
+              {t("auth.login")}
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              Selamat datang kembali di Sekre
+              {t("auth.welcomeBack")}
             </ThemedText>
           </View>
 
@@ -65,7 +67,7 @@ export default function LoginScreen() {
               name="email"
               render={({ field: { onChange, value } }) => (
                 <Input
-                  label="Email"
+                  label={t("members.email")}
                   placeholder="admin@sekre.com"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -92,7 +94,7 @@ export default function LoginScreen() {
             />
 
             <Button
-              title="Masuk"
+              title={t("auth.login")}
               onPress={handleSubmit(onSubmit)}
               isLoading={loginMutation.isPending}
               style={styles.button}
@@ -101,11 +103,11 @@ export default function LoginScreen() {
 
           <ThemedView style={styles.footer}>
             <ThemedText style={styles.footerText}>
-              Belum punya akun organisasi?{" "}
+              {t("auth.noAccount")}{" "}
             </ThemedText>
             <Link href="/(auth)/register" asChild>
               <ThemedText type="linkPrimary" style={styles.link}>
-                Daftar di sini
+                {t("auth.registerHere")}
               </ThemedText>
             </Link>
           </ThemedView>

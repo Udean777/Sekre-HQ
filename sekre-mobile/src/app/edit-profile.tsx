@@ -23,6 +23,7 @@ import { useAuthStore } from "@/shared/store/auth-store";
 import { useUpdateProfile } from "@/features/user/use-update-profile";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
 import { useAlert } from "@/shared/context/alert-context";
+import { useTranslation } from "react-i18next";
 import { extractErrorMessage } from "@/shared/lib/utils/error";
 import {
   profileSchema,
@@ -30,6 +31,7 @@ import {
 } from "@/features/user/user.schema";
 
 export default function EditProfileScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const { alert } = useAlert();
@@ -51,14 +53,16 @@ export default function EditProfileScreen() {
   const onSubmit = (data: ProfileFormData) => {
     updateMutation.mutate(data, {
       onSuccess: () => {
-        alert("Berhasil", "Profil Anda telah diperbarui.", [
-          { text: "OK", onPress: () => router.back() },
-        ]);
+        alert(
+          t("division.success"),
+          t("profile.saveSuccess"),
+          [{ text: t("common.ok"), onPress: () => router.back() }],
+        );
       },
       onError: (error: any) => {
         alert(
-          "Gagal Menyimpan",
-          extractErrorMessage(error, "Terjadi kesalahan sistem."),
+          t("division.error"),
+          extractErrorMessage(error, t("profile.saveError")),
         );
       },
     });
@@ -66,7 +70,7 @@ export default function EditProfileScreen() {
 
   return (
     <ThemedSafeAreaView style={styles.container}>
-      <ThemedHeader title="Ubah Profil" withSafeArea={false} showBackButton />
+      <ThemedHeader title={t("profile.editProfile")} withSafeArea={false} showBackButton />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
@@ -78,8 +82,8 @@ export default function EditProfileScreen() {
               name="full_name"
               render={({ field: { onChange, value } }) => (
                 <Input
-                  label="Nama Lengkap"
-                  placeholder="Masukkan nama lengkap Anda"
+                  label={t("profile.fullName")}
+                  placeholder={t("profile.namePlaceholder")}
                   value={value}
                   onChangeText={onChange}
                   error={errors.full_name?.message}
@@ -92,7 +96,7 @@ export default function EditProfileScreen() {
               name="email"
               render={({ field: { onChange, value } }) => (
                 <Input
-                  label="Alamat Email"
+                  label={t("profile.email")}
                   placeholder="anda@email.com"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -104,7 +108,7 @@ export default function EditProfileScreen() {
             />
 
             <Button
-              title="Simpan Perubahan"
+              title={t("profile.saveChanges")}
               onPress={handleSubmit(onSubmit)}
               isLoading={updateMutation.isPending}
               style={styles.submitButton}

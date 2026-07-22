@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { User, Organization } from "@/entities/user/user.types";
+import { User, Organization } from "@/shared/types";
 import { storage } from "@/shared/lib/storage";
 
 interface AuthState {

@@ -18,12 +18,14 @@ import { Button } from "@/shared/ui/button";
 import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
 import { useChangePassword } from "@/features/user/use-change-password";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
+import { useTranslation } from "react-i18next";
 import {
   passwordSchema,
   type PasswordFormData,
 } from "@/features/user/user.schema";
 
 export default function ChangePasswordScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const { alert } = useAlert();
@@ -51,17 +53,19 @@ export default function ChangePasswordScreen() {
       },
       {
         onSuccess: () => {
-          alert("Berhasil", "Kata sandi Anda telah berhasil diubah.", [
-            { text: "OK", onPress: () => router.back() },
-          ]);
+          alert(
+            t("division.success"),
+            t("profile.passwordSuccess"),
+            [{ text: t("common.ok"), onPress: () => router.back() }],
+          );
           reset();
         },
         onError: (error: any) => {
           alert(
-            "Gagal",
+            t("division.error"),
             extractErrorMessage(
               error,
-              "Terjadi kesalahan saat mengubah password.",
+              t("profile.passwordError"),
             ),
           );
         },
@@ -72,7 +76,7 @@ export default function ChangePasswordScreen() {
   return (
     <ThemedSafeAreaView style={styles.container}>
       <ThemedHeader
-        title="Ganti Kata Sandi"
+        title={t("profile.changePassword")}
         withSafeArea={false}
         showBackButton
       />
@@ -87,8 +91,8 @@ export default function ChangePasswordScreen() {
               name="current_password"
               render={({ field: { onChange, value } }) => (
                 <Input
-                  label="Kata Sandi Saat Ini"
-                  placeholder="Masukkan kata sandi lama Anda"
+                  label={t("profile.passwordCurrent")}
+                  placeholder={t("profile.passwordCurrentPlaceholder")}
                   secureTextEntry
                   value={value}
                   onChangeText={onChange}
@@ -102,8 +106,8 @@ export default function ChangePasswordScreen() {
               name="new_password"
               render={({ field: { onChange, value } }) => (
                 <Input
-                  label="Kata Sandi Baru"
-                  placeholder="Minimal 8 karakter"
+                  label={t("profile.passwordNew")}
+                  placeholder={t("profile.passwordNewPlaceholder")}
                   secureTextEntry
                   value={value}
                   onChangeText={onChange}
@@ -117,8 +121,8 @@ export default function ChangePasswordScreen() {
               name="confirm_password"
               render={({ field: { onChange, value } }) => (
                 <Input
-                  label="Konfirmasi Kata Sandi"
-                  placeholder="Ulangi kata sandi baru"
+                  label={t("profile.passwordConfirm")}
+                  placeholder={t("profile.passwordConfirmPlaceholder")}
                   secureTextEntry
                   value={value}
                   onChangeText={onChange}
@@ -128,7 +132,7 @@ export default function ChangePasswordScreen() {
             />
 
             <Button
-              title="Perbarui Kata Sandi"
+              title={t("profile.passwordUpdate")}
               onPress={handleSubmit(onSubmit)}
               isLoading={changePasswordMutation.isPending}
               style={styles.submitButton}

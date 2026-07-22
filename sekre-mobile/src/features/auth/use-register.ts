@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { apiClient } from "@/shared/api/api-client";
-import { AuthResponse } from "@/entities/user/user.types";
+import { AuthResponse } from "@/shared/types";
 import { useAuthStore } from "@/shared/store/auth-store";
 
 export function useRegister() {

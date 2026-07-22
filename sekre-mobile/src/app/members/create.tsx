@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
@@ -24,6 +25,7 @@ const createMemberSchema = z.object({
 });
 
 export default function CreateMemberScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const { alert } = useAlert();
@@ -44,13 +46,13 @@ export default function CreateMemberScreen() {
 
       createMemberMutation.mutate(form, {
         onSuccess: () => {
-          alert("Berhasil", "Anggota baru berhasil ditambahkan.");
+          alert(t("division.success"), t("members.createSuccess"));
           router.back();
         },
         onError: (err: any) => {
           alert(
-            "Gagal Menambahkan Anggota",
-            extractErrorMessage(err, "Pastikan email belum terdaftar.")
+            t("division.error"),
+            extractErrorMessage(err, t("members.createError"))
           );
         },
       });
@@ -69,7 +71,7 @@ export default function CreateMemberScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ThemedHeader title="Tambah Anggota Baru" showBackButton />
+      <ThemedHeader title={t("members.createTitle")} showBackButton />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -77,19 +79,19 @@ export default function CreateMemberScreen() {
       >
         <ThemedCard style={styles.card}>
           <ThemedText style={styles.description}>
-            Isi detail di bawah untuk mendaftarkan anggota baru ke dalam organisasi Anda.
+            {t("members.createDesc")}
           </ThemedText>
 
           <Input
-            label="Nama Lengkap"
-            placeholder="Masukkan nama lengkap"
+            label={t("members.fullName")}
+            placeholder={t("profile.namePlaceholder")}
             value={form.full_name}
             onChangeText={(text) => setForm({ ...form, full_name: text })}
             error={errors.full_name}
           />
 
           <Input
-            label="Alamat Email"
+            label={t("members.email")}
             placeholder="email@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
@@ -99,18 +101,18 @@ export default function CreateMemberScreen() {
           />
 
           <View style={styles.roleContainer}>
-            <ThemedText style={styles.roleLabel}>Peran Utama</ThemedText>
+            <ThemedText style={styles.roleLabel}>{t("members.role")}</ThemedText>
             <View style={styles.roleButtons}>
               <View style={styles.roleButtonContainer}>
                 <Button
-                  title="Member"
+                  title={t("common.member")}
                   variant={form.role === "MEMBER" ? "primary" : "outline"}
                   onPress={() => setForm({ ...form, role: "MEMBER" })}
                 />
               </View>
               <View style={styles.roleButtonContainer}>
                 <Button
-                  title="Admin"
+                  title={t("common.admin")}
                   variant={form.role === "ADMIN" ? "primary" : "outline"}
                   onPress={() => setForm({ ...form, role: "ADMIN" })}
                 />
@@ -120,7 +122,7 @@ export default function CreateMemberScreen() {
         </ThemedCard>
 
         <Button
-          title="Simpan Anggota"
+          title={t("members.createMember")}
           onPress={handleCreate}
           isLoading={createMemberMutation.isPending}
           style={styles.submitBtn}

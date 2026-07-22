@@ -12,8 +12,10 @@ import { ThemedScrollView } from "@/shared/ui/themed-scroll-view";
 import { useRegister } from "@/features/auth/use-register";
 import { useAlert } from "@/shared/context/alert-context";
 import { registerSchema, type RegisterForm } from "@/features/auth/auth.schema";
+import { useTranslation } from "react-i18next";
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const registerMutation = useRegister();
 
   const { alert } = useAlert();
@@ -30,8 +32,8 @@ export default function RegisterScreen() {
     registerMutation.mutate(data, {
       onError: (err: any) => {
         alert(
-          "Registrasi Gagal",
-          err?.response?.data?.message || "Terjadi kesalahan",
+          t("auth.registerFailed"),
+          err?.response?.data?.message || t("common.errorFallback"),
         );
       },
     });
@@ -46,10 +48,10 @@ export default function RegisterScreen() {
         <ThemedScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
             <ThemedText type="title" style={styles.title}>
-              Daftar
+              {t("auth.register")}
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              Buat organisasi baru di Sekre
+              {t("auth.registerOrg")}
             </ThemedText>
           </View>
 
@@ -62,7 +64,7 @@ export default function RegisterScreen() {
                   name="organization_name"
                   render={({ field: { onChange, value } }) => (
                     <Input
-                      label="Nama Organisasi"
+                      label={t("auth.orgName")}
                       placeholder="BEM..."
                       value={value}
                       onChangeText={onChange}
@@ -95,7 +97,7 @@ export default function RegisterScreen() {
               name="full_name"
               render={({ field: { onChange, value } }) => (
                 <Input
-                  label="Nama Anda (Owner)"
+                  label={t("auth.yourName")}
                   placeholder="John Doe"
                   value={value}
                   onChangeText={onChange}
@@ -110,7 +112,7 @@ export default function RegisterScreen() {
               name="email"
               render={({ field: { onChange, value } }) => (
                 <Input
-                  label="Email Pribadi"
+                  label={t("auth.personalEmail")}
                   placeholder="owner@email.com"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -138,7 +140,7 @@ export default function RegisterScreen() {
             />
 
             <Button
-              title="Daftar Organisasi"
+              title={t("auth.registerOrg")}
               onPress={handleSubmit(onSubmit)}
               isLoading={registerMutation.isPending}
               style={styles.button}
@@ -147,11 +149,11 @@ export default function RegisterScreen() {
 
           <ThemedView style={styles.footer}>
             <ThemedText style={styles.footerText}>
-              Sudah punya akun?{" "}
+              {t("auth.hasAccount")}{" "}
             </ThemedText>
             <Link href="/(auth)/login" asChild>
               <ThemedText type="linkPrimary" style={styles.link}>
-                Masuk di sini
+                {t("auth.loginHere")}
               </ThemedText>
             </Link>
           </ThemedView>

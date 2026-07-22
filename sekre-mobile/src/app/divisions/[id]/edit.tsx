@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { StyleSheet, View, ActivityIndicator, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TrashIcon } from "phosphor-react-native";
@@ -26,6 +27,7 @@ import { useDeleteDivision } from "@/features/division/use-delete-division";
 import { DivisionMembersManager } from "@/features/division/ui/division-members-manager";
 
 export default function EditDivisionScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { alert } = useAlert();
@@ -63,47 +65,40 @@ export default function EditDivisionScreen() {
   const onSubmit = (data: DivisionFormData) => {
     updateDivisionMutation.mutate(data, {
       onSuccess: () => {
-        alert("Berhasil", "Data divisi berhasil diperbarui.");
+        alert(t("division.success"), t("divisions.saveSuccess"));
         router.back();
       },
       onError: (err: any) => {
         alert(
-          "Gagal",
-          extractErrorMessage(err, "Terjadi kesalahan saat menyimpan."),
+          t("division.error"),
+          extractErrorMessage(err, t("divisions.saveError")),
         );
       },
     });
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      "Hapus Divisi",
-      "Apakah Anda yakin ingin menghapus divisi ini? Tindakan ini tidak dapat dibatalkan.",
-      [
-        { text: "Batal", style: "cancel" },
-        {
-          text: "Hapus",
-          style: "destructive",
-          onPress: () => {
-            deleteDivisionMutation.mutate(id!, {
-              onSuccess: () => {
-                alert("Berhasil", "Divisi berhasil dihapus.");
-                router.replace("/divisions");
-              },
-              onError: (err: any) => {
-                alert(
-                  "Gagal",
-                  extractErrorMessage(
-                    err,
-                    "Terjadi kesalahan saat menghapus divisi.",
-                  ),
-                );
-              },
-            });
-          },
+    Alert.alert(t("divisions.deleteDiv"), t("divisions.deleteConfirm"), [
+      { text: t("divisions.cancel"), style: "cancel" },
+      {
+        text: t("divisions.delete"),
+        style: "destructive",
+        onPress: () => {
+          deleteDivisionMutation.mutate(id!, {
+            onSuccess: () => {
+              alert(t("division.success"), t("divisions.deleteSuccess"));
+              router.replace("/divisions");
+            },
+            onError: (err: any) => {
+              alert(
+                t("division.error"),
+                extractErrorMessage(err, t("divisions.deleteError")),
+              );
+            },
+          });
         },
-      ],
-    );
+      },
+    ]);
   };
 
   if (!isAdminOrOwner) {
@@ -117,7 +112,7 @@ export default function EditDivisionScreen() {
   if (isLoading) {
     return (
       <>
-        <ThemedHeader title="Edit Divisi" showBackButton />
+        <ThemedHeader title={t("divisions.edit")} showBackButton />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={theme.tint} />
         </View>
@@ -128,10 +123,10 @@ export default function EditDivisionScreen() {
   if (isError) {
     return (
       <>
-        <ThemedHeader title="Edit Divisi" showBackButton />
+        <ThemedHeader title={t("divisions.edit")} showBackButton />
         <View style={styles.centered}>
           <ThemedText style={{ color: theme.text }}>
-            {extractErrorMessage(error, "Gagal memuat divisi.")}
+            {extractErrorMessage(error, t("divisions.loadError"))}
           </ThemedText>
         </View>
       </>
@@ -140,20 +135,20 @@ export default function EditDivisionScreen() {
 
   return (
     <>
-      <ThemedHeader title="Edit Divisi" showBackButton />
+      <ThemedHeader title={t("divisions.edit")} showBackButton />
 
       <ThemedScrollView contentContainerStyle={styles.container}>
         <ThemedCard style={styles.card}>
           <View style={styles.formSection}>
             <ThemedText type="smallBold" style={styles.label}>
-              Nama Divisi
+              {t("divisions.name")}
             </ThemedText>
             <Controller
               control={control}
               name="name"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  placeholder="Masukkan nama divisi"
+                  placeholder={t("divisions.namePlaceholder")}
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
@@ -165,14 +160,14 @@ export default function EditDivisionScreen() {
 
           <View style={styles.formSection}>
             <ThemedText type="smallBold" style={styles.label}>
-              Deskripsi (Opsional)
+              {t("divisions.desc")}
             </ThemedText>
             <Controller
               control={control}
               name="description"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  placeholder="Penjelasan singkat divisi"
+                  placeholder={t("divisions.descPlaceholder")}
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
@@ -186,7 +181,7 @@ export default function EditDivisionScreen() {
           </View>
 
           <Button
-            title="Simpan Perubahan"
+            title={t("divisions.saveChanges")}
             onPress={handleSubmit(onSubmit)}
             isLoading={updateDivisionMutation.isPending}
             style={styles.saveButton}
@@ -197,15 +192,14 @@ export default function EditDivisionScreen() {
 
         <View style={styles.dangerZone}>
           <ThemedText type="smallBold" style={styles.dangerTitle}>
-            Zona Berbahaya
+            {t("profile.dangerZone")}
           </ThemedText>
           <ThemedCard style={styles.dangerCard}>
             <ThemedText style={styles.dangerText}>
-              Menghapus divisi akan melepaskan semua anggota yang ada di
-              dalamnya. Data yang dihapus tidak dapat dikembalikan.
+              {t("divisions.deleteWarning")}
             </ThemedText>
             <Button
-              title="Hapus Divisi"
+              title={t("divisions.deleteDiv")}
               variant="danger-outline"
               onPress={handleDelete}
               isLoading={deleteDivisionMutation.isPending}

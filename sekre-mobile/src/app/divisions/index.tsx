@@ -9,6 +9,7 @@ import {
 import { FlashList } from "@shopify/flash-list";
 import { PlusIcon, MagnifyingGlassIcon } from "phosphor-react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 import { ThemedText } from "@/shared/ui/themed-text";
 import { ThemedCard } from "@/shared/ui/themed-card";
@@ -22,6 +23,7 @@ import { extractErrorMessage } from "@/shared/lib/utils/error";
 import { ThemedView } from "@/shared/ui/themed-view";
 
 export default function DivisionsScreen() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -74,7 +76,7 @@ export default function DivisionsScreen() {
 
   return (
     <>
-      <ThemedHeader title="Divisi" showBackButton />
+      <ThemedHeader title={t("divisions.title")} showBackButton />
 
       <View
         style={[styles.searchContainer, { backgroundColor: theme.background }]}
@@ -91,7 +93,7 @@ export default function DivisionsScreen() {
           <MagnifyingGlassIcon color={theme.textSecondary} size={20} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Cari divisi..."
+            placeholder={t("divisions.searchPlaceholder")}
             placeholderTextColor={theme.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -141,7 +143,7 @@ export default function DivisionsScreen() {
             ListEmptyComponent={
               <View style={styles.centered}>
                 <ThemedText style={styles.emptyText}>
-                  {search ? "Tidak ada divisi ditemukan." : "Belum ada divisi."}
+                  {t("divisions.noDivisions")}
                 </ThemedText>
               </View>
             }

@@ -10,6 +10,7 @@ import { useTheme } from "@/shared/lib/hooks/use-theme";
 
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AlertProvider } from "@/shared/context/alert-context";
+import "@/shared/lib/i18n";
 
 const queryClient = new QueryClient();
 

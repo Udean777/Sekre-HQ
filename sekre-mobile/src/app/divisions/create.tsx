@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -21,6 +22,7 @@ import {
 import { useCreateDivision } from "@/features/division/use-create-division";
 
 export default function CreateDivisionScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { alert } = useAlert();
   const role = useAuthStore((state) => state.role);
@@ -43,13 +45,13 @@ export default function CreateDivisionScreen() {
   const onSubmit = (data: DivisionFormData) => {
     createDivisionMutation.mutate(data, {
       onSuccess: () => {
-        alert("Berhasil", "Divisi baru berhasil dibuat.");
+        alert(t("division.success"), t("divisions.createSuccess"));
         router.back();
       },
       onError: (error: any) => {
         alert(
-          "Gagal",
-          extractErrorMessage(error, "Terjadi kesalahan saat membuat divisi."),
+          t("division.error"),
+          extractErrorMessage(error, t("divisions.createError")),
         );
       },
     });
@@ -65,20 +67,20 @@ export default function CreateDivisionScreen() {
 
   return (
     <>
-      <ThemedHeader title="Buat Divisi Baru" showBackButton />
+      <ThemedHeader title={t("divisions.create")} showBackButton />
 
       <ThemedScrollView contentContainerStyle={styles.container}>
         <ThemedCard style={styles.card}>
           <View style={styles.formSection}>
             <ThemedText type="smallBold" style={styles.label}>
-              Nama Divisi
+              {t("divisions.name")}
             </ThemedText>
             <Controller
               control={control}
               name="name"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  placeholder="Masukkan nama divisi"
+                  placeholder={t("divisions.namePlaceholder")}
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
@@ -90,14 +92,14 @@ export default function CreateDivisionScreen() {
 
           <View style={styles.formSection}>
             <ThemedText type="smallBold" style={styles.label}>
-              Deskripsi (Opsional)
+              {t("divisions.desc")}
             </ThemedText>
             <Controller
               control={control}
               name="description"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  placeholder="Penjelasan singkat divisi"
+                  placeholder={t("divisions.descPlaceholder")}
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
@@ -111,7 +113,7 @@ export default function CreateDivisionScreen() {
           </View>
 
           <Button
-            title="Simpan"
+            title={t("common.save")}
             onPress={handleSubmit(onSubmit)}
             isLoading={createDivisionMutation.isPending}
             style={styles.saveButton}

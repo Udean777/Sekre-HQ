@@ -10,6 +10,7 @@ import { ThemedView } from "@/shared/ui/themed-view";
 import { ThemedText } from "@/shared/ui/themed-text";
 import { Button } from "@/shared/ui/button";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
+import { useTranslation } from "react-i18next";
 
 export type AlertButton = {
   text: string;
@@ -30,6 +31,7 @@ type AlertContextType = {
 const AlertContext = createContext<AlertContextType | undefined>(undefined);
 
 export function AlertProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [options, setOptions] = useState<AlertOptions | null>(null);
   const theme = useTheme();
@@ -152,7 +154,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
                   })
                 ) : (
                   <Button
-                    title="OK"
+                    title={t("common.ok")}
                     variant="primary"
                     onPress={handleClose}
                     style={styles.button}

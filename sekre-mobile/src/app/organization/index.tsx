@@ -13,6 +13,7 @@ import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
 import { useAlert } from "@/shared/context/alert-context";
+import { useTranslation } from "react-i18next";
 import { extractErrorMessage } from "@/shared/lib/utils/error";
 import { useAuthStore } from "@/shared/store/auth-store";
 
@@ -26,6 +27,7 @@ import { Alert } from "react-native";
 import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
 
 export default function OrganizationScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const { alert } = useAlert();
@@ -53,46 +55,39 @@ export default function OrganizationScreen() {
   const onSubmit = (data: OrganizationFormData) => {
     updateOrganizationMutation.mutate(data, {
       onSuccess: () => {
-        alert("Berhasil", "Profil organisasi berhasil diperbarui.");
+        alert(t("division.success"), t("organization.saveSuccess"));
       },
       onError: (error: any) => {
         alert(
-          "Gagal",
-          extractErrorMessage(error, "Terjadi kesalahan saat menyimpan."),
+          t("division.error"),
+          extractErrorMessage(error, t("organization.saveError")),
         );
       },
     });
   };
 
   const handleDeleteOrganization = () => {
-    Alert.alert(
-      "Hapus Organisasi",
-      "Apakah Anda yakin ingin menghapus organisasi ini secara PERMANEN? Semua data yang terkait (member, dll) akan terhapus. Tindakan ini tidak dapat dibatalkan.",
-      [
-        { text: "Batal", style: "cancel" },
-        {
-          text: "Hapus",
-          style: "destructive",
-          onPress: () => {
-            deleteOrganizationMutation.mutate(undefined, {
-              onSuccess: () => {
-                alert("Berhasil", "Organisasi berhasil dihapus.");
-                // Store will clear and navigate to root on logout inside hook
-              },
-              onError: (error: any) => {
-                alert(
-                  "Gagal",
-                  extractErrorMessage(
-                    error,
-                    "Terjadi kesalahan saat menghapus organisasi.",
-                  ),
-                );
-              },
-            });
-          },
+    Alert.alert(t("organization.deleteOrg"), t("organization.deleteConfirm"), [
+      { text: t("organization.cancel"), style: "cancel" },
+      {
+        text: t("organization.delete"),
+        style: "destructive",
+        onPress: () => {
+          deleteOrganizationMutation.mutate(undefined, {
+            onSuccess: () => {
+              alert(t("division.success"), t("organization.deleteSuccess"));
+              // Store will clear and navigate to root on logout inside hook
+            },
+            onError: (error: any) => {
+              alert(
+                t("division.error"),
+                extractErrorMessage(error, t("organization.deleteError")),
+              );
+            },
+          });
         },
-      ],
-    );
+      },
+    ]);
   };
 
   if (!isAdminOrOwner) {
@@ -105,7 +100,7 @@ export default function OrganizationScreen() {
 
   return (
     <>
-      <ThemedHeader title="Pengaturan Organisasi" showBackButton />
+      <ThemedHeader title={t("profile.orgSettings")} showBackButton />
 
       <ThemedScrollView contentContainerStyle={styles.container}>
         <ThemedCard style={styles.card}>
@@ -122,14 +117,14 @@ export default function OrganizationScreen() {
 
           <View style={styles.formSection}>
             <ThemedText type="smallBold" style={styles.label}>
-              Nama Organisasi
+              {t("organization.orgName")}
             </ThemedText>
             <Controller
               control={control}
               name="name"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  placeholder="Masukkan nama organisasi"
+                  placeholder={t("organization.orgNamePlaceholder")}
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
@@ -140,7 +135,7 @@ export default function OrganizationScreen() {
           </View>
 
           <Button
-            title="Simpan Perubahan"
+            title={t("organization.saveChanges")}
             onPress={handleSubmit(onSubmit)}
             isLoading={updateOrganizationMutation.isPending}
             style={styles.saveButton}
@@ -150,15 +145,14 @@ export default function OrganizationScreen() {
         {isOwner && (
           <View style={styles.dangerZone}>
             <ThemedText type="smallBold" style={styles.dangerTitle}>
-              Zona Berbahaya
+              {t("profile.dangerZone")}
             </ThemedText>
             <ThemedCard style={styles.dangerCard}>
               <ThemedText style={styles.dangerText}>
-                Menghapus organisasi akan menghapus semua data yang terkait di
-                dalamnya secara permanen.
+                {t("organization.deleteWarning")}
               </ThemedText>
               <Button
-                title="Hapus Organisasi"
+                title={t("organization.deleteOrg")}
                 variant="danger-outline"
                 onPress={handleDeleteOrganization}
                 isLoading={deleteOrganizationMutation.isPending}
