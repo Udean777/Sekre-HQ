@@ -74,14 +74,7 @@ export default function ChangePasswordScreen() {
       <ThemedHeader
         title="Ganti Kata Sandi"
         withSafeArea={false}
-        left={
-          <BouncingPressable
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <ArrowLeftIcon color={theme.text} size={24} />
-          </BouncingPressable>
-        }
+        showBackButton
       />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

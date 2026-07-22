@@ -66,18 +66,7 @@ export default function EditProfileScreen() {
 
   return (
     <ThemedSafeAreaView style={styles.container}>
-      <ThemedHeader
-        title="Ubah Profil"
-        withSafeArea={false}
-        left={
-          <BouncingPressable
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <ArrowLeftIcon color={theme.text} size={24} />
-          </BouncingPressable>
-        }
-      />
+      <ThemedHeader title="Ubah Profil" withSafeArea={false} showBackButton />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}

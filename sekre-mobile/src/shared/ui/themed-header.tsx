@@ -4,12 +4,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
 import { ThemedText } from "@/shared/ui/themed-text";
 
+import { useRouter } from "expo-router";
+import { ArrowLeftIcon } from "phosphor-react-native";
+import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
+
 export interface ThemedHeaderProps {
   title?: string;
   left?: React.ReactNode;
   right?: React.ReactNode;
   center?: React.ReactNode;
   withSafeArea?: boolean;
+  showBackButton?: boolean;
 }
 
 export function ThemedHeader({
@@ -18,9 +23,26 @@ export function ThemedHeader({
   right,
   center,
   withSafeArea = true,
+  showBackButton = false,
 }: ThemedHeaderProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  const renderLeft = () => {
+    if (left) return left;
+    if (showBackButton && router.canGoBack()) {
+      return (
+        <BouncingPressable
+          onPress={() => router.back()}
+          style={{ padding: 8, marginLeft: -8 }}
+        >
+          <ArrowLeftIcon color={theme.text} size={24} weight="bold" />
+        </BouncingPressable>
+      );
+    }
+    return null;
+  };
 
   return (
     <View
@@ -35,7 +57,7 @@ export function ThemedHeader({
       ]}
     >
       <View style={styles.content}>
-        <View style={styles.left}>{left}</View>
+        <View style={styles.left}>{renderLeft()}</View>
         <View style={styles.center}>
           {center ? (
             center

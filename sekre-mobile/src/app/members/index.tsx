@@ -241,17 +241,7 @@ export default function MembersScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ThemedHeader
-        title="Manajemen Member"
-        left={
-          <BouncingPressable
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <ArrowLeftIcon color={theme.text} size={24} />
-          </BouncingPressable>
-        }
-      />
+      <ThemedHeader title="Manajemen Member" showBackButton />
 
       {isLoading ? (
         <View style={styles.center}>

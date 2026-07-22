@@ -141,6 +141,22 @@ export default function ProfileScreen() {
             label="Subdomain"
             value={`${organization?.subdomain}.sekre.co`}
           />
+
+          {(role === "OWNER" || role === "ADMIN") && (
+            <>
+              <View
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.backgroundSelected },
+                ]}
+              />
+              <Button
+                title="Pengaturan Organisasi"
+                variant="secondary"
+                onPress={() => router.push("/organization")}
+              />
+            </>
+          )}
         </ThemedCard>
 
         {/* Account Card */}

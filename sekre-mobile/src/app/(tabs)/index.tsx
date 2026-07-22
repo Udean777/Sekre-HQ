@@ -7,6 +7,9 @@ import {
   ChartLineUpIcon,
   UsersThreeIcon,
   CalendarBlankIcon,
+  UsersIcon,
+  CheckCircleIcon,
+  ChartBarIcon,
 } from "phosphor-react-native";
 import { ThemedScrollView } from "@/shared/ui/themed-scroll-view";
 import { ThemedText } from "@/shared/ui/themed-text";
@@ -15,18 +18,25 @@ import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
 import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
 import { useAuthStore } from "@/shared/store/auth-store";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
+import { useRouter } from "expo-router";
 
 // Helper component for Quick Actions
 const QuickAction = ({
   icon,
   label,
+  onPress,
 }: {
   icon: React.ReactNode;
   label: string;
+  onPress?: () => void;
 }) => {
   const theme = useTheme();
   return (
-    <BouncingPressable style={styles.actionItem} scaleTo={0.9}>
+    <BouncingPressable
+      style={styles.actionItem}
+      scaleTo={0.9}
+      onPress={onPress}
+    >
       <View
         style={[
           styles.actionIconWrapper,
@@ -64,6 +74,7 @@ const StatCard = ({
 export default function DashboardScreen() {
   const { user, organization } = useAuthStore();
   const theme = useTheme();
+  const router = useRouter();
 
   return (
     <ThemedSafeAreaView style={styles.wrapper}>
@@ -112,20 +123,26 @@ export default function DashboardScreen() {
         </ThemedText>
         <View style={styles.actionsContainer}>
           <QuickAction
-            icon={<PlusIcon color={theme.tint} size={24} />}
-            label="Buat Tugas"
+            icon={<UsersIcon size={24} color={theme.tint} weight="fill" />}
+            label="Member"
+            onPress={() => router.push("/members")}
           />
           <QuickAction
-            icon={<WalletIcon color={theme.text} size={24} />}
-            label="Catat Kas"
+            icon={
+              <CheckCircleIcon size={24} color={theme.tint} weight="fill" />
+            }
+            label="Divisi"
+            onPress={() => router.push("/divisions")}
           />
           <QuickAction
-            icon={<CheckSquareOffsetIcon color={theme.text} size={24} />}
-            label="Persetujuan"
+            icon={<WalletIcon size={24} color={theme.tint} weight="fill" />}
+            label="Tugas"
+            onPress={() => router.push("/(tabs)/tasks")}
           />
           <QuickAction
-            icon={<ChartLineUpIcon color={theme.text} size={24} />}
-            label="Laporan"
+            icon={<ChartBarIcon size={24} color={theme.tint} weight="fill" />}
+            label="Keuangan"
+            onPress={() => router.push("/(tabs)/finance")}
           />
         </View>
 
