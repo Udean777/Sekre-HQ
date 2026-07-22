@@ -1,31 +1,27 @@
-import React from "react";
 import {
   StyleSheet,
-  View,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { ArrowLeftIcon } from "phosphor-react-native";
-
-import { ThemedSafeAreaView } from "../shared/ui/themed-safe-area";
-import { ThemedHeader } from "../shared/ui/themed-header";
-import { ThemedView } from "../shared/ui/themed-view";
-import { Input } from "../shared/ui/input";
-import { Button } from "../shared/ui/button";
-import { BouncingPressable } from "../shared/ui/bouncing-pressable";
-import { useChangePassword } from "../features/user/use-change-password";
-import { useTheme } from "../shared/lib/hooks/use-theme";
-import { useAlert } from "../shared/context/alert-context";
+import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
+import { ThemedHeader } from "@/shared/ui/themed-header";
+import { ThemedView } from "@/shared/ui/themed-view";
+import { Input } from "@/shared/ui/input";
+import { useAlert } from "@/shared/context/alert-context";
+import { extractErrorMessage } from "@/shared/lib/utils/error";
+import { Button } from "@/shared/ui/button";
+import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
+import { useChangePassword } from "@/features/user/use-change-password";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
 import {
   passwordSchema,
   type PasswordFormData,
-} from "../features/user/user.schema";
+} from "@/features/user/user.schema";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -63,8 +59,10 @@ export default function ChangePasswordScreen() {
         onError: (error: any) => {
           alert(
             "Gagal",
-            error.response?.data?.message ||
-              "Terjadi kesalahan sistem saat mengubah kata sandi.",
+            extractErrorMessage(
+              error,
+              "Terjadi kesalahan saat mengubah password.",
+            ),
           );
         },
       },

@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, TouchableOpacity } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   PlusIcon,
   WalletIcon,
@@ -8,15 +8,13 @@ import {
   UsersThreeIcon,
   CalendarBlankIcon,
 } from "phosphor-react-native";
-
-import { ThemedScrollView } from "../../shared/ui/themed-scroll-view";
-import { ThemedView } from "../../shared/ui/themed-view";
-import { ThemedText } from "../../shared/ui/themed-text";
-import { ThemedCard } from "../../shared/ui/themed-card";
-import { ThemedSafeAreaView } from "../../shared/ui/themed-safe-area";
-import { BouncingPressable } from "../../shared/ui/bouncing-pressable";
-import { useAuthStore } from "../../shared/store/auth-store";
-import { useTheme } from "../../shared/lib/hooks/use-theme";
+import { ThemedScrollView } from "@/shared/ui/themed-scroll-view";
+import { ThemedText } from "@/shared/ui/themed-text";
+import { ThemedCard } from "@/shared/ui/themed-card";
+import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
+import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
+import { useAuthStore } from "@/shared/store/auth-store";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
 
 // Helper component for Quick Actions
 const QuickAction = ({

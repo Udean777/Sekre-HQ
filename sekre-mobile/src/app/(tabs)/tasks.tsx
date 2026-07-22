@@ -1,8 +1,7 @@
-import React from "react";
 import { StyleSheet, View } from "react-native";
-import { ThemedView } from "../../shared/ui/themed-view";
-import { ThemedText } from "../../shared/ui/themed-text";
-import { ThemedHeader } from "../../shared/ui/themed-header";
+import { ThemedView } from "@/shared/ui/themed-view";
+import { ThemedText } from "@/shared/ui/themed-text";
+import { ThemedHeader } from "@/shared/ui/themed-header";
 
 export default function TasksScreen() {
   return (

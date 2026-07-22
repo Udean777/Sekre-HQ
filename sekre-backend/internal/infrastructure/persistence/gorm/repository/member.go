@@ -31,12 +31,13 @@ func (r *memberRepository) GetOrganizationMembers(ctx context.Context, orgID uui
 		Email    string
 		FullName string
 		Role     types.Role
+		Status   types.MemberStatus
 	}
 
 	var rows []row
 	err := dbFor(ctx, r.db).
 		Table("users AS u").
-		Select("u.id, u.email, u.full_name, uo.role").
+		Select("u.id, u.email, u.full_name, uo.role, uo.status").
 		Joins("INNER JOIN user_organizations AS uo ON u.id = uo.user_id").
 		Where("uo.organization_id = ? AND u.deleted_at IS NULL", orgID).
 		Order("u.full_name").
@@ -52,6 +53,7 @@ func (r *memberRepository) GetOrganizationMembers(ctx context.Context, orgID uui
 			Email:    m.Email,
 			FullName: m.FullName,
 			Role:     m.Role,
+			Status:   m.Status,
 		})
 	}
 	return members, nil
@@ -83,11 +85,12 @@ func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.C
 		Email    string
 		FullName string
 		Role     types.Role
+		Status   types.MemberStatus
 	}
 
 	query := dbFor(ctx, r.db).
 		Table("users AS u").
-		Select("u.id, u.email, u.full_name, uo.role").
+		Select("u.id, u.email, u.full_name, uo.role, uo.status").
 		Joins("INNER JOIN user_organizations AS uo ON u.id = uo.user_id").
 		Where("uo.organization_id = ? AND u.deleted_at IS NULL", orgID)
 
@@ -112,6 +115,7 @@ func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.C
 			Email:    m.Email,
 			FullName: m.FullName,
 			Role:     m.Role,
+			Status:   m.Status,
 		})
 	}
 	return members, int(totalCount), nil
@@ -124,6 +128,20 @@ func (r *memberRepository) UpdateMemberRole(ctx context.Context, orgID, userID u
 		Update("role", role)
 	if result.Error != nil {
 		return domainerrors.Internal("update role", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return domainerrors.ErrUserNotInOrg
+	}
+	return nil
+}
+
+func (r *memberRepository) UpdateMemberStatus(ctx context.Context, orgID, userID uuid.UUID, status types.MemberStatus) error {
+	result := dbFor(ctx, r.db).
+		Model(&models.UserOrganization{}).
+		Where("organization_id = ? AND user_id = ?", orgID, userID).
+		Update("status", status)
+	if result.Error != nil {
+		return domainerrors.Internal("update status", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return domainerrors.ErrUserNotInOrg

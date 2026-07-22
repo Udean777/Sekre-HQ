@@ -6,12 +6,12 @@ import {
   Animated,
   type PressableProps,
 } from "react-native";
-import { useTheme } from "../lib/hooks/use-theme";
-import { ThemedText } from "./themed-text";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
+import { ThemedText } from "@/shared/ui/themed-text";
 
 interface ButtonProps extends Omit<PressableProps, "style"> {
   title: string;
-  variant?: "primary" | "secondary" | "outline";
+  variant?: "primary" | "secondary" | "outline" | "danger" | "danger-outline";
   isLoading?: boolean;
   style?: any;
   textStyle?: any;
@@ -38,28 +38,36 @@ export function Button({
         return theme.tint;
       case "secondary":
         return theme.backgroundElement;
+      case "danger":
+        return "#ef4444";
       case "outline":
+      case "danger-outline":
         return "transparent";
     }
   };
 
   const getTextColor = () => {
-    if (disabled && variant !== "outline") return theme.textSecondary;
-    if (disabled && variant === "outline") return theme.textSecondary;
+    if (disabled && !variant.includes("outline")) return theme.textSecondary;
+    if (disabled && variant.includes("outline")) return theme.textSecondary;
 
     switch (variant) {
       case "primary":
+      case "danger":
         return "#fff"; // White text on colored background typically
       case "secondary":
         return theme.text;
       case "outline":
         return theme.tint;
+      case "danger-outline":
+        return "#ef4444";
     }
   };
 
   const getBorderColor = () => {
     if (disabled) return theme.backgroundSelected;
-    return variant === "outline" ? theme.tint : "transparent";
+    if (variant === "outline") return theme.tint;
+    if (variant === "danger-outline") return "#ef4444";
+    return "transparent";
   };
 
   const handlePressIn = (e: any) => {

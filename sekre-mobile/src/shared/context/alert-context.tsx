@@ -6,10 +6,10 @@ import {
   TouchableWithoutFeedback,
   Animated,
 } from "react-native";
-import { ThemedView } from "../ui/themed-view";
-import { ThemedText } from "../ui/themed-text";
-import { Button } from "../ui/button";
-import { useTheme } from "../lib/hooks/use-theme";
+import { ThemedView } from "@/shared/ui/themed-view";
+import { ThemedText } from "@/shared/ui/themed-text";
+import { Button } from "@/shared/ui/button";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
 
 export type AlertButton = {
   text: string;

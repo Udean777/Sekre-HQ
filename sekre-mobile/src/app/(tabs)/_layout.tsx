@@ -1,6 +1,5 @@
-import React from "react";
 import { Tabs } from "expo-router";
-import { useTheme } from "../../shared/lib/hooks/use-theme";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
 import {
   HouseIcon,
   CheckSquareIcon,

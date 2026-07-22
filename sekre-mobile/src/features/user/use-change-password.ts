@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { apiClient } from "../../shared/api/api-client";
+import { apiClient } from "@/shared/api/api-client";
 
 export interface ChangePasswordPayload {
   current_password: string;

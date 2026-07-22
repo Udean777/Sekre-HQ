@@ -317,6 +317,55 @@ func (_c *MemberUsecase_UpdateMemberRole_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// UpdateMemberStatus provides a mock function with given fields: ctx, orgID, userID, status
+func (_m *MemberUsecase) UpdateMemberStatus(ctx context.Context, orgID uuid.UUID, userID uuid.UUID, status string) error {
+	ret := _m.Called(ctx, orgID, userID, status)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateMemberStatus")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string) error); ok {
+		r0 = rf(ctx, orgID, userID, status)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MemberUsecase_UpdateMemberStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateMemberStatus'
+type MemberUsecase_UpdateMemberStatus_Call struct {
+	*mock.Call
+}
+
+// UpdateMemberStatus is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - userID uuid.UUID
+//   - status string
+func (_e *MemberUsecase_Expecter) UpdateMemberStatus(ctx interface{}, orgID interface{}, userID interface{}, status interface{}) *MemberUsecase_UpdateMemberStatus_Call {
+	return &MemberUsecase_UpdateMemberStatus_Call{Call: _e.mock.On("UpdateMemberStatus", ctx, orgID, userID, status)}
+}
+
+func (_c *MemberUsecase_UpdateMemberStatus_Call) Run(run func(ctx context.Context, orgID uuid.UUID, userID uuid.UUID, status string)) *MemberUsecase_UpdateMemberStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string))
+	})
+	return _c
+}
+
+func (_c *MemberUsecase_UpdateMemberStatus_Call) Return(_a0 error) *MemberUsecase_UpdateMemberStatus_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MemberUsecase_UpdateMemberStatus_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string) error) *MemberUsecase_UpdateMemberStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMemberUsecase creates a new instance of MemberUsecase. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMemberUsecase(t interface {

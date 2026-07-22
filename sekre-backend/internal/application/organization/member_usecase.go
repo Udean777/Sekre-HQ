@@ -15,16 +15,19 @@ type MemberUsecase interface {
 	ListMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
 	ListMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
 	UpdateMemberRole(ctx context.Context, orgID, userID uuid.UUID, role string) error
+	UpdateMemberStatus(ctx context.Context, orgID, userID uuid.UUID, status string) error
 	RemoveMember(ctx context.Context, orgID, userID uuid.UUID) error
 }
 
 type memberUsecase struct {
-	memberRepo repository.MemberRepository
+	memberRepo  repository.MemberRepository
+	refreshRepo repository.RefreshSessionRepository
 }
 
-func NewMemberUsecase(memberRepo repository.MemberRepository) MemberUsecase {
+func NewMemberUsecase(memberRepo repository.MemberRepository, refreshRepo repository.RefreshSessionRepository) MemberUsecase {
 	return &memberUsecase{
-		memberRepo: memberRepo,
+		memberRepo:  memberRepo,
+		refreshRepo: refreshRepo,
 	}
 }
 
@@ -79,6 +82,29 @@ func (u *memberUsecase) UpdateMemberRole(ctx context.Context, orgID, userID uuid
 	return u.memberRepo.UpdateMemberRole(ctx, orgID, userID, typed)
 }
 
+func (u *memberUsecase) UpdateMemberStatus(ctx context.Context, orgID, userID uuid.UUID, status string) error {
+	typed := types.MemberStatus(status)
+	if err := typed.Validate(); err != nil {
+		return err
+	}
+
+	isMember, err := u.memberRepo.IsMember(ctx, orgID, userID)
+	if err != nil {
+		return err
+	}
+	if !isMember {
+		return domainerrors.ErrUserNotInOrg
+	}
+
+	if typed == types.StatusSuspended && u.refreshRepo != nil {
+		if err := u.refreshRepo.RevokeByUser(ctx, userID); err != nil {
+			return domainerrors.Internal("revoke sessions", err)
+		}
+	}
+
+	return u.memberRepo.UpdateMemberStatus(ctx, orgID, userID, typed)
+}
+
 func (u *memberUsecase) RemoveMember(ctx context.Context, orgID, userID uuid.UUID) error {
 	isMember, err := u.memberRepo.IsMember(ctx, orgID, userID)
 	if err != nil {
@@ -86,6 +112,12 @@ func (u *memberUsecase) RemoveMember(ctx context.Context, orgID, userID uuid.UUI
 	}
 	if !isMember {
 		return domainerrors.ErrUserNotInOrg
+	}
+
+	if u.refreshRepo != nil {
+		if err := u.refreshRepo.RevokeByUser(ctx, userID); err != nil {
+			return domainerrors.Internal("revoke sessions", err)
+		}
 	}
 
 	return u.memberRepo.RemoveMember(ctx, orgID, userID)

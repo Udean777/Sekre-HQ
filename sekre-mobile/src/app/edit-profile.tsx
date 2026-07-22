@@ -13,20 +13,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { ArrowLeftIcon } from "phosphor-react-native";
 
-import { ThemedSafeAreaView } from "../shared/ui/themed-safe-area";
-import { ThemedHeader } from "../shared/ui/themed-header";
-import { ThemedView } from "../shared/ui/themed-view";
-import { Input } from "../shared/ui/input";
-import { Button } from "../shared/ui/button";
-import { BouncingPressable } from "../shared/ui/bouncing-pressable";
-import { useAuthStore } from "../shared/store/auth-store";
-import { useUpdateProfile } from "../features/user/use-update-profile";
-import { useTheme } from "../shared/lib/hooks/use-theme";
-import { useAlert } from "../shared/context/alert-context";
+import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
+import { ThemedHeader } from "@/shared/ui/themed-header";
+import { ThemedView } from "@/shared/ui/themed-view";
+import { Input } from "@/shared/ui/input";
+import { Button } from "@/shared/ui/button";
+import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
+import { useAuthStore } from "@/shared/store/auth-store";
+import { useUpdateProfile } from "@/features/user/use-update-profile";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
+import { useAlert } from "@/shared/context/alert-context";
+import { extractErrorMessage } from "@/shared/lib/utils/error";
 import {
   profileSchema,
   type ProfileFormData,
-} from "../features/user/user.schema";
+} from "@/features/user/user.schema";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -56,8 +57,8 @@ export default function EditProfileScreen() {
       },
       onError: (error: any) => {
         alert(
-          "Gagal",
-          error.response?.data?.message || "Terjadi kesalahan sistem.",
+          "Gagal Menyimpan",
+          extractErrorMessage(error, "Terjadi kesalahan sistem."),
         );
       },
     });

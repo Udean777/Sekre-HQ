@@ -1,0 +1,2 @@
+ALTER TABLE user_organizations
+ADD COLUMN status VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'SUSPENDED'));

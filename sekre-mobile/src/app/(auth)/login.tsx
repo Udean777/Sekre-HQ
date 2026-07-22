@@ -8,17 +8,16 @@ import {
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Link } from "expo-router";
 
-import { Input } from "../../shared/ui/input";
-import { Button } from "../../shared/ui/button";
-import { ThemedView } from "../../shared/ui/themed-view";
-import { ThemedText } from "../../shared/ui/themed-text";
-import { ThemedSafeAreaView } from "../../shared/ui/themed-safe-area";
-import { useLogin } from "../../features/auth/use-login";
-import { useAlert } from "../../shared/context/alert-context";
-import { loginSchema, type LoginForm } from "../../features/auth/auth.schema";
+import { Input } from "@/shared/ui/input";
+import { Button } from "@/shared/ui/button";
+import { ThemedView } from "@/shared/ui/themed-view";
+import { ThemedText } from "@/shared/ui/themed-text";
+import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
+import { useLogin } from "@/features/auth/use-login";
+import { useAlert } from "@/shared/context/alert-context";
+import { loginSchema, type LoginForm } from "@/features/auth/auth.schema";
 
 export default function LoginScreen() {
   const loginMutation = useLogin();

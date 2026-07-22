@@ -84,6 +84,110 @@ func (_c *UserProfileRepository_CheckEmailExists_Call) RunAndReturn(run func(con
 	return _c
 }
 
+// CheckIsOwner provides a mock function with given fields: ctx, userID
+func (_m *UserProfileRepository) CheckIsOwner(ctx context.Context, userID uuid.UUID) (bool, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CheckIsOwner")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (bool, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) bool); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UserProfileRepository_CheckIsOwner_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckIsOwner'
+type UserProfileRepository_CheckIsOwner_Call struct {
+	*mock.Call
+}
+
+// CheckIsOwner is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uuid.UUID
+func (_e *UserProfileRepository_Expecter) CheckIsOwner(ctx interface{}, userID interface{}) *UserProfileRepository_CheckIsOwner_Call {
+	return &UserProfileRepository_CheckIsOwner_Call{Call: _e.mock.On("CheckIsOwner", ctx, userID)}
+}
+
+func (_c *UserProfileRepository_CheckIsOwner_Call) Run(run func(ctx context.Context, userID uuid.UUID)) *UserProfileRepository_CheckIsOwner_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *UserProfileRepository_CheckIsOwner_Call) Return(_a0 bool, _a1 error) *UserProfileRepository_CheckIsOwner_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *UserProfileRepository_CheckIsOwner_Call) RunAndReturn(run func(context.Context, uuid.UUID) (bool, error)) *UserProfileRepository_CheckIsOwner_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteAccount provides a mock function with given fields: ctx, userID
+func (_m *UserProfileRepository) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAccount")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UserProfileRepository_DeleteAccount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteAccount'
+type UserProfileRepository_DeleteAccount_Call struct {
+	*mock.Call
+}
+
+// DeleteAccount is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uuid.UUID
+func (_e *UserProfileRepository_Expecter) DeleteAccount(ctx interface{}, userID interface{}) *UserProfileRepository_DeleteAccount_Call {
+	return &UserProfileRepository_DeleteAccount_Call{Call: _e.mock.On("DeleteAccount", ctx, userID)}
+}
+
+func (_c *UserProfileRepository_DeleteAccount_Call) Run(run func(ctx context.Context, userID uuid.UUID)) *UserProfileRepository_DeleteAccount_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *UserProfileRepository_DeleteAccount_Call) Return(_a0 error) *UserProfileRepository_DeleteAccount_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *UserProfileRepository_DeleteAccount_Call) RunAndReturn(run func(context.Context, uuid.UUID) error) *UserProfileRepository_DeleteAccount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetUserByID provides a mock function with given fields: ctx, userID
 func (_m *UserProfileRepository) GetUserByID(ctx context.Context, userID uuid.UUID) (*entity.UserBasic, error) {
 	ret := _m.Called(ctx, userID)

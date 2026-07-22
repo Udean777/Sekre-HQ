@@ -1,8 +1,8 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "../lib/hooks/use-theme";
-import { ThemedText } from "./themed-text";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
+import { ThemedText } from "@/shared/ui/themed-text";
 
 export interface ThemedHeaderProps {
   title?: string;

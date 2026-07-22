@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { User, Organization } from "../../entities/user/user.types";
-import { storage } from "../lib/storage";
+import { User, Organization } from "@/entities/user/user.types";
+import { storage } from "@/shared/lib/storage";
 
 interface AuthState {
   isAuthenticated: boolean;

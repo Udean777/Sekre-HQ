@@ -9,17 +9,18 @@ import {
 } from "phosphor-react-native";
 import { useRouter } from "expo-router";
 
-import { ThemedScrollView } from "../../shared/ui/themed-scroll-view";
-import { ThemedText } from "../../shared/ui/themed-text";
-import { ThemedCard } from "../../shared/ui/themed-card";
-import { ThemedHeader } from "../../shared/ui/themed-header";
-import { Button } from "../../shared/ui/button";
-import { BouncingPressable } from "../../shared/ui/bouncing-pressable";
-import { useAuthStore } from "../../shared/store/auth-store";
-import { useLogout } from "../../features/auth/use-logout";
-import { useDeleteAccount } from "../../features/user/use-delete-account";
-import { useTheme } from "../../shared/lib/hooks/use-theme";
-import { useAlert } from "../../shared/context/alert-context";
+import { ThemedScrollView } from "@/shared/ui/themed-scroll-view";
+import { ThemedText } from "@/shared/ui/themed-text";
+import { ThemedCard } from "@/shared/ui/themed-card";
+import { ThemedHeader } from "@/shared/ui/themed-header";
+import { Button } from "@/shared/ui/button";
+import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
+import { useAuthStore } from "@/shared/store/auth-store";
+import { useLogout } from "@/features/auth/use-logout";
+import { extractErrorMessage } from "@/shared/lib/utils/error";
+import { useDeleteAccount } from "@/features/user/use-delete-account";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
+import { useAlert } from "@/shared/context/alert-context";
 
 const InfoRow = ({
   icon,
@@ -69,14 +70,10 @@ export default function ProfileScreen() {
           onPress: () => {
             deleteAccountMutation.mutate(undefined, {
               onError: (error: any) => {
-                let errorMessage = "Terjadi kesalahan saat menghapus akun.";
-                if (error?.response?.data?.message) {
-                  errorMessage = error.response.data.message;
-                } else if (error?.response?.data?.error) {
-                  errorMessage = error.response.data.error;
-                } else if (error?.message) {
-                  errorMessage = error.message;
-                }
+                const errorMessage = extractErrorMessage(
+                  error,
+                  "Terjadi kesalahan saat menghapus akun.",
+                );
                 alert("Gagal", errorMessage);
               },
             });
@@ -170,6 +167,22 @@ export default function ProfileScreen() {
             style={styles.changePasswordButton}
           />
         </ThemedCard>
+
+        {/* Admin Zone */}
+        {role && (role === "OWNER" || role === "ADMIN") && (
+          <>
+            <ThemedText type="smallBold" style={styles.sectionTitle}>
+              ADMINISTRASI
+            </ThemedText>
+            <ThemedCard style={styles.card}>
+              <Button
+                title="Manajemen Member & Akses"
+                variant="primary"
+                onPress={() => router.push("/members")}
+              />
+            </ThemedCard>
+          </>
+        )}
 
         {/* Danger Zone */}
         <ThemedText style={styles.sectionTitle}>ZONA BERBAHAYA</ThemedText>

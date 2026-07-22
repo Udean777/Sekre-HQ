@@ -34,6 +34,11 @@ func (h *MemberHandler) RegisterRoutes(router *mux.Router) {
 		middleware.RequireAdmin()(http.HandlerFunc(h.UpdateRole)),
 	).Methods("PATCH")
 
+	// Update member status - requires OWNER or ADMIN
+	router.Handle("/members/{userId}/status",
+		middleware.RequireAdmin()(http.HandlerFunc(h.UpdateStatus)),
+	).Methods("PATCH")
+
 	// Remove member - requires OWNER or ADMIN
 	router.Handle("/members/{userId}",
 		middleware.RequireAdmin()(http.HandlerFunc(h.Remove)),
@@ -76,6 +81,16 @@ func (h *MemberHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	HandleUpdateRequest(w, r, "userId", &req, func(orgID, userID uuid.UUID) error {
 		return h.usecase.UpdateMemberRole(r.Context(), orgID, userID, req.Role)
 	}, "member role updated")
+}
+
+func (h *MemberHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Status string `json:"status"`
+	}
+
+	HandleUpdateRequest(w, r, "userId", &req, func(orgID, userID uuid.UUID) error {
+		return h.usecase.UpdateMemberStatus(r.Context(), orgID, userID, req.Status)
+	}, "member status updated")
 }
 
 func (h *MemberHandler) Remove(w http.ResponseWriter, r *http.Request) {

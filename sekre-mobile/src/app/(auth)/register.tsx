@@ -1,28 +1,17 @@
-import React from "react";
-import {
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  View,
-} from "react-native";
+import { StyleSheet, KeyboardAvoidingView, Platform, View } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Link } from "expo-router";
 
-import { Input } from "../../shared/ui/input";
-import { Button } from "../../shared/ui/button";
-import { ThemedView } from "../../shared/ui/themed-view";
-import { ThemedText } from "../../shared/ui/themed-text";
-import { ThemedSafeAreaView } from "../../shared/ui/themed-safe-area";
-import { ThemedScrollView } from "../../shared/ui/themed-scroll-view";
-import { useRegister } from "../../features/auth/use-register";
-import { useAlert } from "../../shared/context/alert-context";
-import {
-  registerSchema,
-  type RegisterForm,
-} from "../../features/auth/auth.schema";
+import { Input } from "@/shared/ui/input";
+import { Button } from "@/shared/ui/button";
+import { ThemedView } from "@/shared/ui/themed-view";
+import { ThemedText } from "@/shared/ui/themed-text";
+import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
+import { ThemedScrollView } from "@/shared/ui/themed-scroll-view";
+import { useRegister } from "@/features/auth/use-register";
+import { useAlert } from "@/shared/context/alert-context";
+import { registerSchema, type RegisterForm } from "@/features/auth/auth.schema";
 
 export default function RegisterScreen() {
   const registerMutation = useRegister();

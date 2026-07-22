@@ -462,6 +462,74 @@ func (_c *MemberRepository_GetOrganizationMembersPaginated_Call) RunAndReturn(ru
 	return _c
 }
 
+// GetOrganizationMembersPaginatedFiltered provides a mock function with given fields: ctx, orgID, search, pagination
+func (_m *MemberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+	ret := _m.Called(ctx, orgID, search, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganizationMembersPaginatedFiltered")
+	}
+
+	var r0 []entity.UserWithOrgRole
+	var r1 int
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string, types.PaginationParams) ([]entity.UserWithOrgRole, int, error)); ok {
+		return rf(ctx, orgID, search, pagination)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string, types.PaginationParams) []entity.UserWithOrgRole); ok {
+		r0 = rf(ctx, orgID, search, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.UserWithOrgRole)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, *string, types.PaginationParams) int); ok {
+		r1 = rf(ctx, orgID, search, pagination)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID, *string, types.PaginationParams) error); ok {
+		r2 = rf(ctx, orgID, search, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// MemberRepository_GetOrganizationMembersPaginatedFiltered_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganizationMembersPaginatedFiltered'
+type MemberRepository_GetOrganizationMembersPaginatedFiltered_Call struct {
+	*mock.Call
+}
+
+// GetOrganizationMembersPaginatedFiltered is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - search *string
+//   - pagination types.PaginationParams
+func (_e *MemberRepository_Expecter) GetOrganizationMembersPaginatedFiltered(ctx interface{}, orgID interface{}, search interface{}, pagination interface{}) *MemberRepository_GetOrganizationMembersPaginatedFiltered_Call {
+	return &MemberRepository_GetOrganizationMembersPaginatedFiltered_Call{Call: _e.mock.On("GetOrganizationMembersPaginatedFiltered", ctx, orgID, search, pagination)}
+}
+
+func (_c *MemberRepository_GetOrganizationMembersPaginatedFiltered_Call) Run(run func(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams)) *MemberRepository_GetOrganizationMembersPaginatedFiltered_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(*string), args[3].(types.PaginationParams))
+	})
+	return _c
+}
+
+func (_c *MemberRepository_GetOrganizationMembersPaginatedFiltered_Call) Return(_a0 []entity.UserWithOrgRole, _a1 int, _a2 error) *MemberRepository_GetOrganizationMembersPaginatedFiltered_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *MemberRepository_GetOrganizationMembersPaginatedFiltered_Call) RunAndReturn(run func(context.Context, uuid.UUID, *string, types.PaginationParams) ([]entity.UserWithOrgRole, int, error)) *MemberRepository_GetOrganizationMembersPaginatedFiltered_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // IsMember provides a mock function with given fields: ctx, orgID, userID
 func (_m *MemberRepository) IsMember(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) (bool, error) {
 	ret := _m.Called(ctx, orgID, userID)
@@ -613,6 +681,55 @@ func (_c *MemberRepository_UpdateMemberRole_Call) Return(_a0 error) *MemberRepos
 }
 
 func (_c *MemberRepository_UpdateMemberRole_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, types.Role) error) *MemberRepository_UpdateMemberRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateMemberStatus provides a mock function with given fields: ctx, orgID, userID, status
+func (_m *MemberRepository) UpdateMemberStatus(ctx context.Context, orgID uuid.UUID, userID uuid.UUID, status types.MemberStatus) error {
+	ret := _m.Called(ctx, orgID, userID, status)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateMemberStatus")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, types.MemberStatus) error); ok {
+		r0 = rf(ctx, orgID, userID, status)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MemberRepository_UpdateMemberStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateMemberStatus'
+type MemberRepository_UpdateMemberStatus_Call struct {
+	*mock.Call
+}
+
+// UpdateMemberStatus is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID uuid.UUID
+//   - userID uuid.UUID
+//   - status types.MemberStatus
+func (_e *MemberRepository_Expecter) UpdateMemberStatus(ctx interface{}, orgID interface{}, userID interface{}, status interface{}) *MemberRepository_UpdateMemberStatus_Call {
+	return &MemberRepository_UpdateMemberStatus_Call{Call: _e.mock.On("UpdateMemberStatus", ctx, orgID, userID, status)}
+}
+
+func (_c *MemberRepository_UpdateMemberStatus_Call) Run(run func(ctx context.Context, orgID uuid.UUID, userID uuid.UUID, status types.MemberStatus)) *MemberRepository_UpdateMemberStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(types.MemberStatus))
+	})
+	return _c
+}
+
+func (_c *MemberRepository_UpdateMemberStatus_Call) Return(_a0 error) *MemberRepository_UpdateMemberStatus_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MemberRepository_UpdateMemberStatus_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, types.MemberStatus) error) *MemberRepository_UpdateMemberStatus_Call {
 	_c.Call.Return(run)
 	return _c
 }

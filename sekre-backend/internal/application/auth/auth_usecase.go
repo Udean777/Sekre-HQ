@@ -205,6 +205,10 @@ func (u *authUsecase) Login(ctx context.Context, req *LoginRequest) (*AuthRespon
 		return nil, domainerrors.Internal("get user organization", err)
 	}
 
+	if userWithOrg.Status == types.StatusSuspended {
+		return nil, domainerrors.Forbidden("login", "account is suspended")
+	}
+
 	tokens, err := u.tokens.Generate(user.ID, userWithOrg.Organization.ID, userWithOrg.Role)
 	if err != nil {
 		return nil, domainerrors.Internal("generate tokens", err)

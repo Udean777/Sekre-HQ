@@ -2,14 +2,14 @@ import React, { useEffect, useState } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ActivityIndicator } from "react-native";
-import { useAuthStore } from "../shared/store/auth-store";
-import { storage } from "../shared/lib/storage";
-import { apiClient } from "../shared/api/api-client";
-import { ThemedView } from "../shared/ui/themed-view";
-import { useTheme } from "../shared/lib/hooks/use-theme";
+import { useAuthStore } from "@/shared/store/auth-store";
+import { storage } from "@/shared/lib/storage";
+import { apiClient } from "@/shared/api/api-client";
+import { ThemedView } from "@/shared/ui/themed-view";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
 
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { AlertProvider } from "../shared/context/alert-context";
+import { AlertProvider } from "@/shared/context/alert-context";
 
 const queryClient = new QueryClient();
 

@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
-import { apiClient } from "../../shared/api/api-client";
-import { AuthResponse } from "../../entities/user/user.types";
-import { useAuthStore } from "../../shared/store/auth-store";
+import { apiClient } from "@/shared/api/api-client";
+import { AuthResponse } from "@/entities/user/user.types";
+import { useAuthStore } from "@/shared/store/auth-store";
 
 export function useLogin() {
   const loginAction = useAuthStore((state) => state.login);

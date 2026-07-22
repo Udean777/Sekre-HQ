@@ -20,18 +20,20 @@ type User struct {
 
 // UserOrganization represents the many-to-many relationship between users and organizations
 type UserOrganization struct {
-	ID             uuid.UUID  `json:"id"`
-	UserID         uuid.UUID  `json:"user_id"`
-	OrganizationID uuid.UUID  `json:"organization_id"`
-	Role           types.Role `json:"role"`
-	CreatedAt      time.Time  `json:"created_at"`
+	ID             uuid.UUID          `json:"id"`
+	UserID         uuid.UUID          `json:"user_id"`
+	OrganizationID uuid.UUID          `json:"organization_id"`
+	Role           types.Role         `json:"role"`
+	Status         types.MemberStatus `json:"status"`
+	CreatedAt      time.Time          `json:"created_at"`
 }
 
 // UserWithOrganization combines user and organization data
 type UserWithOrganization struct {
-	User         User         `json:"user"`
-	Organization Organization `json:"organization"`
-	Role         types.Role   `json:"role"`
+	User         User               `json:"user"`
+	Organization Organization       `json:"organization"`
+	Role         types.Role         `json:"role"`
+	Status       types.MemberStatus `json:"status"`
 }
 
 // UserBasic represents basic user information for search/lookup
@@ -43,10 +45,11 @@ type UserBasic struct {
 
 // UserWithOrgRole represents a user with their organization role
 type UserWithOrgRole struct {
-	ID       uuid.UUID  `json:"id"`
-	Email    string     `json:"email"`
-	FullName string     `json:"full_name"`
-	Role     types.Role `json:"role"`
+	ID       uuid.UUID          `json:"id"`
+	Email    string             `json:"email"`
+	FullName string             `json:"full_name"`
+	Role     types.Role         `json:"role"`
+	Status   types.MemberStatus `json:"status"`
 }
 
 // PasswordReset represents password reset token

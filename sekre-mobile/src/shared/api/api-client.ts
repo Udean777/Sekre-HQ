@@ -1,6 +1,6 @@
 import axios from "axios";
-import { ENV } from "../config/env";
-import { storage } from "../lib/storage";
+import { ENV } from "@/shared/config/env";
+import { storage } from "@/shared/lib/storage";
 
 export const apiClient = axios.create({
   baseURL: ENV.API_URL,
