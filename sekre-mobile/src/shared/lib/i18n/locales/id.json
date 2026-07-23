@@ -38,7 +38,9 @@
     "roleSuccess": "Peran anggota berhasil diperbarui.",
     "roleError": "Terjadi kesalahan saat memperbarui peran.",
     "suspendSuccess": "Status anggota berhasil diperbarui.",
-    "suspendError": "Terjadi kesalahan saat memperbarui status."
+    "suspendError": "Terjadi kesalahan saat memperbarui status.",
+    "passwordTemp": "Kata Sandi Sementara",
+    "passwordChanged": "Kata Sandi"
   },
   "profile": {
     "title": "Profil Pengguna",
@@ -166,7 +168,20 @@
     "personalEmail": "Email Pribadi",
     "hasAccount": "Sudah punya akun?",
     "loginHere": "Masuk di sini",
-    "registerFailed": "Registrasi Gagal"
+    "registerFailed": "Registrasi Gagal",
+    "forgotPassword": "Lupa Password?",
+    "forgotPasswordTitle": "Lupa Password",
+    "forgotPasswordDesc": "Masukkan email Anda untuk mendapatkan token reset password",
+    "sendResetLink": "Kirim",
+    "resetPassword": "Reset Password",
+    "resetPasswordDesc": "Masukkan token dan password baru Anda",
+    "newPassword": "Password Baru",
+    "confirmPassword": "Konfirmasi Password",
+    "token": "Token",
+    "tokenSent": "Token reset password telah dikirim. Silakan cek email Anda.",
+    "passwordResetSuccess": "Password berhasil direset. Silakan login dengan password baru Anda.",
+    "resetFailed": "Reset Password Gagal",
+    "sendFailed": "Gagal Mengirim"
   },
   "organization": {
     "title": "Organisasi",

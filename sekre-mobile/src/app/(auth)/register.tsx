@@ -13,8 +13,14 @@ import { useRegister } from "@/features/auth/use-register";
 import { useAlert } from "@/shared/context/alert-context";
 import { registerSchema, type RegisterForm } from "@/features/auth/auth.schema";
 import { useTranslation } from "react-i18next";
+import { Eye, EyeSlash } from "phosphor-react-native";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
+import React from "react";
+import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
 
 export default function RegisterScreen() {
+  const [showPassword, setShowPassword] = React.useState(false);
+  const theme = useTheme();
   const { t } = useTranslation();
   const registerMutation = useRegister();
 
@@ -131,10 +137,19 @@ export default function RegisterScreen() {
                 <Input
                   label="Password"
                   placeholder="••••••••"
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   value={value}
                   onChangeText={onChange}
                   error={errors.password?.message}
+                  rightIcon={
+                    <BouncingPressable onPress={() => setShowPassword(!showPassword)}>
+                      {showPassword ? (
+                        <EyeSlash color={theme.textSecondary} size={20} />
+                      ) : (
+                        <Eye color={theme.textSecondary} size={20} />
+                      )}
+                    </BouncingPressable>
+                  }
                 />
               )}
             />

@@ -45,3 +45,22 @@ type CreatedMemberInfo struct {
 	TemporaryPassword string `json:"temporary_password"`
 	Division          string `json:"division,omitempty"`
 }
+
+// ImportPreviewRow represents a single row preview with validation status
+type ImportPreviewRow struct {
+	Row           int    `json:"row"`
+	Email         string `json:"email"`
+	FullName      string `json:"full_name"`
+	Role          string `json:"role"`
+	Division      string `json:"division"`
+	DivisionRole  string `json:"division_role"`
+	DivisionValid bool   `json:"division_valid"`
+}
+
+// ImportPreviewResult represents the result of import preview
+type ImportPreviewResult struct {
+	TotalRows    int                `json:"total_rows"`
+	ValidRows    int                `json:"valid_rows"`
+	InvalidRows  int                `json:"invalid_rows"`
+	Rows         []ImportPreviewRow `json:"rows"`
+}

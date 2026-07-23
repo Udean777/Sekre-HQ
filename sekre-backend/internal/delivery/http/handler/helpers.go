@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/username/sekre-backend/internal/delivery/http/middleware"
+	"github.com/username/sekre-backend/internal/domain/types"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
 	"github.com/username/sekre-backend/pkg/response"
 	"github.com/username/sekre-backend/pkg/validator"
@@ -29,6 +30,15 @@ func GetUserIDFromContext(r *http.Request) (uuid.UUID, error) {
 		return uuid.Nil, domainerrors.Unauthorized("invalid user context")
 	}
 	return userID, nil
+}
+
+// GetRoleFromContext extracts role from request context.
+func GetRoleFromContext(r *http.Request) (types.Role, error) {
+	role, ok := r.Context().Value(middleware.RoleKey).(types.Role)
+	if !ok {
+		return "", domainerrors.Unauthorized("missing role in context")
+	}
+	return role, nil
 }
 
 // ParseUUIDFromPath extracts and parses UUID from path variable.

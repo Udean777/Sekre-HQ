@@ -27,17 +27,19 @@ func NewMemberRepository(db *gorm.DB) repository.MemberRepository {
 
 func (r *memberRepository) GetOrganizationMembers(ctx context.Context, orgID uuid.UUID) ([]entity.UserWithOrgRole, error) {
 	type row struct {
-		ID       uuid.UUID
-		Email    string
-		FullName string
-		Role     types.Role
-		Status   types.MemberStatus
+		ID                uuid.UUID
+		Email             string
+		FullName          string
+		Role              types.Role
+		Status            types.MemberStatus
+		MustResetPassword bool
+		TemporaryPassword *string
 	}
 
 	var rows []row
 	err := dbFor(ctx, r.db).
 		Table("users AS u").
-		Select("u.id, u.email, u.full_name, uo.role, uo.status").
+		Select("u.id, u.email, u.full_name, uo.role, uo.status, u.must_reset_password, u.temporary_password").
 		Joins("INNER JOIN user_organizations AS uo ON u.id = uo.user_id").
 		Where("uo.organization_id = ? AND u.deleted_at IS NULL", orgID).
 		Order("u.full_name").
@@ -48,12 +50,18 @@ func (r *memberRepository) GetOrganizationMembers(ctx context.Context, orgID uui
 
 	members := make([]entity.UserWithOrgRole, 0, len(rows))
 	for _, m := range rows {
+		tp := ""
+		if m.TemporaryPassword != nil {
+			tp = *m.TemporaryPassword
+		}
 		members = append(members, entity.UserWithOrgRole{
-			ID:       m.ID,
-			Email:    m.Email,
-			FullName: m.FullName,
-			Role:     m.Role,
-			Status:   m.Status,
+			ID:                m.ID,
+			Email:             m.Email,
+			FullName:          m.FullName,
+			Role:              m.Role,
+			Status:            m.Status,
+			MustResetPassword: m.MustResetPassword,
+			TemporaryPassword: tp,
 		})
 	}
 	return members, nil
@@ -87,16 +95,18 @@ func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.C
 
 	// Get paginated results
 	type row struct {
-		ID       uuid.UUID
-		Email    string
-		FullName string
-		Role     types.Role
-		Status   types.MemberStatus
+		ID                uuid.UUID
+		Email             string
+		FullName          string
+		Role              types.Role
+		Status            types.MemberStatus
+		MustResetPassword bool
+		TemporaryPassword *string
 	}
 
 	query := dbFor(ctx, r.db).
 		Table("users AS u").
-		Select("u.id, u.email, u.full_name, uo.role, uo.status").
+		Select("u.id, u.email, u.full_name, uo.role, uo.status, u.must_reset_password, u.temporary_password").
 		Joins("INNER JOIN user_organizations AS uo ON u.id = uo.user_id").
 		Where("uo.organization_id = ? AND u.deleted_at IS NULL", orgID)
 
@@ -122,12 +132,18 @@ func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.C
 
 	members := make([]entity.UserWithOrgRole, 0, len(rows))
 	for _, m := range rows {
+		tp := ""
+		if m.TemporaryPassword != nil {
+			tp = *m.TemporaryPassword
+		}
 		members = append(members, entity.UserWithOrgRole{
-			ID:       m.ID,
-			Email:    m.Email,
-			FullName: m.FullName,
-			Role:     m.Role,
-			Status:   m.Status,
+			ID:                m.ID,
+			Email:             m.Email,
+			FullName:          m.FullName,
+			Role:              m.Role,
+			Status:            m.Status,
+			MustResetPassword: m.MustResetPassword,
+			TemporaryPassword: tp,
 		})
 	}
 	return members, int(totalCount), nil

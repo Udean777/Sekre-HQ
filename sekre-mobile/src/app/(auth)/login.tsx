@@ -18,9 +18,14 @@ import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
 import { useLogin } from "@/features/auth/use-login";
 import { useAlert } from "@/shared/context/alert-context";
 import { loginSchema, type LoginForm } from "@/features/auth/auth.schema";
+import { Eye, EyeSlash } from "phosphor-react-native";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
+import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
 import { useTranslation } from "react-i18next";
 
 export default function LoginScreen() {
+  const [showPassword, setShowPassword] = React.useState(false);
+  const theme = useTheme();
   const { t } = useTranslation();
   const loginMutation = useLogin();
 
@@ -85,13 +90,30 @@ export default function LoginScreen() {
                 <Input
                   label="Password"
                   placeholder="••••••••"
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   value={value}
                   onChangeText={onChange}
                   error={errors.password?.message}
+                  rightIcon={
+                    <BouncingPressable onPress={() => setShowPassword(!showPassword)}>
+                      {showPassword ? (
+                        <EyeSlash color={theme.textSecondary} size={20} />
+                      ) : (
+                        <Eye color={theme.textSecondary} size={20} />
+                      )}
+                    </BouncingPressable>
+                  }
                 />
               )}
             />
+
+            <View style={styles.forgotRow}>
+              <Link href={"/(auth)/forgot-password" as any} asChild>
+                <ThemedText type="linkPrimary" style={styles.forgotLink}>
+                  {t("auth.forgotPassword")}
+                </ThemedText>
+              </Link>
+            </View>
 
             <Button
               title={t("auth.login")}
@@ -140,6 +162,13 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 4, // modern compact spacing (if supported, else margin works)
+  },
+  forgotRow: {
+    alignItems: "flex-end",
+    marginTop: 8,
+  },
+  forgotLink: {
+    fontSize: 13,
   },
   button: {
     marginTop: 24,

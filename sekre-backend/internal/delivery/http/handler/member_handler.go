@@ -76,6 +76,15 @@ func (h *MemberHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Only OWNER/ADMIN can see temporary passwords
+	callerRole, _ := GetRoleFromContext(r)
+	canSeePassword := callerRole == types.RoleOwner || callerRole == types.RoleAdmin
+	if !canSeePassword {
+		for i := range members {
+			members[i].TemporaryPassword = ""
+		}
+	}
+
 	// Create paginated response
 	paginatedResponse := pagination.NewResponse(members, paginationParams, total)
 	response.Success(w, http.StatusOK, "members retrieved", paginatedResponse)

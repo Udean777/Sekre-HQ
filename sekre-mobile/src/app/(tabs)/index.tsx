@@ -10,6 +10,7 @@ import {
   UsersIcon,
   CheckCircleIcon,
   ChartBarIcon,
+  BellIcon,
 } from "phosphor-react-native";
 import { ThemedScrollView } from "@/shared/ui/themed-scroll-view";
 import { ThemedText } from "@/shared/ui/themed-text";
@@ -83,22 +84,29 @@ export default function DashboardScreen() {
       <ThemedScrollView contentContainerStyle={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerTitleContainer}>
             <ThemedText style={styles.greeting}>
               {t("dashboard.welcome")}
             </ThemedText>
             <ThemedText type="subtitle" style={styles.name}>
               {user?.full_name}
             </ThemedText>
+            <View style={styles.inlineOrgContainer}>
+              <UsersThreeIcon color={theme.textSecondary} size={14} weight="fill" />
+              <ThemedText 
+                style={styles.inlineOrgName}
+                numberOfLines={1}
+              >
+                {organization?.name}
+              </ThemedText>
+            </View>
           </View>
-          <View
-            style={[styles.orgBadge, { backgroundColor: theme.tint + "15" }]}
+          <BouncingPressable 
+            style={[styles.notifButton, { backgroundColor: theme.backgroundSelected }]}
+            onPress={() => router.push("/notifications")}
           >
-            <UsersThreeIcon color={theme.tint} size={20} weight="fill" />
-            <ThemedText style={[styles.orgName, { color: theme.tint }]}>
-              {organization?.name}
-            </ThemedText>
-          </View>
+            <BellIcon color={theme.text} size={24} weight="bold" />
+          </BouncingPressable>
         </View>
 
         {/* Main Banner */}
@@ -204,22 +212,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 4,
   },
-  name: {
-    fontSize: 24,
-    lineHeight: 32,
+  headerTitleContainer: {
+    flex: 1,
+    marginRight: 16,
   },
-  orgBadge: {
+  inlineOrgContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    gap: 6,
-    maxWidth: 140,
+    gap: 4,
+    marginTop: 4,
   },
-  orgName: {
-    fontSize: 12,
-    fontWeight: "bold",
+  inlineOrgName: {
+    fontSize: 13,
+    opacity: 0.7,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  notifButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
   },
   banner: {
     borderRadius: 20,

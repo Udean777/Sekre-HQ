@@ -11,7 +11,8 @@ import { ThemedText } from "@/shared/ui/themed-text";
 
 interface ButtonProps extends Omit<PressableProps, "style"> {
   title: string;
-  variant?: "primary" | "secondary" | "outline" | "danger" | "danger-outline";
+  variant?: "primary" | "secondary" | "outline" | "outline-secondary" | "danger" | "danger-outline" | "success";
+  size?: "small" | "default" | "large";
   isLoading?: boolean;
   style?: any;
   textStyle?: any;
@@ -20,6 +21,7 @@ interface ButtonProps extends Omit<PressableProps, "style"> {
 export function Button({
   title,
   variant = "primary",
+  size = "default",
   isLoading = false,
   style,
   textStyle,
@@ -40,7 +42,10 @@ export function Button({
         return theme.backgroundElement;
       case "danger":
         return "#ef4444";
+      case "success":
+        return "#22c55e";
       case "outline":
+      case "outline-secondary":
       case "danger-outline":
         return "transparent";
     }
@@ -53,11 +58,14 @@ export function Button({
     switch (variant) {
       case "primary":
       case "danger":
+      case "success":
         return "#fff"; // White text on colored background typically
       case "secondary":
         return theme.text;
       case "outline":
         return theme.tint;
+      case "outline-secondary":
+        return theme.textSecondary;
       case "danger-outline":
         return "#ef4444";
     }
@@ -66,6 +74,7 @@ export function Button({
   const getBorderColor = () => {
     if (disabled) return theme.backgroundSelected;
     if (variant === "outline") return theme.tint;
+    if (variant === "outline-secondary") return theme.backgroundSelected;
     if (variant === "danger-outline") return "#ef4444";
     return "transparent";
   };
@@ -95,10 +104,12 @@ export function Button({
       <Pressable
         style={({ pressed }) => [
           styles.container,
+          size === "small" && styles.containerSmall,
+          size === "large" && styles.containerLarge,
           {
             backgroundColor: getBackgroundColor(),
             borderColor: getBorderColor(),
-            borderWidth: variant === "outline" ? 1 : 0,
+            borderWidth: variant.includes("outline") ? 1 : 0,
             opacity: pressed ? 0.9 : 1,
           },
         ]}
@@ -111,7 +122,13 @@ export function Button({
           <ActivityIndicator color={getTextColor()} />
         ) : (
           <ThemedText
-            style={[styles.text, { color: getTextColor() }, textStyle]}
+            style={[
+              styles.text, 
+              size === "small" && styles.textSmall,
+              size === "large" && styles.textLarge,
+              { color: getTextColor() }, 
+              textStyle
+            ]}
           >
             {title}
           </ThemedText>
@@ -130,8 +147,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginVertical: 8,
   },
+  containerSmall: {
+    height: 36,
+    paddingHorizontal: 12,
+    marginVertical: 4,
+    borderRadius: 6,
+  },
+  containerLarge: {
+    height: 56,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
   text: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  textSmall: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  textLarge: {
+    fontSize: 18,
+    fontWeight: "700",
   },
 });

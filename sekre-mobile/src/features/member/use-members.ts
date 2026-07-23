@@ -26,6 +26,8 @@ export interface Member {
   full_name: string;
   role: UserRole;
   status: MemberStatus;
+  must_reset_password: boolean;
+  temporary_password: string;
 }
 
 interface FetchMembersParams extends PaginationParams {

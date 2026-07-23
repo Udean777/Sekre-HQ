@@ -14,8 +14,16 @@ import {
   CaretDownIcon,
   CaretUpIcon,
   MagnifyingGlassIcon,
+  PlusIcon,
+  UploadSimple,
+  KeyIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  CopySimpleIcon,
+  CheckIcon,
 } from "phosphor-react-native";
 import { TextInput, ScrollView } from "react-native";
+import * as Clipboard from "expo-clipboard";
 
 import { ThemedText } from "@/shared/ui/themed-text";
 import { ThemedCard } from "@/shared/ui/themed-card";
@@ -42,6 +50,8 @@ export default function MembersScreen() {
   const currentUser = useAuthStore((state) => state.user);
   const currentRole = useAuthStore((state) => state.role);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const [reveledPasswords, setReveledPasswords] = React.useState<Set<string>>(new Set());
+  const [copiedId, setCopiedId] = React.useState<string | null>(null);
 
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
@@ -221,63 +231,115 @@ export default function MembersScreen() {
           }}
           disabled={!canManage}
         >
-          <View style={styles.cardHeader}>
-            <View style={styles.memberInfo}>
-              <UserCircleIcon color={theme.text} size={32} weight="fill" />
-              <View style={styles.textContainer}>
-                <ThemedText style={styles.memberName}>
+          <View style={styles.memberInfo}>
+            <UserCircleIcon color={theme.textSecondary} size={48} weight="duotone" />
+            
+            <View style={styles.textContainer}>
+              <View style={styles.nameRow}>
+                <ThemedText style={styles.memberName} numberOfLines={1}>
                   {item.full_name}
                 </ThemedText>
-                <ThemedText style={styles.memberEmail}>{item.email}</ThemedText>
+                {isSelf && (
+                  <View style={[styles.miniBadge, { backgroundColor: theme.backgroundSelected }]}>
+                    <ThemedText style={[styles.miniBadgeText, { color: theme.textSecondary }]}>
+                      {t("members.isYou")}
+                    </ThemedText>
+                  </View>
+                )}
               </View>
-              {canManage && (
-                <View style={styles.chevronContainer}>
-                  {expandedId === item.id ? (
-                    <CaretUpIcon color={theme.textSecondary} size={20} />
-                  ) : (
-                    <CaretDownIcon color={theme.textSecondary} size={20} />
-                  )}
-                </View>
-              )}
-            </View>
-            <View style={styles.badges}>
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: theme.backgroundSelected },
-                ]}
-              >
-                <ShieldCheckIcon color={theme.tint} size={14} weight="fill" />
-                <ThemedText style={[styles.badgeText, { color: theme.tint }]}>
-                  {item.role}
-                </ThemedText>
-              </View>
-              {isSuspended && (
-                <View style={[styles.badge, { backgroundColor: "#fee2e2" }]}>
-                  <WarningCircleIcon color="#ef4444" size={14} weight="fill" />
-                  <ThemedText style={[styles.badgeText, { color: "#ef4444" }]}>
-                    {t("members.suspended")}
+              
+              <ThemedText style={styles.memberEmail} numberOfLines={1}>
+                {item.email}
+              </ThemedText>
+              
+              <View style={styles.badges}>
+                <View
+                  style={[
+                    styles.badge,
+                    { backgroundColor: theme.backgroundSelected },
+                  ]}
+                >
+                  <ShieldCheckIcon color={theme.tint} size={12} weight="fill" />
+                  <ThemedText style={[styles.badgeText, { color: theme.tint }]}>
+                    {item.role}
                   </ThemedText>
                 </View>
-              )}
+                {isSuspended && (
+                  <View style={[styles.badge, { backgroundColor: "#fee2e2" }]}>
+                    <WarningCircleIcon color="#ef4444" size={12} weight="fill" />
+                    <ThemedText style={[styles.badgeText, { color: "#ef4444" }]}>
+                      {t("members.suspended")}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
             </View>
+
+            {canManage && (
+              <View style={styles.chevronContainer}>
+                {expandedId === item.id ? (
+                  <CaretUpIcon color={theme.textSecondary} size={20} />
+                ) : (
+                  <CaretDownIcon color={theme.textSecondary} size={20} />
+                )}
+              </View>
+            )}
           </View>
 
-          {isSelf && (
-            <View style={{ marginTop: 12 }}>
-              <ThemedText
-                style={{
-                  fontSize: 13,
-                  color: theme.textSecondary,
-                  fontStyle: "italic",
-                }}
-              >
-                ({t("members.isYou")})
-              </ThemedText>
-            </View>
-          )}
-
           {canManage && expandedId === item.id && (
+            <><View style={styles.passwordSection}>
+              <View style={styles.passwordRow}>
+                <KeyIcon color={theme.textSecondary} size={16} weight="duotone" />
+                <View style={styles.passwordContent}>
+                  <ThemedText style={styles.passwordLabel}>
+                    {item.temporary_password ? t("members.passwordTemp") : t("members.passwordChanged")}
+                  </ThemedText>
+                  <ThemedText style={[styles.passwordValue, { fontFamily: "monospace" }]} numberOfLines={1}>
+                    {item.temporary_password ? (reveledPasswords.has(item.id) ? item.temporary_password : "••••••••") : "•••••"}
+                  </ThemedText>
+                </View>
+                {!!item.temporary_password && (
+                  <View style={styles.passwordActions}>
+                    <Pressable
+                      onPress={() => {
+                        setReveledPasswords((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(item.id)) {
+                            next.delete(item.id);
+                          } else {
+                            next.add(item.id);
+                          }
+                          return next;
+                        });
+                      }}
+                      style={styles.passwordActionBtn}
+                      hitSlop={8}
+                    >
+                      {reveledPasswords.has(item.id) ? (
+                        <EyeSlashIcon color={theme.textSecondary} size={20} weight="duotone" />
+                      ) : (
+                        <EyeIcon color={theme.textSecondary} size={20} weight="duotone" />
+                      )}
+                    </Pressable>
+                    <Pressable
+                      onPress={async () => {
+                        await Clipboard.setStringAsync(item.temporary_password);
+                        setCopiedId(item.id);
+                        setTimeout(() => setCopiedId(null), 1500);
+                      }}
+                      style={styles.passwordActionBtn}
+                      hitSlop={8}
+                    >
+                      {copiedId === item.id ? (
+                        <CheckIcon color="#22c55e" size={20} weight="bold" />
+                      ) : (
+                        <CopySimpleIcon color={theme.textSecondary} size={20} weight="duotone" />
+                      )}
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            </View>
             <View style={styles.actions}>
               {currentRole === "OWNER" && item.role !== "OWNER" && (
                 <Button
@@ -287,6 +349,7 @@ export default function MembersScreen() {
                       : t("members.promote")
                   }
                   variant="outline"
+                  size="small"
                   style={styles.actionButton}
                   onPress={() => handleToggleRole(item)}
                   isLoading={
@@ -298,6 +361,7 @@ export default function MembersScreen() {
               <Button
                 title={isSuspended ? t("common.activate") : t("common.suspend")}
                 variant={isSuspended ? "outline" : "danger-outline"}
+                size="small"
                 style={styles.actionButton}
                 onPress={() => handleToggleStatus(item)}
                 isLoading={
@@ -309,6 +373,7 @@ export default function MembersScreen() {
               <Button
                 title={t("common.remove")}
                 variant="danger"
+                size="small"
                 style={styles.actionButton}
                 onPress={() => handleRemove(item)}
                 isLoading={
@@ -317,7 +382,7 @@ export default function MembersScreen() {
                 }
                 disabled={updateStatusMutation.isPending}
               />
-            </View>
+            </View></>
           )}
         </Pressable>
       </ThemedCard>
@@ -330,12 +395,12 @@ export default function MembersScreen() {
         title={t("members.title")}
         showBackButton
         right={
-          currentRole === "OWNER" || currentRole === "ADMIN" ? (
+          (currentRole === "OWNER" || currentRole === "ADMIN") ? (
             <BouncingPressable
-              onPress={() => router.push("/members/create")}
+              onPress={() => router.push("/members/import")}
               style={{ padding: 8, marginRight: -8 }}
             >
-              <UserCircleIcon color={theme.text} size={24} weight="bold" />
+              <UploadSimple color={theme.text} size={24} weight="bold" />
             </BouncingPressable>
           ) : null
         }
@@ -441,6 +506,15 @@ export default function MembersScreen() {
           }
         />
       )}
+
+      {(currentRole === "OWNER" || currentRole === "ADMIN") && (
+        <BouncingPressable
+          style={[styles.fab, { backgroundColor: theme.tint }]}
+          onPress={() => router.push("/members/create")}
+        >
+          <PlusIcon size={24} color="#FFFFFF" weight="bold" />
+        </BouncingPressable>
+      )}
     </View>
   );
 }
@@ -492,40 +566,56 @@ const styles = StyleSheet.create({
   card: {
     padding: 0,
     overflow: "hidden",
+    borderRadius: 16,
   },
   cardPressable: {
     padding: 16,
   },
-  cardHeader: {
-    flexDirection: "column",
-    gap: 12,
-    marginBottom: 16,
-  },
   memberInfo: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    alignItems: "flex-start",
+    gap: 14,
   },
   textContainer: {
     flex: 1,
+    gap: 4,
+    paddingTop: 2,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   memberName: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+  miniBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  miniBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
   },
   memberEmail: {
-    fontSize: 12,
+    fontSize: 13,
     opacity: 0.6,
   },
   chevronContainer: {
     padding: 4,
     justifyContent: "center",
     alignItems: "center",
+    alignSelf: "center",
   },
   badges: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 6,
+    marginTop: 6,
   },
   badge: {
     flexDirection: "row",
@@ -537,15 +627,18 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   actions: {
     flexDirection: "column",
     gap: 8,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(150,150,150,0.15)",
   },
   actionButton: {
-    paddingVertical: 8,
-    minHeight: 40,
+    marginVertical: 0,
   },
   suspendBtn: {
     borderColor: "#ef4444",
@@ -562,5 +655,51 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
     marginLeft: -8,
+  },
+  passwordSection: {
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  passwordRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  passwordContent: {
+    flex: 1,
+    gap: 2,
+  },
+  passwordLabel: {
+    fontSize: 11,
+    opacity: 0.5,
+    lineHeight: 14,
+  },
+  passwordValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 18,
+  },
+  passwordActions: {
+    flexDirection: "row",
+    gap: 4,
+    alignItems: "center",
+  },
+  passwordActionBtn: {
+    padding: 6,
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
   },
 });

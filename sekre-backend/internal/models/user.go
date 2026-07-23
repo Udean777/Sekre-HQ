@@ -15,6 +15,7 @@ type User struct {
 	PasswordHash      string         `gorm:"type:varchar(255);not null" json:"-"`
 	FullName          string         `gorm:"type:varchar(255);not null" json:"full_name"`
 	MustResetPassword bool           `gorm:"default:false" json:"must_reset_password"`
+	TemporaryPassword *string        `gorm:"type:varchar(255)" json:"-"`
 	CreatedAt         time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt         time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
 	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`

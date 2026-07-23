@@ -78,7 +78,11 @@ func (r *userRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, p
 	if err := dbFor(ctx, r.db).
 		Model(&models.User{}).
 		Where("id = ?", userID).
-		Update("password_hash", passwordHash).Error; err != nil {
+		Updates(map[string]interface{}{
+			"password_hash":      passwordHash,
+			"temporary_password": nil,
+			"must_reset_password": false,
+		}).Error; err != nil {
 		return domainerrors.Internal("update user password", err)
 	}
 	return nil

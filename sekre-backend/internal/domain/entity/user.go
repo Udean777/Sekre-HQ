@@ -14,6 +14,7 @@ type User struct {
 	PasswordHash      string    `json:"-"` // Never expose password hash in JSON
 	FullName          string    `json:"full_name"`
 	MustResetPassword bool      `json:"must_reset_password"`
+	TemporaryPassword string    `json:"-"`
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
 }
@@ -45,11 +46,13 @@ type UserBasic struct {
 
 // UserWithOrgRole represents a user with their organization role
 type UserWithOrgRole struct {
-	ID       uuid.UUID          `json:"id"`
-	Email    string             `json:"email"`
-	FullName string             `json:"full_name"`
-	Role     types.Role         `json:"role"`
-	Status   types.MemberStatus `json:"status"`
+	ID                uuid.UUID          `json:"id"`
+	Email             string             `json:"email"`
+	FullName          string             `json:"full_name"`
+	Role              types.Role         `json:"role"`
+	Status            types.MemberStatus `json:"status"`
+	MustResetPassword bool               `json:"must_reset_password"`
+	TemporaryPassword string             `json:"temporary_password"`
 }
 
 // PasswordReset represents password reset token

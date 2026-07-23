@@ -38,7 +38,9 @@
     "roleSuccess": "Member role successfully updated.",
     "roleError": "An error occurred while updating the role.",
     "suspendSuccess": "Member status successfully updated.",
-    "suspendError": "An error occurred while updating status."
+    "suspendError": "An error occurred while updating status.",
+    "passwordTemp": "Temporary Password",
+    "passwordChanged": "Password"
   },
   "profile": {
     "title": "User Profile",
@@ -166,7 +168,20 @@
     "personalEmail": "Personal Email",
     "hasAccount": "Already have an account?",
     "loginHere": "Login here",
-    "registerFailed": "Registration Failed"
+    "registerFailed": "Registration Failed",
+    "forgotPassword": "Forgot Password?",
+    "forgotPasswordTitle": "Forgot Password",
+    "forgotPasswordDesc": "Enter your email to receive a password reset token",
+    "sendResetLink": "Send",
+    "resetPassword": "Reset Password",
+    "resetPasswordDesc": "Enter your token and new password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "token": "Token",
+    "tokenSent": "Reset token has been sent. Please check your email.",
+    "passwordResetSuccess": "Password reset successful. Please login with your new password.",
+    "resetFailed": "Reset Password Failed",
+    "sendFailed": "Send Failed"
   },
   "organization": {
     "title": "Organization",

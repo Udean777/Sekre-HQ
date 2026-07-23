@@ -105,6 +105,7 @@ func main() {
 	userOrgRepo := gormRepo.NewUserOrganizationRepository(db)
 	userProfileRepo := gormRepo.NewUserProfileRepository(db)
 	refreshSessionRepo := gormRepo.NewRefreshSessionRepository(db)
+	passwordResetRepo := gormRepo.NewPasswordResetRepository(db)
 	memberRepo := gormRepo.NewMemberRepository(db)
 	divisionRepo := gormRepo.NewDivisionRepository(db)
 	taskRepo := gormRepo.NewTaskRepository(db)
@@ -144,6 +145,7 @@ func main() {
 		tokenGenerator,
 		registrationValidator,
 		refreshSessionRepo,
+		passwordResetRepo,
 	)
 	divisionUsecaseInst := orgApp.NewDivisionUsecase(divisionRepo, taskRepo, eventRepo, financeRepo)
 	userUsecaseInst := orgApp.NewUserUsecase(userProfileRepo, passwordHasher)
@@ -211,9 +213,9 @@ func main() {
 	authHandler := handler.NewAuthHandler(authUsecaseInst, tokenManager)
 	authHandler.RegisterRoutes(apiV1)
 
-	// Public template download (no auth required)
-	memberCreationHandler := handler.NewMemberCreationHandler(memberCreationUsecaseInst)
-	apiV1.HandleFunc("/members/template", memberCreationHandler.DownloadTemplate).Methods("GET")
+	memberCreationHandler := handler.NewMemberCreationHandler(memberCreationUsecaseInst, divisionRepo)
+	// Template download - requires auth (to know the org and fill real divisions)
+	protected.HandleFunc("/members/template", memberCreationHandler.DownloadTemplate).Methods("GET")
 
 	divisionHandler := handler.NewDivisionHandler(divisionUsecaseInst, auditService)
 	divisionHandler.RegisterRoutes(protected)
@@ -237,6 +239,11 @@ func main() {
 		middleware.RateLimit(middleware.BulkImportRateLimitConfig())(
 			middleware.RequireAdmin()(http.HandlerFunc(memberCreationHandler.BulkImport)),
 		),
+	).Methods("POST")
+
+	// Import preview - validate file before importing
+	protected.Handle("/members/preview-import",
+		middleware.RequireAdmin()(http.HandlerFunc(memberCreationHandler.PreviewImport)),
 	).Methods("POST")
 
 	taskHandler := handler.NewTaskHandler(taskUsecaseInst, auditService)

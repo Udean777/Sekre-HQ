@@ -21,3 +21,19 @@ export interface AuthResponse {
     refresh_token: string;
   };
 }
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    current_page: number;
+    page_size: number;
+    total_items: number;
+    total_pages: number;
+  };
+}

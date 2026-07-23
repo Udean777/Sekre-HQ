@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -38,12 +39,27 @@ type AuthResponse struct {
 	Tokens       token.TokenPair     `json:"tokens"`
 }
 
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Token       string `json:"token" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=8,max=128"`
+}
+
+type ForgotPasswordResponse struct {
+	Token string `json:"token"`
+}
+
 type AuthUsecase interface {
 	Register(ctx context.Context, req *RegisterRequest) (*AuthResponse, error)
 	Login(ctx context.Context, req *LoginRequest) (*AuthResponse, error)
 	GetMe(ctx context.Context, userID uuid.UUID) (*entity.UserWithOrganization, error)
 	Refresh(ctx context.Context, refreshToken string) (*token.TokenPair, error)
 	Logout(ctx context.Context, userID uuid.UUID) error
+	ForgotPassword(ctx context.Context, req *ForgotPasswordRequest) (*ForgotPasswordResponse, error)
+	ResetPassword(ctx context.Context, req *ResetPasswordRequest) error
 }
 
 // authUsecase orchestrates the registration / login flow. All infrastructure
@@ -51,14 +67,15 @@ type AuthUsecase interface {
 // delegated to service interfaces so the usecase stays focused and
 // testable with mocks.
 type authUsecase struct {
-	users     repository.UserRepository
-	orgs      repository.OrganizationRepository
-	userOrgs  repository.UserOrganizationRepository
-	tx        sharedrepo.TxRunner
-	hasher    service.PasswordHasher
-	tokens    service.TokenGenerator
-	validator service.RegistrationValidator
-	refresh   repository.RefreshSessionRepository
+	users       repository.UserRepository
+	orgs        repository.OrganizationRepository
+	userOrgs    repository.UserOrganizationRepository
+	tx          sharedrepo.TxRunner
+	hasher      service.PasswordHasher
+	tokens      service.TokenGenerator
+	validator   service.RegistrationValidator
+	refresh     repository.RefreshSessionRepository
+	passwordResets repository.PasswordResetRepository
 }
 
 // NewAuthUsecase wires the dependencies required by all auth flows.
@@ -70,21 +87,19 @@ func NewAuthUsecase(
 	hasher service.PasswordHasher,
 	tokens service.TokenGenerator,
 	validator service.RegistrationValidator,
-	refresh ...repository.RefreshSessionRepository,
+	refresh repository.RefreshSessionRepository,
+	passwordResets repository.PasswordResetRepository,
 ) AuthUsecase {
-	var refreshRepo repository.RefreshSessionRepository
-	if len(refresh) > 0 {
-		refreshRepo = refresh[0]
-	}
 	return &authUsecase{
-		users:     users,
-		orgs:      orgs,
-		userOrgs:  userOrgs,
-		tx:        tx,
-		hasher:    hasher,
-		tokens:    tokens,
-		validator: validator,
-		refresh:   refreshRepo,
+		users:          users,
+		orgs:           orgs,
+		userOrgs:       userOrgs,
+		tx:             tx,
+		hasher:         hasher,
+		tokens:         tokens,
+		validator:      validator,
+		refresh:        refresh,
+		passwordResets: passwordResets,
 	}
 }
 
@@ -271,6 +286,65 @@ func (u *authUsecase) Logout(ctx context.Context, userID uuid.UUID) error {
 	return u.refresh.RevokeByUser(ctx, userID)
 }
 
+func (u *authUsecase) ForgotPassword(ctx context.Context, req *ForgotPasswordRequest) (*ForgotPasswordResponse, error) {
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	if req.Email == "" {
+		return nil, domainerrors.InvalidInput("email", "is required")
+	}
+
+	user, err := u.users.GetByEmail(ctx, req.Email)
+	if err != nil {
+		if isCredentialMissError(err) {
+			return nil, domainerrors.InvalidInput("email", "not found")
+		}
+		return nil, err
+	}
+
+	token, err := generateRandomToken()
+	if err != nil {
+		return nil, domainerrors.Internal("generate reset token", err)
+	}
+
+	reset := &entity.PasswordReset{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		Token:     token,
+		ExpiresAt: time.Now().Add(15 * time.Minute),
+	}
+	if err := u.passwordResets.Create(ctx, reset); err != nil {
+		return nil, err
+	}
+
+	return &ForgotPasswordResponse{Token: token}, nil
+}
+
+func (u *authUsecase) ResetPassword(ctx context.Context, req *ResetPasswordRequest) error {
+	reset, err := u.passwordResets.GetByToken(ctx, req.Token)
+	if err != nil {
+		return domainerrors.InvalidInput("token", "invalid or expired")
+	}
+
+	if time.Now().After(reset.ExpiresAt) {
+		return domainerrors.InvalidInput("token", "expired")
+	}
+	if reset.UsedAt != nil {
+		return domainerrors.InvalidInput("token", "already used")
+	}
+
+	hashed, err := u.hasher.Hash(req.NewPassword)
+	if err != nil {
+		return domainerrors.Internal("hash password", err)
+	}
+
+	if err := u.users.UpdatePassword(ctx, reset.UserID, hashed); err != nil {
+		return domainerrors.Internal("update password", err)
+	}
+	if err := u.passwordResets.MarkAsUsed(ctx, reset.ID); err != nil {
+		return domainerrors.Internal("mark token used", err)
+	}
+	return nil
+}
+
 func (u *authUsecase) persistRefreshSession(ctx context.Context, refreshToken string) error {
 	if u.refresh == nil {
 		return nil
@@ -327,6 +401,14 @@ func isCredentialMissError(err error) bool {
 		return true
 	}
 	return false
+}
+
+func generateRandomToken() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
 
 // validateRegisterRequest validates presence of required fields and delegates
