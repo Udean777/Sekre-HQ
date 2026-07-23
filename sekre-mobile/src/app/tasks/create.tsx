@@ -31,6 +31,11 @@ export default function CreateTaskScreen() {
 
   const createTaskMutation = useCreateTask();
 
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+
   const {
     control,
     handleSubmit,
@@ -44,12 +49,12 @@ export default function CreateTaskScreen() {
       description: "",
       division_id: "",
       assignee_id: "",
-      due_date: "",
+      due_date: `${yyyy}-${mm}-${dd}`,
     },
   });
 
   const selectedDivisionId = watch("division_id");
-  
+
   const { data: divisionsData } = useDivisions();
   const divisionOptions =
     divisionsData?.pages
@@ -58,7 +63,7 @@ export default function CreateTaskScreen() {
 
   const { data: divisionDetails } = useDivision(selectedDivisionId);
   const assigneeOptions =
-    divisionDetails?.members.map((m) => ({
+    (divisionDetails?.members || []).map((m) => ({
       label: m.user.full_name,
       value: m.user.id,
     })) || [];

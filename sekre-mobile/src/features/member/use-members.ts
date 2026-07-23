@@ -34,6 +34,7 @@ interface FetchMembersParams extends PaginationParams {
   search?: string;
   role?: string;
   status?: string;
+  without_division?: boolean;
 }
 
 const fetchMembers = async (params: FetchMembersParams) => {

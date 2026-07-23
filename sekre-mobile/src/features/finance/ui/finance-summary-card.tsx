@@ -1,5 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import { ThemedCard } from "@/shared/ui/themed-card";
 import { ThemedText } from "@/shared/ui/themed-text";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
@@ -22,15 +23,18 @@ export function formatMoney(cents: number, currency: string = "IDR") {
 
 export function FinanceSummaryCard({ summary }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <ThemedCard style={styles.container}>
       <View style={styles.balanceContainer}>
         <View style={styles.balanceHeader}>
           <Wallet color={theme.textSecondary} size={20} />
-          <ThemedText style={styles.balanceLabel}>Total Saldo</ThemedText>
+          <ThemedText style={styles.balanceLabel}>
+            {t("finance.balance")}
+          </ThemedText>
         </View>
-        <ThemedText 
+        <ThemedText
           style={styles.balanceAmount}
           numberOfLines={1}
           adjustsFontSizeToFit
@@ -52,13 +56,18 @@ export function FinanceSummaryCard({ summary }: Props) {
             <ArrowDownLeft color="#22c55e" size={20} weight="bold" />
           </View>
           <View style={styles.statTextContainer}>
-            <ThemedText style={styles.statLabel}>Pemasukan</ThemedText>
-            <ThemedText 
+            <ThemedText style={styles.statLabel}>
+              {t("finance.income")}
+            </ThemedText>
+            <ThemedText
               style={[styles.statAmount, { color: "#22c55e" }]}
               numberOfLines={1}
               adjustsFontSizeToFit
             >
-              {formatMoney(summary.total_income.amount_cents, summary.total_income.currency)}
+              {formatMoney(
+                summary.total_income.amount_cents,
+                summary.total_income.currency,
+              )}
             </ThemedText>
           </View>
         </View>
@@ -73,13 +82,18 @@ export function FinanceSummaryCard({ summary }: Props) {
             <ArrowUpRight color="#ef4444" size={20} weight="bold" />
           </View>
           <View style={styles.statTextContainer}>
-            <ThemedText style={styles.statLabel}>Pengeluaran</ThemedText>
-            <ThemedText 
+            <ThemedText style={styles.statLabel}>
+              {t("finance.expense")}
+            </ThemedText>
+            <ThemedText
               style={[styles.statAmount, { color: "#ef4444" }]}
               numberOfLines={1}
               adjustsFontSizeToFit
             >
-              {formatMoney(summary.total_expense.amount_cents, summary.total_expense.currency)}
+              {formatMoney(
+                summary.total_expense.amount_cents,
+                summary.total_expense.currency,
+              )}
             </ThemedText>
           </View>
         </View>

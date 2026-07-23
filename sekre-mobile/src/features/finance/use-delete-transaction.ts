@@ -7,12 +7,14 @@ export function useDeleteTransaction() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiClient.delete<ApiResponse<null>>(`/transactions/${id}`);
+      const response = await apiClient.delete<ApiResponse<null>>(
+        `/transactions/${id}`,
+      );
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["finance-summary"] });
+      queryClient.refetchQueries({ queryKey: ["transactions"] });
+      queryClient.refetchQueries({ queryKey: ["finance-summary"] });
     },
   });
 }

@@ -38,7 +38,9 @@ export default function ForgotPasswordScreen() {
   const onSubmit = (data: ForgotPasswordForm) => {
     forgotMutation.mutate(data, {
       onSuccess: (res) => {
-        router.push(`/(auth)/reset-password?token=${encodeURIComponent(res.token)}` as any);
+        router.push(
+          `/(auth)/reset-password?token=${encodeURIComponent(res.token)}` as any,
+        );
       },
       onError: (err: any) => {
         alert(

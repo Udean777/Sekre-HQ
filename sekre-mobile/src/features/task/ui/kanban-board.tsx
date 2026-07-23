@@ -1,11 +1,7 @@
 import React, { useRef } from "react";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Dimensions,
-} from "react-native";
+import { View, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "@/shared/lib/hooks/use-theme";
 import { Task, TaskStatus } from "@/shared/types";
 import { KanbanColumn } from "./kanban-column";
 import { useUpdateTaskStatus } from "../use-update-task-status";
@@ -15,8 +11,8 @@ import { AssigneeSelectorModal } from "./assignee-selector-modal";
 import { useState } from "react";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const COLUMN_WIDTH = SCREEN_WIDTH * 0.85;
-const SIDE_PADDING = (SCREEN_WIDTH - COLUMN_WIDTH) / 2;
+const COLUMN_WIDTH = SCREEN_WIDTH * 0.82;
+const SIDE_PADDING = 12;
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -32,11 +28,14 @@ export function KanbanBoard({
   onRefresh,
 }: KanbanBoardProps) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const updateStatusMutation = useUpdateTaskStatus();
   const updateTaskMutation = useUpdateTask();
 
-  const [assigneeSelectorTaskId, setAssigneeSelectorTaskId] = useState<string | null>(null);
+  const [assigneeSelectorTaskId, setAssigneeSelectorTaskId] = useState<
+    string | null
+  >(null);
 
   const handleUpdateStatus = (taskId: string, newStatus: TaskStatus) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -50,14 +49,14 @@ export function KanbanBoard({
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
-        snapToInterval={COLUMN_WIDTH}
-        snapToAlignment="center"
+        snapToInterval={COLUMN_WIDTH + 12}
+        snapToAlignment="start"
         contentContainerStyle={{
           paddingHorizontal: SIDE_PADDING,
         }}
@@ -85,21 +84,23 @@ export function KanbanBoard({
 
       <AssigneeSelectorModal
         visible={!!assigneeSelectorTaskId}
-        divisionId={tasks.find(t => t.id === assigneeSelectorTaskId)?.division_id}
+        divisionId={
+          tasks.find((t) => t.id === assigneeSelectorTaskId)?.division_id
+        }
         onClose={() => setAssigneeSelectorTaskId(null)}
         onSelect={(memberId) => {
           if (assigneeSelectorTaskId) {
-            const task = tasks.find(t => t.id === assigneeSelectorTaskId);
+            const task = tasks.find((t) => t.id === assigneeSelectorTaskId);
             if (task) {
               updateTaskMutation.mutate({
                 id: assigneeSelectorTaskId,
-                data: { 
+                data: {
                   title: task.title,
                   description: task.description,
                   division_id: task.division_id,
                   due_date: task.due_date,
                   status: task.status,
-                  assignee_id: memberId 
+                  assignee_id: memberId,
                 } as any,
               });
             }

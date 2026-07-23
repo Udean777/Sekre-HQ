@@ -65,12 +65,13 @@ func (h *MemberHandler) List(w http.ResponseWriter, r *http.Request) {
 	if st := r.URL.Query().Get("status"); st != "" {
 		status = &st
 	}
+	withoutDivision := r.URL.Query().Get("without_division") == "true"
 
 	// Parse pagination params
 	paginationParams := pagination.ParseParams(r)
 	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
 
-	members, total, err := h.usecase.ListMembersPaginatedFiltered(r.Context(), orgID, search, role, status, domainPagination)
+	members, total, err := h.usecase.ListMembersPaginatedFiltered(r.Context(), orgID, search, role, status, withoutDivision, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return

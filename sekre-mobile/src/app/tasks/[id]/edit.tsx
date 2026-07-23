@@ -61,7 +61,7 @@ export default function EditTaskScreen() {
   });
 
   const selectedDivisionId = watch("division_id");
-  
+
   const { data: divisionsData } = useDivisions();
   const divisionOptions =
     divisionsData?.pages
@@ -70,7 +70,7 @@ export default function EditTaskScreen() {
 
   const { data: divisionDetails } = useDivision(selectedDivisionId);
   const assigneeOptions =
-    divisionDetails?.members.map((m) => ({
+    (divisionDetails?.members || []).map((m) => ({
       label: m.user.full_name,
       value: m.user.id,
     })) || [];

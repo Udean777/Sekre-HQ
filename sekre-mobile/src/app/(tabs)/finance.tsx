@@ -43,7 +43,7 @@ export default function FinanceScreen() {
         <FinanceSummaryCard summary={summary} />
       ) : null}
       <View style={styles.sectionHeader}>
-        <ThemedText type="subtitle">Riwayat Transaksi</ThemedText>
+        <ThemedText type="subtitle">{t("finance.history")}</ThemedText>
       </View>
     </View>
   );
@@ -90,7 +90,7 @@ export default function FinanceScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <ThemedText style={{ color: theme.textSecondary }}>
-                Belum ada transaksi
+                {t("finance.empty")}
               </ThemedText>
             </View>
           }

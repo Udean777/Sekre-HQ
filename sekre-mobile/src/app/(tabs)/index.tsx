@@ -92,17 +92,21 @@ export default function DashboardScreen() {
               {user?.full_name}
             </ThemedText>
             <View style={styles.inlineOrgContainer}>
-              <UsersThreeIcon color={theme.textSecondary} size={14} weight="fill" />
-              <ThemedText 
-                style={styles.inlineOrgName}
-                numberOfLines={1}
-              >
+              <UsersThreeIcon
+                color={theme.textSecondary}
+                size={14}
+                weight="fill"
+              />
+              <ThemedText style={styles.inlineOrgName} numberOfLines={1}>
                 {organization?.name}
               </ThemedText>
             </View>
           </View>
-          <BouncingPressable 
-            style={[styles.notifButton, { backgroundColor: theme.backgroundSelected }]}
+          <BouncingPressable
+            style={[
+              styles.notifButton,
+              { backgroundColor: theme.backgroundSelected },
+            ]}
             onPress={() => router.push("/notifications")}
           >
             <BellIcon color={theme.text} size={24} weight="bold" />

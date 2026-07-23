@@ -55,12 +55,16 @@ export function TransactionItem({ transaction, onPress }: Props) {
       </View>
 
       <View style={styles.amountContainer}>
-        <ThemedText 
+        <ThemedText
           style={[styles.amount, { color: isIncome ? "#22c55e" : "#ef4444" }]}
           numberOfLines={1}
           adjustsFontSizeToFit
         >
-          {isIncome ? "+" : "-"} {formatMoney(transaction.amount.amount_cents, transaction.amount.currency)}
+          {isIncome ? "+" : "-"}{" "}
+          {formatMoney(
+            transaction.amount.amount_cents,
+            transaction.amount.currency,
+          )}
         </ThemedText>
       </View>
     </Pressable>

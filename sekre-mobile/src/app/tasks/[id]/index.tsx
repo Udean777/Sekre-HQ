@@ -151,7 +151,9 @@ export default function TaskDetailScreen() {
                 {t("tasks.assignee")}
               </ThemedText>
               <ThemedText style={styles.metaValue}>
-                {task.assignee ? task.assignee.full_name : t("tasks.unassigned")}
+                {task.assignee
+                  ? task.assignee.full_name
+                  : t("tasks.unassigned")}
               </ThemedText>
             </View>
           </View>

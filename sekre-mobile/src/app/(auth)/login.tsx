@@ -95,7 +95,9 @@ export default function LoginScreen() {
                   onChangeText={onChange}
                   error={errors.password?.message}
                   rightIcon={
-                    <BouncingPressable onPress={() => setShowPassword(!showPassword)}>
+                    <BouncingPressable
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
                       {showPassword ? (
                         <EyeSlash color={theme.textSecondary} size={20} />
                       ) : (

@@ -26,10 +26,10 @@ export function useTransactions(filters: TransactionFilters) {
       if (filters.page_size)
         params.append("page_size", filters.page_size.toString());
 
-      const response = await apiClient.get<PaginatedResponse<Transaction>>(
+      const { data } = await apiClient.get<{ data: PaginatedResponse<Transaction> }>(
         `/transactions?${params.toString()}`,
       );
-      return response.data.data;
+      return data.data.data;
     },
   });
 }

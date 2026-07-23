@@ -11,7 +11,14 @@ import { ThemedText } from "@/shared/ui/themed-text";
 
 interface ButtonProps extends Omit<PressableProps, "style"> {
   title: string;
-  variant?: "primary" | "secondary" | "outline" | "outline-secondary" | "danger" | "danger-outline" | "success";
+  variant?:
+    | "primary"
+    | "secondary"
+    | "outline"
+    | "outline-secondary"
+    | "danger"
+    | "danger-outline"
+    | "success";
   size?: "small" | "default" | "large";
   isLoading?: boolean;
   style?: any;
@@ -123,11 +130,11 @@ export function Button({
         ) : (
           <ThemedText
             style={[
-              styles.text, 
+              styles.text,
               size === "small" && styles.textSmall,
               size === "large" && styles.textLarge,
-              { color: getTextColor() }, 
-              textStyle
+              { color: getTextColor() },
+              textStyle,
             ]}
           >
             {title}

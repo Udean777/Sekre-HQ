@@ -20,6 +20,7 @@ type CreateTaskRequest struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	DueDate     *time.Time `json:"due_date"`
+	Status      string     `json:"status,omitempty"`
 }
 
 type UpdateTaskRequest struct {
@@ -63,8 +64,18 @@ func (u *taskUsecase) Create(ctx context.Context, orgID uuid.UUID, req *CreateTa
 		AssigneeID:     req.AssigneeID,
 		Title:          strings.TrimSpace(req.Title),
 		Description:    strings.TrimSpace(req.Description),
-		Status:         types.TaskStatusTodo,
 		DueDate:        req.DueDate,
+	}
+
+	if req.Status != "" {
+		ts := types.TaskStatus(req.Status)
+		if err := ts.Validate(); err == nil {
+			task.Status = ts
+		} else {
+			task.Status = types.TaskStatusTodo
+		}
+	} else {
+		task.Status = types.TaskStatusTodo
 	}
 
 	if req.AssigneeID != nil {

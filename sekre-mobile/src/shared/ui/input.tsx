@@ -1,5 +1,11 @@
 import React from "react";
-import { TextInput, View, StyleSheet, TextInputProps, Platform } from "react-native";
+import {
+  TextInput,
+  View,
+  StyleSheet,
+  TextInputProps,
+  Platform,
+} from "react-native";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
 import { ThemedText } from "@/shared/ui/themed-text";
 
@@ -10,7 +16,14 @@ interface InputProps extends TextInputProps {
   rightIcon?: React.ReactNode;
 }
 
-export function Input({ label, error, style, leftIcon, rightIcon, ...props }: InputProps) {
+export function Input({
+  label,
+  error,
+  style,
+  leftIcon,
+  rightIcon,
+  ...props
+}: InputProps) {
   const theme = useTheme();
 
   return (
@@ -28,10 +41,7 @@ export function Input({ label, error, style, leftIcon, rightIcon, ...props }: In
       >
         {leftIcon}
         <TextInput
-          style={[
-            styles.input,
-            { color: theme.text },
-          ]}
+          style={[styles.input, { color: theme.text }]}
           placeholderTextColor={theme.textSecondary}
           {...props}
         />

@@ -7,12 +7,16 @@ import {
   TextInput,
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { PlusIcon, MagnifyingGlassIcon } from "phosphor-react-native";
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
+  CaretRight,
+  Buildings,
+} from "phosphor-react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { ThemedText } from "@/shared/ui/themed-text";
-import { ThemedCard } from "@/shared/ui/themed-card";
 import { ThemedHeader } from "@/shared/ui/themed-header";
 import { BouncingPressable } from "@/shared/ui/bouncing-pressable";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
@@ -21,6 +25,109 @@ import { Division } from "@/features/division/division.schema";
 import { useAuthStore } from "@/shared/store/auth-store";
 import { extractErrorMessage } from "@/shared/lib/utils/error";
 import { ThemedView } from "@/shared/ui/themed-view";
+
+const AVATAR_COLORS = [
+  "#4F46E5",
+  "#059669",
+  "#D97706",
+  "#DC2626",
+  "#7C3AED",
+  "#0891B2",
+  "#BE185D",
+  "#2563EB",
+  "#65A30D",
+  "#DB2777",
+  "#0D9488",
+  "#EA580C",
+];
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function DivisionCard({
+  item,
+  onPress,
+}: {
+  item: Division;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const initials = item.name.charAt(0).toUpperCase();
+  const color = getAvatarColor(item.name);
+
+  return (
+    <BouncingPressable onPress={onPress}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.backgroundElement,
+            borderColor: theme.backgroundSelected,
+          },
+        ]}
+      >
+        <View style={[styles.avatar, { backgroundColor: color + "18" }]}>
+          <ThemedText style={[styles.avatarText, { color }]}>
+            {initials}
+          </ThemedText>
+        </View>
+        <View style={styles.cardBody}>
+          <ThemedText style={styles.cardName} numberOfLines={1}>
+            {item.name}
+          </ThemedText>
+          {item.description ? (
+            <ThemedText style={styles.cardDesc} numberOfLines={2}>
+              {item.description}
+            </ThemedText>
+          ) : (
+            <ThemedText style={styles.cardDescMuted}>
+              Tidak ada deskripsi
+            </ThemedText>
+          )}
+        </View>
+        <CaretRight color={theme.textSecondary} size={18} weight="bold" />
+      </View>
+    </BouncingPressable>
+  );
+}
+
+function SkeletonCard() {
+  const theme = useTheme();
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.backgroundElement,
+          borderColor: theme.backgroundSelected,
+        },
+      ]}
+    >
+      <View
+        style={[styles.avatar, { backgroundColor: theme.backgroundSelected }]}
+      />
+      <View style={styles.cardBody}>
+        <View
+          style={[
+            styles.skelName,
+            { backgroundColor: theme.backgroundSelected },
+          ]}
+        />
+        <View
+          style={[
+            styles.skelDesc,
+            { backgroundColor: theme.backgroundSelected },
+          ]}
+        />
+      </View>
+    </View>
+  );
+}
 
 export default function DivisionsScreen() {
   const { t } = useTranslation();
@@ -42,36 +149,29 @@ export default function DivisionsScreen() {
     isRefetching,
   } = useDivisions(search);
 
-  // Flatten infinite query data
   const divisions = data?.pages.flatMap((page) => page.data) || [];
+  const totalItems = data?.pages[0]?.pagination?.total_items;
 
-  const handleCreate = () => {
-    router.push("/divisions/create");
-  };
+  const handleCreate = () => router.push("/divisions/create");
 
   const handleEdit = (id: string) => {
-    // Only allow edit if admin or owner
     if (isAdminOrOwner) {
       router.push(`/divisions/${id}/edit` as any);
     } else {
-      // For stage 2, this will route to division details / members
       router.push(`/divisions/${id}/members` as any);
     }
   };
 
   const renderItem = ({ item }: { item: Division }) => (
-    <BouncingPressable onPress={() => handleEdit(item.id)}>
-      <ThemedCard style={styles.card}>
-        <View style={styles.cardContent}>
-          <ThemedText type="subtitle">{item.name}</ThemedText>
-          {item.description && (
-            <ThemedText style={styles.description} numberOfLines={2}>
-              {item.description}
-            </ThemedText>
-          )}
-        </View>
-      </ThemedCard>
-    </BouncingPressable>
+    <DivisionCard item={item} onPress={() => handleEdit(item.id)} />
+  );
+
+  const renderSkeleton = () => (
+    <View style={styles.listContent}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <SkeletonCard key={i} />
+      ))}
+    </View>
   );
 
   return (
@@ -90,7 +190,11 @@ export default function DivisionsScreen() {
             },
           ]}
         >
-          <MagnifyingGlassIcon color={theme.textSecondary} size={20} />
+          <MagnifyingGlassIcon
+            color={theme.textSecondary}
+            size={18}
+            weight="bold"
+          />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
             placeholder={t("divisions.searchPlaceholder")}
@@ -99,16 +203,22 @@ export default function DivisionsScreen() {
             onChangeText={setSearch}
           />
         </View>
+        {totalItems != null && !search ? (
+          <ThemedText
+            style={[styles.countLabel, { color: theme.textSecondary }]}
+          >
+            {totalItems} divisi
+          </ThemedText>
+        ) : null}
       </View>
 
       <ThemedView style={styles.container}>
         {isLoading ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={theme.tint} />
-          </View>
+          renderSkeleton()
         ) : isError ? (
-          <View style={styles.centered}>
-            <ThemedText style={{ color: theme.text }}>
+          <View style={styles.centerBox}>
+            <Buildings color={theme.textSecondary} size={40} weight="light" />
+            <ThemedText style={styles.errorText}>
               {extractErrorMessage(error)}
             </ThemedText>
           </View>
@@ -116,13 +226,9 @@ export default function DivisionsScreen() {
           <FlashList
             data={divisions}
             renderItem={renderItem}
-            // @ts-ignore
-            estimatedItemSize={100}
             contentContainerStyle={styles.listContent}
             onEndReached={() => {
-              if (hasNextPage && !isFetchingNextPage) {
-                fetchNextPage();
-              }
+              if (hasNextPage && !isFetchingNextPage) fetchNextPage();
             }}
             onEndReachedThreshold={0.5}
             refreshControl={
@@ -141,10 +247,22 @@ export default function DivisionsScreen() {
               ) : null
             }
             ListEmptyComponent={
-              <View style={styles.centered}>
-                <ThemedText style={styles.emptyText}>
-                  {t("divisions.noDivisions")}
+              <View style={styles.centerBox}>
+                <Buildings
+                  color={theme.textSecondary}
+                  size={48}
+                  weight="thin"
+                />
+                <ThemedText style={styles.emptyTitle}>
+                  {search
+                    ? "Divisi tidak ditemukan"
+                    : t("divisions.noDivisions")}
                 </ThemedText>
+                {search ? (
+                  <ThemedText style={styles.emptyHint}>
+                    Coba cari dengan kata kunci lain
+                  </ThemedText>
+                ) : null}
               </View>
             }
           />
@@ -164,9 +282,7 @@ export default function DivisionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -175,41 +291,96 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     height: 44,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
+    fontSize: 15,
+  },
+  countLabel: {
+    fontSize: 12,
+    marginTop: 8,
+    marginLeft: 2,
   },
   listContent: {
     padding: 16,
     paddingTop: 4,
   },
   card: {
-    marginBottom: 12,
-    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+    marginBottom: 10,
   },
-  cardContent: {
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  cardBody: {
     flex: 1,
+    gap: 2,
   },
-  description: {
-    marginTop: 4,
-    fontSize: 14,
-    opacity: 0.7,
+  cardName: {
+    fontSize: 15,
+    fontWeight: "600",
   },
-  centered: {
+  cardDesc: {
+    fontSize: 13,
+    opacity: 0.6,
+    lineHeight: 18,
+  },
+  cardDescMuted: {
+    fontSize: 13,
+    opacity: 0.35,
+    fontStyle: "italic",
+  },
+  skelName: {
+    height: 15,
+    width: "60%",
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  skelDesc: {
+    height: 12,
+    width: "85%",
+    borderRadius: 6,
+  },
+  centerBox: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: 40,
+    gap: 12,
   },
-  emptyText: {
+  errorText: {
     textAlign: "center",
     opacity: 0.6,
+    fontSize: 14,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    textAlign: "center",
+    opacity: 0.7,
+  },
+  emptyHint: {
+    fontSize: 13,
+    textAlign: "center",
+    opacity: 0.5,
   },
   footerLoader: {
     paddingVertical: 16,

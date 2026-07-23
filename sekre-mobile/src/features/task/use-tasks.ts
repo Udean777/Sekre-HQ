@@ -12,14 +12,17 @@ export function useTasks(params?: UseTasksParams) {
     queryKey: ["tasks", params],
     queryFn: async () => {
       const { data } = await apiClient.get<{
-        data: { data: { task: Task; assignee: any; division: any }[]; pagination: any };
+        data: {
+          data: { task: Task; assignee: any; division: any }[];
+          pagination: any;
+        };
       }>("/tasks", {
         params,
       });
       return data.data.data.map((item) => ({
         ...item.task,
         assignee: item.assignee,
-        division: item.division
+        division: item.division,
       }));
     },
   });

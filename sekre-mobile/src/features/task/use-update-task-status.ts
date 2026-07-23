@@ -11,12 +11,15 @@ export function useUpdateTaskStatus() {
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
 
-      queryClient.setQueriesData({ queryKey: ["tasks"] }, (old: Task[] | undefined) => {
-        if (!old) return old;
-        return old.map((task) =>
-          task.id === id ? { ...task, status } : task,
-        );
-      });
+      queryClient.setQueriesData(
+        { queryKey: ["tasks"] },
+        (old: Task[] | undefined) => {
+          if (!old) return old;
+          return old.map((task) =>
+            task.id === id ? { ...task, status } : task,
+          );
+        },
+      );
     },
     onError: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });

@@ -14,7 +14,12 @@ export default function NotificationsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ThemedHeader title="Notifikasi" showBackButton withSafeArea={false} />
       <View style={styles.container}>
-        <View style={[styles.iconContainer, { backgroundColor: theme.backgroundSelected }]}>
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: theme.backgroundSelected },
+          ]}
+        >
           <BellSlash color={theme.textSecondary} size={32} weight="fill" />
         </View>
         <ThemedText style={styles.title}>Belum ada notifikasi</ThemedText>

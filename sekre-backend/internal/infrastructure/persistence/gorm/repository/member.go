@@ -68,10 +68,10 @@ func (r *memberRepository) GetOrganizationMembers(ctx context.Context, orgID uui
 }
 
 func (r *memberRepository) GetOrganizationMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
-	return r.GetOrganizationMembersPaginatedFiltered(ctx, orgID, nil, nil, nil, pagination)
+	return r.GetOrganizationMembersPaginatedFiltered(ctx, orgID, nil, nil, nil, false, pagination)
 }
 
-func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, role *string, status *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
+func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, role *string, status *string, withoutDivision bool, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error) {
 	baseQuery := dbFor(ctx, r.db).
 		Table("users AS u").
 		Joins("INNER JOIN user_organizations AS uo ON u.id = uo.user_id").
@@ -85,6 +85,9 @@ func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.C
 	}
 	if status != nil && *status != "" {
 		baseQuery = baseQuery.Where("uo.status = ?", *status)
+	}
+	if withoutDivision {
+		baseQuery = baseQuery.Where("NOT EXISTS (SELECT 1 FROM division_members dm INNER JOIN divisions d ON dm.division_id = d.id WHERE dm.user_id = u.id AND d.organization_id = ?)", orgID)
 	}
 
 	// Get total count
@@ -118,6 +121,9 @@ func (r *memberRepository) GetOrganizationMembersPaginatedFiltered(ctx context.C
 	}
 	if status != nil && *status != "" {
 		query = query.Where("uo.status = ?", *status)
+	}
+	if withoutDivision {
+		query = query.Where("NOT EXISTS (SELECT 1 FROM division_members dm INNER JOIN divisions d ON dm.division_id = d.id WHERE dm.user_id = u.id AND d.organization_id = ?)", orgID)
 	}
 
 	var rows []row

@@ -1,5 +1,13 @@
 import React from "react";
-import { Modal, View, StyleSheet, TouchableWithoutFeedback, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
+import {
+  Modal,
+  View,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import { X, User } from "phosphor-react-native";
 import { ThemedText } from "@/shared/ui/themed-text";
@@ -16,13 +24,18 @@ interface AssigneeSelectorModalProps {
 
 import { useDivision } from "@/features/division/use-divisions";
 
-export function AssigneeSelectorModal({ visible, onClose, onSelect, divisionId }: AssigneeSelectorModalProps) {
+export function AssigneeSelectorModal({
+  visible,
+  onClose,
+  onSelect,
+  divisionId,
+}: AssigneeSelectorModalProps) {
   const { t } = useTranslation();
   const theme = useTheme();
 
   // Fetch members of the specific division
   const { data: divisionDetails, isLoading } = useDivision(divisionId || "");
-  const members = divisionDetails?.members.map(m => m.user) || [];
+  const members = (divisionDetails?.members || []).map((m) => m.user);
 
   return (
     <Modal
@@ -33,12 +46,26 @@ export function AssigneeSelectorModal({ visible, onClose, onSelect, divisionId }
     >
       <View style={styles.overlay}>
         <TouchableWithoutFeedback onPress={onClose}>
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.5)" }]} />
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: "rgba(0,0,0,0.5)" },
+            ]}
+          />
         </TouchableWithoutFeedback>
 
-        <ThemedView style={[styles.modalContent, { backgroundColor: theme.background }]}>
-          <View style={[styles.header, { borderBottomColor: theme.backgroundElement }]}>
-            <ThemedText style={styles.title}>{t("tasks.selectAssignee")}</ThemedText>
+        <ThemedView
+          style={[styles.modalContent, { backgroundColor: theme.background }]}
+        >
+          <View
+            style={[
+              styles.header,
+              { borderBottomColor: theme.backgroundElement },
+            ]}
+          >
+            <ThemedText style={styles.title}>
+              {t("tasks.selectAssignee")}
+            </ThemedText>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <X color={theme.text} size={20} />
             </TouchableOpacity>
@@ -50,23 +77,40 @@ export function AssigneeSelectorModal({ visible, onClose, onSelect, divisionId }
             </View>
           ) : (
             <FlatList
-              data={[{ id: "unassigned", full_name: t("tasks.unassigned") }, ...members]}
+              data={[
+                { id: "unassigned", full_name: t("tasks.unassigned") },
+                ...members,
+              ]}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.list}
               ListEmptyComponent={
                 <View style={styles.center}>
-                  <ThemedText style={{ color: theme.textSecondary }}>{t("tasks.noMembersInDivision")}</ThemedText>
+                  <ThemedText style={{ color: theme.textSecondary }}>
+                    {t("tasks.noMembersInDivision")}
+                  </ThemedText>
                 </View>
               }
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[styles.memberItem, { borderBottomColor: theme.backgroundElement }]}
-                  onPress={() => onSelect(item.id === "unassigned" ? null : item.id)}
+                  style={[
+                    styles.memberItem,
+                    { borderBottomColor: theme.backgroundElement },
+                  ]}
+                  onPress={() =>
+                    onSelect(item.id === "unassigned" ? null : item.id)
+                  }
                 >
-                  <View style={[styles.avatar, { backgroundColor: theme.backgroundSelected }]}>
+                  <View
+                    style={[
+                      styles.avatar,
+                      { backgroundColor: theme.backgroundSelected },
+                    ]}
+                  >
                     <User color={theme.textSecondary} size={16} />
                   </View>
-                  <ThemedText style={styles.memberName}>{item.full_name}</ThemedText>
+                  <ThemedText style={styles.memberName}>
+                    {item.full_name}
+                  </ThemedText>
                 </TouchableOpacity>
               )}
             />

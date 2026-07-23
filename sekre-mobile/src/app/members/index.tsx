@@ -50,7 +50,9 @@ export default function MembersScreen() {
   const currentUser = useAuthStore((state) => state.user);
   const currentRole = useAuthStore((state) => state.role);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
-  const [reveledPasswords, setReveledPasswords] = React.useState<Set<string>>(new Set());
+  const [reveledPasswords, setReveledPasswords] = React.useState<Set<string>>(
+    new Set(),
+  );
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
 
   const [search, setSearch] = React.useState("");
@@ -232,26 +234,40 @@ export default function MembersScreen() {
           disabled={!canManage}
         >
           <View style={styles.memberInfo}>
-            <UserCircleIcon color={theme.textSecondary} size={48} weight="duotone" />
-            
+            <UserCircleIcon
+              color={theme.textSecondary}
+              size={48}
+              weight="duotone"
+            />
+
             <View style={styles.textContainer}>
               <View style={styles.nameRow}>
                 <ThemedText style={styles.memberName} numberOfLines={1}>
                   {item.full_name}
                 </ThemedText>
                 {isSelf && (
-                  <View style={[styles.miniBadge, { backgroundColor: theme.backgroundSelected }]}>
-                    <ThemedText style={[styles.miniBadgeText, { color: theme.textSecondary }]}>
+                  <View
+                    style={[
+                      styles.miniBadge,
+                      { backgroundColor: theme.backgroundSelected },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.miniBadgeText,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {t("members.isYou")}
                     </ThemedText>
                   </View>
                 )}
               </View>
-              
+
               <ThemedText style={styles.memberEmail} numberOfLines={1}>
                 {item.email}
               </ThemedText>
-              
+
               <View style={styles.badges}>
                 <View
                   style={[
@@ -266,8 +282,14 @@ export default function MembersScreen() {
                 </View>
                 {isSuspended && (
                   <View style={[styles.badge, { backgroundColor: "#fee2e2" }]}>
-                    <WarningCircleIcon color="#ef4444" size={12} weight="fill" />
-                    <ThemedText style={[styles.badgeText, { color: "#ef4444" }]}>
+                    <WarningCircleIcon
+                      color="#ef4444"
+                      size={12}
+                      weight="fill"
+                    />
+                    <ThemedText
+                      style={[styles.badgeText, { color: "#ef4444" }]}
+                    >
                       {t("members.suspended")}
                     </ThemedText>
                   </View>
@@ -287,102 +309,136 @@ export default function MembersScreen() {
           </View>
 
           {canManage && expandedId === item.id && (
-            <><View style={styles.passwordSection}>
-              <View style={styles.passwordRow}>
-                <KeyIcon color={theme.textSecondary} size={16} weight="duotone" />
-                <View style={styles.passwordContent}>
-                  <ThemedText style={styles.passwordLabel}>
-                    {item.temporary_password ? t("members.passwordTemp") : t("members.passwordChanged")}
-                  </ThemedText>
-                  <ThemedText style={[styles.passwordValue, { fontFamily: "monospace" }]} numberOfLines={1}>
-                    {item.temporary_password ? (reveledPasswords.has(item.id) ? item.temporary_password : "••••••••") : "•••••"}
-                  </ThemedText>
-                </View>
-                {!!item.temporary_password && (
-                  <View style={styles.passwordActions}>
-                    <Pressable
-                      onPress={() => {
-                        setReveledPasswords((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(item.id)) {
-                            next.delete(item.id);
-                          } else {
-                            next.add(item.id);
-                          }
-                          return next;
-                        });
-                      }}
-                      style={styles.passwordActionBtn}
-                      hitSlop={8}
+            <>
+              <View style={styles.passwordSection}>
+                <View style={styles.passwordRow}>
+                  <KeyIcon
+                    color={theme.textSecondary}
+                    size={16}
+                    weight="duotone"
+                  />
+                  <View style={styles.passwordContent}>
+                    <ThemedText style={styles.passwordLabel}>
+                      {item.temporary_password
+                        ? t("members.passwordTemp")
+                        : t("members.passwordChanged")}
+                    </ThemedText>
+                    <ThemedText
+                      style={[
+                        styles.passwordValue,
+                        { fontFamily: "monospace" },
+                      ]}
+                      numberOfLines={1}
                     >
-                      {reveledPasswords.has(item.id) ? (
-                        <EyeSlashIcon color={theme.textSecondary} size={20} weight="duotone" />
-                      ) : (
-                        <EyeIcon color={theme.textSecondary} size={20} weight="duotone" />
-                      )}
-                    </Pressable>
-                    <Pressable
-                      onPress={async () => {
-                        await Clipboard.setStringAsync(item.temporary_password);
-                        setCopiedId(item.id);
-                        setTimeout(() => setCopiedId(null), 1500);
-                      }}
-                      style={styles.passwordActionBtn}
-                      hitSlop={8}
-                    >
-                      {copiedId === item.id ? (
-                        <CheckIcon color="#22c55e" size={20} weight="bold" />
-                      ) : (
-                        <CopySimpleIcon color={theme.textSecondary} size={20} weight="duotone" />
-                      )}
-                    </Pressable>
+                      {item.temporary_password
+                        ? reveledPasswords.has(item.id)
+                          ? item.temporary_password
+                          : "••••••••"
+                        : "•••••"}
+                    </ThemedText>
                   </View>
-                )}
+                  {!!item.temporary_password && (
+                    <View style={styles.passwordActions}>
+                      <Pressable
+                        onPress={() => {
+                          setReveledPasswords((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(item.id)) {
+                              next.delete(item.id);
+                            } else {
+                              next.add(item.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        style={styles.passwordActionBtn}
+                        hitSlop={8}
+                      >
+                        {reveledPasswords.has(item.id) ? (
+                          <EyeSlashIcon
+                            color={theme.textSecondary}
+                            size={20}
+                            weight="duotone"
+                          />
+                        ) : (
+                          <EyeIcon
+                            color={theme.textSecondary}
+                            size={20}
+                            weight="duotone"
+                          />
+                        )}
+                      </Pressable>
+                      <Pressable
+                        onPress={async () => {
+                          await Clipboard.setStringAsync(
+                            item.temporary_password,
+                          );
+                          setCopiedId(item.id);
+                          setTimeout(() => setCopiedId(null), 1500);
+                        }}
+                        style={styles.passwordActionBtn}
+                        hitSlop={8}
+                      >
+                        {copiedId === item.id ? (
+                          <CheckIcon color="#22c55e" size={20} weight="bold" />
+                        ) : (
+                          <CopySimpleIcon
+                            color={theme.textSecondary}
+                            size={20}
+                            weight="duotone"
+                          />
+                        )}
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
               </View>
-            </View>
-            <View style={styles.actions}>
-              {currentRole === "OWNER" && item.role !== "OWNER" && (
+              <View style={styles.actions}>
+                {currentRole === "OWNER" && item.role !== "OWNER" && (
+                  <Button
+                    title={
+                      item.role === "ADMIN"
+                        ? t("members.demote")
+                        : t("members.promote")
+                    }
+                    variant="outline"
+                    size="small"
+                    style={styles.actionButton}
+                    onPress={() => handleToggleRole(item)}
+                    isLoading={
+                      updateRoleMutation.isPending &&
+                      updateRoleMutation.variables?.userId === item.id
+                    }
+                  />
+                )}
                 <Button
                   title={
-                    item.role === "ADMIN"
-                      ? t("members.demote")
-                      : t("members.promote")
+                    isSuspended ? t("common.activate") : t("common.suspend")
                   }
-                  variant="outline"
+                  variant={isSuspended ? "outline" : "danger-outline"}
                   size="small"
                   style={styles.actionButton}
-                  onPress={() => handleToggleRole(item)}
+                  onPress={() => handleToggleStatus(item)}
                   isLoading={
-                    updateRoleMutation.isPending &&
-                    updateRoleMutation.variables?.userId === item.id
+                    updateStatusMutation.isPending &&
+                    updateStatusMutation.variables?.userId === item.id
                   }
+                  disabled={removeMemberMutation.isPending}
                 />
-              )}
-              <Button
-                title={isSuspended ? t("common.activate") : t("common.suspend")}
-                variant={isSuspended ? "outline" : "danger-outline"}
-                size="small"
-                style={styles.actionButton}
-                onPress={() => handleToggleStatus(item)}
-                isLoading={
-                  updateStatusMutation.isPending &&
-                  updateStatusMutation.variables?.userId === item.id
-                }
-                disabled={removeMemberMutation.isPending}
-              />
-              <Button
-                title={t("common.remove")}
-                variant="danger"
-                size="small"
-                style={styles.actionButton}
-                onPress={() => handleRemove(item)}
-                isLoading={
-                  removeMemberMutation.isPending &&
-                  removeMemberMutation.variables === item.id
-                }
-                disabled={updateStatusMutation.isPending}
-              />
-            </View></>
+                <Button
+                  title={t("common.remove")}
+                  variant="danger"
+                  size="small"
+                  style={styles.actionButton}
+                  onPress={() => handleRemove(item)}
+                  isLoading={
+                    removeMemberMutation.isPending &&
+                    removeMemberMutation.variables === item.id
+                  }
+                  disabled={updateStatusMutation.isPending}
+                />
+              </View>
+            </>
           )}
         </Pressable>
       </ThemedCard>
@@ -395,7 +451,7 @@ export default function MembersScreen() {
         title={t("members.title")}
         showBackButton
         right={
-          (currentRole === "OWNER" || currentRole === "ADMIN") ? (
+          currentRole === "OWNER" || currentRole === "ADMIN" ? (
             <BouncingPressable
               onPress={() => router.push("/members/import")}
               style={{ padding: 8, marginRight: -8 }}

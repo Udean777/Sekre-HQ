@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from "react";
+import { View, StyleSheet, Pressable, Modal, SafeAreaView } from "react-native";
 import {
-  View,
-  StyleSheet,
-  Pressable,
-  Modal,
-  SafeAreaView,
-} from "react-native";
-import { CaretDown, CaretLeft, CaretRight, X, CalendarBlank } from "phosphor-react-native";
+  CaretDown,
+  CaretLeft,
+  CaretRight,
+  X,
+  CalendarBlank,
+} from "phosphor-react-native";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
 import { ThemedText } from "./themed-text";
 
@@ -148,21 +148,28 @@ export function DatePicker({
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}
       >
-        <Pressable 
-          style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]} 
+        <Pressable
+          style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}
           onPress={() => setModalVisible(false)}
         >
-          <Pressable 
-            style={[styles.modalContent, { backgroundColor: theme.background }]} 
+          <Pressable
+            style={[styles.modalContent, { backgroundColor: theme.background }]}
             onPress={(e) => e.stopPropagation()} // Prevent bubbling to overlay
           >
-            <View style={[styles.modalHeader, { borderBottomColor: theme.backgroundSelected }]}>
-              <ThemedText type="subtitle" style={{ fontSize: 18 }}>Select Date</ThemedText>
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: theme.backgroundSelected },
+              ]}
+            >
+              <ThemedText type="subtitle" style={{ fontSize: 18 }}>
+                Select Date
+              </ThemedText>
               <Pressable
                 onPress={() => setModalVisible(false)}
                 style={({ pressed }) => [
                   styles.closeButton,
-                  pressed && { opacity: 0.5 }
+                  pressed && { opacity: 0.5 },
                 ]}
               >
                 <X color={theme.textSecondary} size={20} weight="bold" />
@@ -172,13 +179,25 @@ export function DatePicker({
             <View style={styles.calendarContainer}>
               {/* Calendar Header */}
               <View style={styles.calendarHeader}>
-                <Pressable onPress={handlePrevMonth} style={({ pressed }) => [styles.navButton, pressed && { opacity: 0.5 }]}>
+                <Pressable
+                  onPress={handlePrevMonth}
+                  style={({ pressed }) => [
+                    styles.navButton,
+                    pressed && { opacity: 0.5 },
+                  ]}
+                >
                   <CaretLeft color={theme.text} size={20} weight="bold" />
                 </Pressable>
                 <ThemedText style={styles.monthYearText}>
                   {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
                 </ThemedText>
-                <Pressable onPress={handleNextMonth} style={({ pressed }) => [styles.navButton, pressed && { opacity: 0.5 }]}>
+                <Pressable
+                  onPress={handleNextMonth}
+                  style={({ pressed }) => [
+                    styles.navButton,
+                    pressed && { opacity: 0.5 },
+                  ]}
+                >
                   <CaretRight color={theme.text} size={20} weight="bold" />
                 </Pressable>
               </View>
@@ -187,7 +206,12 @@ export function DatePicker({
               <View style={styles.daysRow}>
                 {DAYS_OF_WEEK.map((day) => (
                   <View key={day} style={styles.dayHeaderCell}>
-                    <ThemedText style={[styles.dayHeaderText, { color: theme.textSecondary }]}>
+                    <ThemedText
+                      style={[
+                        styles.dayHeaderText,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {day}
                     </ThemedText>
                   </View>
@@ -198,7 +222,9 @@ export function DatePicker({
               <View style={styles.grid}>
                 {calendarDays.map((day, index) => {
                   if (day === null) {
-                    return <View key={`empty-${index}`} style={styles.dayCell} />;
+                    return (
+                      <View key={`empty-${index}`} style={styles.dayCell} />
+                    );
                   }
 
                   // Determine if this day is selected
@@ -226,14 +252,22 @@ export function DatePicker({
                         style={[
                           styles.dayButton,
                           isSelected && { backgroundColor: theme.tint },
-                          !isSelected && today && { borderWidth: 1, borderColor: theme.tint },
+                          !isSelected &&
+                            today && {
+                              borderWidth: 1,
+                              borderColor: theme.tint,
+                            },
                         ]}
                       >
                         <ThemedText
                           style={[
                             styles.dayText,
                             {
-                              color: isSelected ? "#fff" : (today ? theme.tint : theme.text),
+                              color: isSelected
+                                ? "#fff"
+                                : today
+                                  ? theme.tint
+                                  : theme.text,
                               fontWeight: isSelected || today ? "700" : "400",
                             },
                           ]}

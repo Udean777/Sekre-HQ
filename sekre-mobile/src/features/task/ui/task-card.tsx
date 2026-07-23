@@ -22,7 +22,12 @@ interface TaskCardProps {
   onPressAssignee?: (task: Task) => void;
 }
 
-export function TaskCard({ task, onPress, onUpdateStatus, onPressAssignee }: TaskCardProps) {
+export function TaskCard({
+  task,
+  onPress,
+  onUpdateStatus,
+  onPressAssignee,
+}: TaskCardProps) {
   const theme = useTheme();
   const { t } = useTranslation();
 
@@ -80,13 +85,18 @@ export function TaskCard({ task, onPress, onUpdateStatus, onPressAssignee }: Tas
           </View>
 
           <View style={styles.footer}>
-            <TouchableOpacity 
-              activeOpacity={0.6} 
+            <TouchableOpacity
+              activeOpacity={0.6}
               onPress={() => onPressAssignee?.(task)}
               style={styles.assigneeWrapper}
             >
-              <ThemedText style={[styles.assignee, { color: theme.tint }]} numberOfLines={1}>
-                {task.assignee ? t("tasks.assignee") + ": " + task.assignee.full_name : t("tasks.unassigned")}
+              <ThemedText
+                style={[styles.assignee, { color: theme.tint }]}
+                numberOfLines={1}
+              >
+                {task.assignee
+                  ? t("tasks.assignee") + ": " + task.assignee.full_name
+                  : t("tasks.unassigned")}
               </ThemedText>
             </TouchableOpacity>
           </View>

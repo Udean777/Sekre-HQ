@@ -20,8 +20,6 @@ export interface Transaction {
 }
 
 export interface FinanceSummary {
-  organization_id: string;
-  division_id: string | null;
   total_income: Money;
   total_expense: Money;
   balance: Money;

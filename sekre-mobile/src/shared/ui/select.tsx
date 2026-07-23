@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  Pressable,
-  Modal,
-  SafeAreaView,
-} from "react-native";
+import { View, StyleSheet, Pressable, Modal, SafeAreaView } from "react-native";
 import { CaretDown, X } from "phosphor-react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useTheme } from "@/shared/lib/hooks/use-theme";
@@ -85,10 +79,19 @@ export function Select({
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
-          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+        <View
+          style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+        >
+          <View
+            style={[styles.modalContent, { backgroundColor: theme.background }]}
+          >
             <SafeAreaView style={styles.modalSafeArea}>
-              <View style={[styles.modalHeader, { borderBottomColor: theme.backgroundSelected }]}>
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: theme.backgroundSelected },
+                ]}
+              >
                 <ThemedText type="subtitle">{label || placeholder}</ThemedText>
                 <Pressable
                   onPress={() => setModalVisible(false)}
@@ -117,8 +120,7 @@ export function Select({
                     >
                       <ThemedText
                         style={{
-                          color:
-                            item.value === value ? theme.tint : theme.text,
+                          color: item.value === value ? theme.tint : theme.text,
                           fontWeight: item.value === value ? "bold" : "normal",
                         }}
                       >

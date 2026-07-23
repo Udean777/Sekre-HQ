@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, ActivityIndicator } from "react-native";
-import { PlusIcon } from "phosphor-react-native";
+import { PlusIcon, ClipboardText } from "phosphor-react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ThemedSafeAreaView } from "@/shared/ui/themed-safe-area";
@@ -35,8 +35,25 @@ export default function TasksScreen() {
     if (!tasks) {
       return (
         <View style={styles.center}>
-          <ThemedText style={{ color: theme.textSecondary }}>
-            Failed to load tasks
+          <ClipboardText color={theme.textSecondary} size={48} weight="thin" />
+          <ThemedText style={styles.errorText}>Gagal memuat tugas</ThemedText>
+          <BouncingPressable
+            style={[styles.retryBtn, { backgroundColor: theme.tint }]}
+            onPress={() => refetch()}
+          >
+            <ThemedText style={styles.retryText}>Coba lagi</ThemedText>
+          </BouncingPressable>
+        </View>
+      );
+    }
+
+    if (tasks.length === 0) {
+      return (
+        <View style={styles.center}>
+          <ClipboardText color={theme.textSecondary} size={64} weight="thin" />
+          <ThemedText style={styles.emptyTitle}>Belum ada tugas</ThemedText>
+          <ThemedText style={styles.emptyHint}>
+            Buat tugas pertama untuk mulai mengelola pekerjaan
           </ThemedText>
         </View>
       );
@@ -76,6 +93,38 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 40,
+    gap: 12,
+  },
+  errorText: {
+    fontSize: 14,
+    opacity: 0.6,
+    textAlign: "center",
+  },
+  retryBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  retryText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    textAlign: "center",
+    opacity: 0.7,
+    marginTop: 4,
+  },
+  emptyHint: {
+    fontSize: 14,
+    textAlign: "center",
+    opacity: 0.45,
+    lineHeight: 20,
+    paddingHorizontal: 20,
   },
   fab: {
     position: "absolute",

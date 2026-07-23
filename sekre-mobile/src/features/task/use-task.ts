@@ -7,8 +7,14 @@ export function useTask(id?: string) {
     queryKey: ["tasks", id],
     queryFn: async () => {
       if (!id) throw new Error("Task ID is required");
-      const { data } = await apiClient.get<{ data: { task: Task; assignee: any; division: any } }>(`/tasks/${id}`);
-      return { ...data.data.task, assignee: data.data.assignee, division: data.data.division };
+      const { data } = await apiClient.get<{
+        data: { task: Task; assignee: any; division: any };
+      }>(`/tasks/${id}`);
+      return {
+        ...data.data.task,
+        assignee: data.data.assignee,
+        division: data.data.division,
+      };
     },
     enabled: !!id,
   });
