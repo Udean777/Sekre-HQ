@@ -34,6 +34,11 @@ func (h *MemberHandler) RegisterRoutes(router *mux.Router) {
 		middleware.RequireAdmin()(http.HandlerFunc(h.UpdateRole)),
 	).Methods("PATCH")
 
+	// Update member status - requires OWNER or ADMIN
+	router.Handle("/members/{userId}/status",
+		middleware.RequireAdmin()(http.HandlerFunc(h.UpdateStatus)),
+	).Methods("PATCH")
+
 	// Remove member - requires OWNER or ADMIN
 	router.Handle("/members/{userId}",
 		middleware.RequireAdmin()(http.HandlerFunc(h.Remove)),
@@ -47,20 +52,38 @@ func (h *MemberHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse optional search
+	// Parse optional search, role, status
 	var search *string
 	if s := r.URL.Query().Get("search"); s != "" {
 		search = &s
 	}
+	var role *string
+	if r := r.URL.Query().Get("role"); r != "" {
+		role = &r
+	}
+	var status *string
+	if st := r.URL.Query().Get("status"); st != "" {
+		status = &st
+	}
+	withoutDivision := r.URL.Query().Get("without_division") == "true"
 
 	// Parse pagination params
 	paginationParams := pagination.ParseParams(r)
 	domainPagination := types.NewPaginationParams(paginationParams.PageSize, paginationParams.Offset())
 
-	members, total, err := h.usecase.ListMembersPaginatedFiltered(r.Context(), orgID, search, domainPagination)
+	members, total, err := h.usecase.ListMembersPaginatedFiltered(r.Context(), orgID, search, role, status, withoutDivision, domainPagination)
 	if err != nil {
 		response.HandleError(w, r, err)
 		return
+	}
+
+	// Only OWNER/ADMIN can see temporary passwords
+	callerRole, _ := GetRoleFromContext(r)
+	canSeePassword := callerRole == types.RoleOwner || callerRole == types.RoleAdmin
+	if !canSeePassword {
+		for i := range members {
+			members[i].TemporaryPassword = ""
+		}
 	}
 
 	// Create paginated response
@@ -76,6 +99,16 @@ func (h *MemberHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	HandleUpdateRequest(w, r, "userId", &req, func(orgID, userID uuid.UUID) error {
 		return h.usecase.UpdateMemberRole(r.Context(), orgID, userID, req.Role)
 	}, "member role updated")
+}
+
+func (h *MemberHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Status string `json:"status"`
+	}
+
+	HandleUpdateRequest(w, r, "userId", &req, func(orgID, userID uuid.UUID) error {
+		return h.usecase.UpdateMemberStatus(r.Context(), orgID, userID, req.Status)
+	}, "member status updated")
 }
 
 func (h *MemberHandler) Remove(w http.ResponseWriter, r *http.Request) {

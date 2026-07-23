@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/username/sekre-backend/internal/delivery/http/middleware"
 	"github.com/username/sekre-backend/internal/domain/entity"
 	domainerrors "github.com/username/sekre-backend/internal/domain/errors"
+	"github.com/username/sekre-backend/internal/domain/repository"
 	"github.com/username/sekre-backend/internal/domain/types"
 	"github.com/username/sekre-backend/pkg/logger"
 	"github.com/username/sekre-backend/pkg/response"
@@ -19,11 +21,12 @@ import (
 )
 
 type MemberCreationHandler struct {
-	usecase organization.MemberCreationUsecase
+	usecase      organization.MemberCreationUsecase
+	divisionRepo repository.DivisionRepository
 }
 
-func NewMemberCreationHandler(usecase organization.MemberCreationUsecase) *MemberCreationHandler {
-	return &MemberCreationHandler{usecase: usecase}
+func NewMemberCreationHandler(usecase organization.MemberCreationUsecase, divisionRepo repository.DivisionRepository) *MemberCreationHandler {
+	return &MemberCreationHandler{usecase: usecase, divisionRepo: divisionRepo}
 }
 
 // CreateMember creates a single new member
@@ -91,7 +94,7 @@ func (h *MemberCreationHandler) BulkImport(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Parse Excel file
-	members, err := h.parseExcelFile(fileBytes)
+	members, err := parseExcelFile(fileBytes)
 	if err != nil {
 		response.HandleError(w, r, domainerrors.InvalidInput("file", err.Error()))
 		return
@@ -112,34 +115,39 @@ func (h *MemberCreationHandler) BulkImport(w http.ResponseWriter, r *http.Reques
 	response.Success(w, http.StatusOK, "bulk import completed", result)
 }
 
-// DownloadTemplate generates and downloads Excel template
+// DownloadTemplate generates and downloads Excel template with actual divisions from the user's organization.
 func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
+	if !ok {
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
+		return
+	}
+
+	divisions, err := h.divisionRepo.List(r.Context(), orgID)
+	if err != nil {
+		response.HandleError(w, r, domainerrors.Internal("fetch divisions", err))
+		return
+	}
+
 	f := excelize.NewFile()
 	defer f.Close() //nolint:errcheck
 
 	sheetName := "Members"
 
-	// Create new sheet
 	index, err := f.NewSheet(sheetName)
 	if err != nil {
 		response.HandleError(w, r, domainerrors.Internal("create excel sheet", err))
 		return
 	}
 
-	// Delete default Sheet1
 	if err := f.DeleteSheet("Sheet1"); err != nil {
 		logger.Logger.Warn().Err(err).Msg("failed to delete default sheet")
 	}
 
-	// Set headers with bold style
 	headerStyle, err := f.NewStyle(&excelize.Style{
-		Font: &excelize.Font{
-			Bold: true,
-		},
+		Font: &excelize.Font{Bold: true},
 		Fill: excelize.Fill{
-			Type:    "pattern",
-			Color:   []string{"#E0E0E0"},
-			Pattern: 1,
+			Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1,
 		},
 	})
 	if err == nil {
@@ -151,7 +159,6 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 		}
 	}
 
-	// Set headers
 	headers := []string{"Email", "Full Name", "Role", "Division", "Division Role"}
 	for i, header := range headers {
 		cell := fmt.Sprintf("%c1", 'A'+i)
@@ -160,24 +167,22 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 		}
 	}
 
-	// Add example data. Using typed enum constants keeps the template rows
-	// aligned with the accepted Role / DivisionRole values; any future rename
-	// of an enum constant will break the build here so the template stays
-	// correct.
-	examples := [][]string{
-		{"john@himti.org", "John Doe", string(types.RoleMember), "IT", string(types.DivisionRoleHead)},
-		{"jane@himti.org", "Jane Smith", string(types.RoleMember), "IT", string(types.DivisionRoleStaff)},
-		{"bob@himti.org", "Bob Johnson", string(types.RoleAdmin), "Finance", string(types.DivisionRoleHead)},
-	}
+	divisionRoles := []types.DivisionRole{types.DivisionRoleHead, types.DivisionRoleStaff}
+	roles := []types.Role{types.RoleMember, types.RoleAdmin}
+	names := []string{"John Doe", "Jane Smith", "Bob Johnson"}
+	emails := []string{"john@example.com", "jane@example.com", "bob@example.com"}
 
-	for i, example := range examples {
+	for i := 0; i < 3; i++ {
 		rowNum := i + 2
-		for j, value := range example {
-			cell := fmt.Sprintf("%c%d", 'A'+j, rowNum)
-			if err := f.SetCellValue(sheetName, cell, value); err != nil {
-				logger.Logger.Warn().Err(err).Msg("failed to set example cell value")
-			}
-		}
+		div := divisions[i%len(divisions)]
+		divRole := divisionRoles[rand.Intn(len(divisionRoles))]
+		role := roles[rand.Intn(len(roles))]
+
+		f.SetCellValue(sheetName, fmt.Sprintf("A%d", rowNum), emails[i])
+		f.SetCellValue(sheetName, fmt.Sprintf("B%d", rowNum), names[i])
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", rowNum), string(role))
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", rowNum), div.Name)
+		f.SetCellValue(sheetName, fmt.Sprintf("E%d", rowNum), string(divRole))
 	}
 
 	// Set column widths
@@ -206,8 +211,49 @@ func (h *MemberCreationHandler) DownloadTemplate(w http.ResponseWriter, r *http.
 	}
 }
 
+// PreviewImport parses and validates an Excel file, returning row-level preview
+func (h *MemberCreationHandler) PreviewImport(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := r.Context().Value(middleware.OrganizationIDKey).(uuid.UUID)
+	if !ok {
+		response.HandleError(w, r, domainerrors.Unauthorized("invalid organization context"))
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		response.HandleError(w, r, domainerrors.InvalidInput("form", "failed to parse multipart form"))
+		return
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		response.HandleError(w, r, domainerrors.InvalidInput("file", "is required"))
+		return
+	}
+	defer file.Close() //nolint:errcheck
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		response.HandleError(w, r, domainerrors.Internal("read uploaded file", err))
+		return
+	}
+
+	members, err := parseExcelFile(fileBytes)
+	if err != nil {
+		response.HandleError(w, r, domainerrors.InvalidInput("file", err.Error()))
+		return
+	}
+
+	result, err := h.usecase.PreviewImport(r.Context(), members, orgID)
+	if err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
+	response.Success(w, http.StatusOK, "import preview generated", result)
+}
+
 // parseExcelFile parses Excel file and returns member requests
-func (h *MemberCreationHandler) parseExcelFile(fileBytes []byte) ([]entity.BulkImportMemberRequest, error) {
+func parseExcelFile(fileBytes []byte) ([]entity.BulkImportMemberRequest, error) {
 	f, err := excelize.OpenReader(strings.NewReader(string(fileBytes)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open Excel file: %w", err)

@@ -16,6 +16,7 @@ func UserToModel(e *entity.User) *models.User {
 		PasswordHash:      e.PasswordHash,
 		FullName:          e.FullName,
 		MustResetPassword: e.MustResetPassword,
+		TemporaryPassword: strPtr(e.TemporaryPassword),
 		CreatedAt:         e.CreatedAt,
 		UpdatedAt:         e.UpdatedAt,
 	}
@@ -26,15 +27,27 @@ func UserToEntity(m *models.User) *entity.User {
 	if m == nil {
 		return nil
 	}
+	tp := ""
+	if m.TemporaryPassword != nil {
+		tp = *m.TemporaryPassword
+	}
 	return &entity.User{
 		ID:                m.ID,
 		Email:             m.Email,
 		PasswordHash:      m.PasswordHash,
 		FullName:          m.FullName,
 		MustResetPassword: m.MustResetPassword,
+		TemporaryPassword: tp,
 		CreatedAt:         m.CreatedAt,
 		UpdatedAt:         m.UpdatedAt,
 	}
+}
+
+func strPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 // OrganizationToModel converts domain entity to GORM model

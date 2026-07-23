@@ -30,6 +30,8 @@ type UserProfileRepository interface {
 	GetUserWithPasswordByID(ctx context.Context, userID uuid.UUID) (*entity.User, error)
 	UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) error
 	CheckEmailExists(ctx context.Context, email string, excludeUserID uuid.UUID) (bool, error)
+	CheckIsOwner(ctx context.Context, userID uuid.UUID) (bool, error)
+	DeleteAccount(ctx context.Context, userID uuid.UUID) error
 }
 
 // OrganizationRepository handles organization persistence (auth flow)
@@ -58,8 +60,9 @@ type UserOrganizationRepository interface {
 type MemberRepository interface {
 	GetOrganizationMembers(ctx context.Context, orgID uuid.UUID) ([]entity.UserWithOrgRole, error)
 	GetOrganizationMembersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
-	GetOrganizationMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
+	GetOrganizationMembersPaginatedFiltered(ctx context.Context, orgID uuid.UUID, search *string, role *string, status *string, withoutDivision bool, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
 	UpdateMemberRole(ctx context.Context, orgID, userID uuid.UUID, role types.Role) error
+	UpdateMemberStatus(ctx context.Context, orgID, userID uuid.UUID, status types.MemberStatus) error
 	RemoveMember(ctx context.Context, orgID, userID uuid.UUID) error
 	IsMember(ctx context.Context, orgID, userID uuid.UUID) (bool, error)
 

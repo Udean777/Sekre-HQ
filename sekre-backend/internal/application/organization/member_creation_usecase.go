@@ -21,6 +21,7 @@ import (
 type MemberCreationUsecase interface {
 	CreateMember(ctx context.Context, req entity.CreateMemberRequest, orgID, actorID uuid.UUID) (*entity.CreatedMemberInfo, error)
 	BulkImportMembers(ctx context.Context, members []entity.BulkImportMemberRequest, orgID, actorID uuid.UUID) (*entity.BulkImportResult, error)
+	PreviewImport(ctx context.Context, members []entity.BulkImportMemberRequest, orgID uuid.UUID) (*entity.ImportPreviewResult, error)
 }
 
 type memberCreationUsecase struct {
@@ -73,6 +74,7 @@ func (u *memberCreationUsecase) CreateMember(ctx context.Context, req entity.Cre
 		PasswordHash:      hashedPassword,
 		FullName:          strings.TrimSpace(req.FullName),
 		MustResetPassword: true,
+		TemporaryPassword: tempPassword,
 	}
 
 	exists, err := u.memberRepo.EmailExistsInOrganization(ctx, orgID, user.Email)
@@ -209,7 +211,7 @@ func (u *memberCreationUsecase) BulkImportMembers(ctx context.Context, members [
 
 	for _, member := range members {
 		if _, exists := divisionMap[member.Division]; !exists {
-			return nil, fmt.Errorf("division not found: %s", member.Division)
+			return nil, domainerrors.InvalidInput("division", fmt.Sprintf("not found: %s", member.Division))
 		}
 	}
 
@@ -243,6 +245,7 @@ func (u *memberCreationUsecase) BulkImportMembers(ctx context.Context, members [
 			PasswordHash:      hashedPassword,
 			FullName:          strings.TrimSpace(member.FullName),
 			MustResetPassword: true,
+			TemporaryPassword: tempPassword,
 		}
 
 		exists, err := u.memberRepo.EmailExistsInOrganization(ctx, orgID, user.Email)
@@ -332,6 +335,50 @@ func (u *memberCreationUsecase) BulkImportMembers(ctx context.Context, members [
 		FailureCount:   0,
 		Errors:         nil,
 		CreatedMembers: createdMembers,
+	}, nil
+}
+
+func (u *memberCreationUsecase) PreviewImport(ctx context.Context, members []entity.BulkImportMemberRequest, orgID uuid.UUID) (*entity.ImportPreviewResult, error) {
+	divisions, err := u.divisionRepo.List(ctx, orgID)
+	if err != nil {
+		return nil, domainerrors.Internal("fetch divisions", err)
+	}
+
+	divisionMap := make(map[string]bool, len(divisions))
+	for _, d := range divisions {
+		divisionMap[d.Name] = true
+	}
+
+	rows := make([]entity.ImportPreviewRow, 0, len(members))
+	validCount := 0
+	invalidCount := 0
+
+	for i, m := range members {
+		rowNum := i + 2
+		isValid := divisionMap[m.Division]
+
+		rows = append(rows, entity.ImportPreviewRow{
+			Row:           rowNum,
+			Email:         m.Email,
+			FullName:      m.FullName,
+			Role:          m.Role,
+			Division:      m.Division,
+			DivisionRole:  m.DivisionRole,
+			DivisionValid: isValid,
+		})
+
+		if isValid {
+			validCount++
+		} else {
+			invalidCount++
+		}
+	}
+
+	return &entity.ImportPreviewResult{
+		TotalRows:   len(members),
+		ValidRows:   validCount,
+		InvalidRows: invalidCount,
+		Rows:        rows,
 	}, nil
 }
 

@@ -263,7 +263,7 @@ func (r *divisionRepository) UpdateMemberRole(ctx context.Context, orgID, divisi
 	result := dbFor(ctx, r.db).
 		Model(&models.DivisionMember{}).
 		Where("division_id = ? AND user_id = ?", divisionID, userID).
-		Update("role", role)
+		Update("division_role", role)
 	if result.Error != nil {
 		return domainerrors.Internal("update member role", result.Error)
 	}
@@ -277,7 +277,7 @@ func (r *divisionRepository) CountHeads(ctx context.Context, divisionID uuid.UUI
 	var count int64
 	err := dbFor(ctx, r.db).
 		Model(&models.DivisionMember{}).
-		Where("division_id = ? AND role = ?", divisionID, "HEAD").
+		Where("division_id = ? AND division_role = ?", divisionID, "HEAD").
 		Count(&count).Error
 	if err != nil {
 		return 0, domainerrors.Internal("count heads", err)

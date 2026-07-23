@@ -20,6 +20,7 @@ type UserUsecase interface {
 	GetOrganizationUsersPaginated(ctx context.Context, orgID uuid.UUID, pagination types.PaginationParams) ([]entity.UserWithOrgRole, int, error)
 	UpdateProfile(ctx context.Context, userID uuid.UUID, fullName, email string) (*entity.User, error)
 	ChangePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword string) error
+	DeleteAccount(ctx context.Context, userID uuid.UUID) error
 }
 
 type userUsecase struct {
@@ -139,6 +140,23 @@ func (u *userUsecase) ChangePassword(ctx context.Context, userID uuid.UUID, curr
 
 	if err := u.userRepo.UpdatePassword(ctx, userID, hashedPassword); err != nil {
 		return domainerrors.Internal("update password", err)
+	}
+	return nil
+}
+
+// DeleteAccount completely removes a user's account and all associated data.
+func (u *userUsecase) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
+	isOwner, err := u.userRepo.CheckIsOwner(ctx, userID)
+	if err != nil {
+		return domainerrors.Internal("check owner status", err)
+	}
+
+	if isOwner {
+		return domainerrors.Forbidden("delete account", "because you are the OWNER of an organization. Please transfer ownership or delete the organization first.")
+	}
+
+	if err := u.userRepo.DeleteAccount(ctx, userID); err != nil {
+		return domainerrors.Internal("delete account", err)
 	}
 	return nil
 }

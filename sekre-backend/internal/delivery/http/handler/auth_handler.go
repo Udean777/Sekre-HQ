@@ -34,6 +34,8 @@ func (h *AuthHandler) RegisterRoutes(router *mux.Router) {
 	authRouter.HandleFunc("/register", h.Register).Methods("POST")
 	authRouter.HandleFunc("/login", h.Login).Methods("POST")
 	authRouter.HandleFunc("/refresh", h.Refresh).Methods("POST")
+	authRouter.HandleFunc("/forgot-password", h.ForgotPassword).Methods("POST")
+	authRouter.HandleFunc("/reset-password", h.ResetPassword).Methods("POST")
 
 	// Protected routes
 	protected := authRouter.PathPrefix("").Subrouter()
@@ -107,6 +109,37 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Success(w, http.StatusOK, "login successful", result)
+}
+
+func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var req auth.ForgotPasswordRequest
+	if err := DecodeAndValidate(r, &req); err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
+	result, err := h.usecase.ForgotPassword(r.Context(), &req)
+	if err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
+	response.Success(w, http.StatusOK, "reset token generated", result)
+}
+
+func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var req auth.ResetPasswordRequest
+	if err := DecodeAndValidate(r, &req); err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
+	if err := h.usecase.ResetPassword(r.Context(), &req); err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
+	response.Success(w, http.StatusOK, "password reset successful", nil)
 }
 
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {

@@ -18,6 +18,7 @@ type Task struct {
 	Description    string           `gorm:"type:text" json:"description"`
 	Status         types.TaskStatus `gorm:"type:varchar(20);default:'TODO'" json:"status"`
 	DueDate        *time.Time       `gorm:"index" json:"due_date,omitempty"`
+	SortOrder      int              `gorm:"default:0;index" json:"sort_order"`
 	CreatedAt      time.Time        `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt      time.Time        `gorm:"autoUpdateTime" json:"updated_at"`
 	DeletedAt      gorm.DeletedAt   `gorm:"index" json:"-"`
