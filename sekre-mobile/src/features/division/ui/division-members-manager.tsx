@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { View, StyleSheet, Modal, FlatList, Pressable } from "react-native";
+import { View, StyleSheet, Modal, Pressable } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { ThemedText } from "@/shared/ui/themed-text";
 import { ThemedCard } from "@/shared/ui/themed-card";
 import { Button } from "@/shared/ui/button";
@@ -211,9 +212,11 @@ export function DivisionMembersManager({
                 <ThemedText>{t("division.allMembersAdded")}</ThemedText>
               </View>
             ) : (
-              <FlatList
+              <FlashList
                 data={availableMembers}
                 keyExtractor={(item) => item.id}
+                // @ts-expect-error
+                estimatedItemSize={70}
                 renderItem={({ item }) => (
                   <View
                     style={[

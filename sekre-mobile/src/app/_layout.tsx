@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ActivityIndicator } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useAuthStore } from "@/shared/store/auth-store";
 import { storage } from "@/shared/lib/storage";
 import { apiClient } from "@/shared/api/api-client";
@@ -86,12 +87,14 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <AlertProvider>
-        <QueryClientProvider client={queryClient}>
-          <RootLayoutNav />
-        </QueryClientProvider>
-      </AlertProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AlertProvider>
+          <QueryClientProvider client={queryClient}>
+            <RootLayoutNav />
+          </QueryClientProvider>
+        </AlertProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

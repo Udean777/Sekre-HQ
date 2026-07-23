@@ -19,6 +19,7 @@ func TaskToModel(e *entity.Task) *models.Task {
 		Description:    e.Description,
 		Status:         e.Status,
 		DueDate:        e.DueDate,
+		SortOrder:      e.SortOrder,
 		CreatedAt:      e.CreatedAt,
 		UpdatedAt:      e.UpdatedAt,
 	}
@@ -38,6 +39,7 @@ func TaskToEntity(m *models.Task) *entity.Task {
 		Description:    m.Description,
 		Status:         m.Status,
 		DueDate:        m.DueDate,
+		SortOrder:      m.SortOrder,
 		CreatedAt:      m.CreatedAt,
 		UpdatedAt:      m.UpdatedAt,
 	}

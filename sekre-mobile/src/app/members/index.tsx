@@ -46,7 +46,7 @@ export default function MembersScreen() {
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [filterRole, setFilterRole] = React.useState("");
-  
+
   React.useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(handler);
@@ -114,10 +114,7 @@ export default function MembersScreen() {
                   );
                 },
                 onSuccess: () => {
-                  alert(
-                    t("division.success"),
-                    t("members.suspendSuccess"),
-                  );
+                  alert(t("division.success"), t("members.suspendSuccess"));
                 },
               },
             );
@@ -152,10 +149,7 @@ export default function MembersScreen() {
                   );
                 },
                 onSuccess: () => {
-                  alert(
-                    t("division.success"),
-                    t("members.roleSuccess"),
-                  );
+                  alert(t("division.success"), t("members.roleSuccess"));
                 },
               },
             );
@@ -199,10 +193,7 @@ export default function MembersScreen() {
                 );
               },
               onSuccess: () => {
-                alert(
-                  t("division.success"),
-                  t("members.deleteSuccess"),
-                );
+                alert(t("division.success"), t("members.deleteSuccess"));
               },
             });
           },
@@ -288,42 +279,44 @@ export default function MembersScreen() {
 
           {canManage && expandedId === item.id && (
             <View style={styles.actions}>
-            {currentRole === "OWNER" && item.role !== "OWNER" && (
+              {currentRole === "OWNER" && item.role !== "OWNER" && (
+                <Button
+                  title={
+                    item.role === "ADMIN"
+                      ? t("members.demote")
+                      : t("members.promote")
+                  }
+                  variant="outline"
+                  style={styles.actionButton}
+                  onPress={() => handleToggleRole(item)}
+                  isLoading={
+                    updateRoleMutation.isPending &&
+                    updateRoleMutation.variables?.userId === item.id
+                  }
+                />
+              )}
               <Button
-                title={
-                  item.role === "ADMIN" ? t("members.demote") : t("members.promote")
-                }
-                variant="outline"
+                title={isSuspended ? t("common.activate") : t("common.suspend")}
+                variant={isSuspended ? "outline" : "danger-outline"}
                 style={styles.actionButton}
-                onPress={() => handleToggleRole(item)}
+                onPress={() => handleToggleStatus(item)}
                 isLoading={
-                  updateRoleMutation.isPending &&
-                  updateRoleMutation.variables?.userId === item.id
+                  updateStatusMutation.isPending &&
+                  updateStatusMutation.variables?.userId === item.id
                 }
+                disabled={removeMemberMutation.isPending}
               />
-            )}
-            <Button
-              title={isSuspended ? t("common.activate") : t("common.suspend")}
-              variant={isSuspended ? "outline" : "danger-outline"}
-              style={styles.actionButton}
-              onPress={() => handleToggleStatus(item)}
-              isLoading={
-                updateStatusMutation.isPending &&
-                updateStatusMutation.variables?.userId === item.id
-              }
-              disabled={removeMemberMutation.isPending}
-            />
-            <Button
-              title={t("common.remove")}
-              variant="danger"
-              style={styles.actionButton}
-              onPress={() => handleRemove(item)}
-              isLoading={
-                removeMemberMutation.isPending &&
-                removeMemberMutation.variables === item.id
-              }
-              disabled={updateStatusMutation.isPending}
-            />
+              <Button
+                title={t("common.remove")}
+                variant="danger"
+                style={styles.actionButton}
+                onPress={() => handleRemove(item)}
+                isLoading={
+                  removeMemberMutation.isPending &&
+                  removeMemberMutation.variables === item.id
+                }
+                disabled={updateStatusMutation.isPending}
+              />
             </View>
           )}
         </Pressable>
@@ -349,7 +342,12 @@ export default function MembersScreen() {
       />
 
       <View style={styles.filterSection}>
-        <View style={[styles.searchContainer, { backgroundColor: theme.backgroundElement }]}>
+        <View
+          style={[
+            styles.searchContainer,
+            { backgroundColor: theme.backgroundElement },
+          ]}
+        >
           <MagnifyingGlassIcon color={theme.textSecondary} size={20} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
@@ -360,33 +358,61 @@ export default function MembersScreen() {
           />
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsContainer}
+        >
           <Pressable
             style={[
               styles.chip,
-              !filterRole ? { backgroundColor: theme.tint } : { backgroundColor: theme.backgroundElement },
+              !filterRole
+                ? { backgroundColor: theme.tint }
+                : { backgroundColor: theme.backgroundElement },
             ]}
             onPress={() => setFilterRole("")}
           >
-            <ThemedText style={[styles.chipText, !filterRole && { color: "#fff" }]}>{t("common.all")}</ThemedText>
+            <ThemedText
+              style={[styles.chipText, !filterRole && { color: "#fff" }]}
+            >
+              {t("common.all")}
+            </ThemedText>
           </Pressable>
           <Pressable
             style={[
               styles.chip,
-              filterRole === "ADMIN" ? { backgroundColor: theme.tint } : { backgroundColor: theme.backgroundElement },
+              filterRole === "ADMIN"
+                ? { backgroundColor: theme.tint }
+                : { backgroundColor: theme.backgroundElement },
             ]}
             onPress={() => setFilterRole("ADMIN")}
           >
-            <ThemedText style={[styles.chipText, filterRole === "ADMIN" && { color: "#fff" }]}>{t("common.admin")}</ThemedText>
+            <ThemedText
+              style={[
+                styles.chipText,
+                filterRole === "ADMIN" && { color: "#fff" },
+              ]}
+            >
+              {t("common.admin")}
+            </ThemedText>
           </Pressable>
           <Pressable
             style={[
               styles.chip,
-              filterRole === "MEMBER" ? { backgroundColor: theme.tint } : { backgroundColor: theme.backgroundElement },
+              filterRole === "MEMBER"
+                ? { backgroundColor: theme.tint }
+                : { backgroundColor: theme.backgroundElement },
             ]}
             onPress={() => setFilterRole("MEMBER")}
           >
-            <ThemedText style={[styles.chipText, filterRole === "MEMBER" && { color: "#fff" }]}>{t("common.member")}</ThemedText>
+            <ThemedText
+              style={[
+                styles.chipText,
+                filterRole === "MEMBER" && { color: "#fff" },
+              ]}
+            >
+              {t("common.member")}
+            </ThemedText>
           </Pressable>
         </ScrollView>
       </View>

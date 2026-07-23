@@ -29,6 +29,7 @@ func NewTaskHandler(usecase task.TaskUsecase, auditService *audit.Service) *Task
 func (h *TaskHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/tasks", h.Create).Methods("POST")
 	router.HandleFunc("/tasks", h.List).Methods("GET")
+	router.HandleFunc("/tasks/reorder", h.Reorder).Methods("PATCH")
 	router.HandleFunc("/tasks/{id}", h.GetByID).Methods("GET")
 	router.HandleFunc("/tasks/{id}", h.Update).Methods("PUT")
 	router.HandleFunc("/tasks/{id}/status", h.UpdateStatus).Methods("PATCH")
@@ -200,6 +201,29 @@ func (h *TaskHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	HandleUpdateRequest(w, r, "id", &req, func(orgID, id uuid.UUID) error {
 		return h.usecase.UpdateStatus(r.Context(), orgID, id, req.Status)
 	}, "task status updated")
+}
+
+func (h *TaskHandler) Reorder(w http.ResponseWriter, r *http.Request) {
+	orgID, err := GetOrgIDFromContext(r)
+	if err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
+	var req struct {
+		Orders []entity.TaskPosition `json:"orders"`
+	}
+	if err := DecodeJSONBody(r, &req); err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
+	if err := h.usecase.Reorder(r.Context(), orgID, req.Orders); err != nil {
+		response.HandleError(w, r, err)
+		return
+	}
+
+	response.Success(w, http.StatusOK, "tasks reordered", nil)
 }
 
 func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {

@@ -25,6 +25,7 @@ type CreateTaskRequest struct {
 type UpdateTaskRequest struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
+	DivisionID  uuid.UUID  `json:"division_id"`
 	AssigneeID  *uuid.UUID `json:"assignee_id"`
 	DueDate     *time.Time `json:"due_date"`
 	Status      string     `json:"status"`
@@ -37,6 +38,7 @@ type TaskUsecase interface {
 	ListPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams) ([]entity.TaskWithAssignee, int, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, req *UpdateTaskRequest) (*entity.TaskWithAssignee, error)
 	UpdateStatus(ctx context.Context, orgID, id uuid.UUID, status string) error
+	Reorder(ctx context.Context, orgID uuid.UUID, orders []entity.TaskPosition) error
 	Delete(ctx context.Context, orgID, id uuid.UUID) error
 }
 
@@ -114,6 +116,7 @@ func (u *taskUsecase) Update(ctx context.Context, orgID, id uuid.UUID, req *Upda
 
 	existing.Title = strings.TrimSpace(req.Title)
 	existing.Description = strings.TrimSpace(req.Description)
+	existing.DivisionID = req.DivisionID
 	existing.AssigneeID = req.AssigneeID
 	existing.DueDate = req.DueDate
 	existing.Status = status
@@ -154,6 +157,10 @@ func (u *taskUsecase) Delete(ctx context.Context, orgID, id uuid.UUID) error {
 	return u.repo.Delete(ctx, orgID, id)
 }
 
+func (u *taskUsecase) Reorder(ctx context.Context, orgID uuid.UUID, orders []entity.TaskPosition) error {
+	return u.repo.UpdatePositions(ctx, orgID, orders)
+}
+
 func (u *taskUsecase) validateCreateRequest(req *CreateTaskRequest) error {
 	if strings.TrimSpace(req.Title) == "" {
 		return domainerrors.InvalidInput("task title", "is required")
@@ -164,18 +171,16 @@ func (u *taskUsecase) validateCreateRequest(req *CreateTaskRequest) error {
 	return nil
 }
 
-// validateUpdateRequest validates an UpdateTaskRequest and returns the parsed
-// typed status so callers avoid a second conversion.
 func (u *taskUsecase) validateUpdateRequest(req *UpdateTaskRequest) (types.TaskStatus, error) {
 	if strings.TrimSpace(req.Title) == "" {
-		return "", fmt.Errorf("task title is required")
+		return "", domainerrors.InvalidInput("title", "task title is required")
 	}
 	if len(req.Title) > 500 {
-		return "", fmt.Errorf("task title too long (max 500 characters)")
+		return "", domainerrors.InvalidInput("title", "task title too long (max 500 characters)")
 	}
 	status := types.TaskStatus(req.Status)
 	if err := status.Validate(); err != nil {
-		return "", fmt.Errorf("invalid status: %w", err)
+		return "", domainerrors.InvalidInput("status", err.Error())
 	}
 	return status, nil
 }

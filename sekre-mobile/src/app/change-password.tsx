@@ -53,20 +53,15 @@ export default function ChangePasswordScreen() {
       },
       {
         onSuccess: () => {
-          alert(
-            t("division.success"),
-            t("profile.passwordSuccess"),
-            [{ text: t("common.ok"), onPress: () => router.back() }],
-          );
+          alert(t("division.success"), t("profile.passwordSuccess"), [
+            { text: t("common.ok"), onPress: () => router.back() },
+          ]);
           reset();
         },
         onError: (error: any) => {
           alert(
             t("division.error"),
-            extractErrorMessage(
-              error,
-              t("profile.passwordError"),
-            ),
+            extractErrorMessage(error, t("profile.passwordError")),
           );
         },
       },

@@ -50,7 +50,7 @@ func (r *taskRepository) GetByID(ctx context.Context, orgID, taskID uuid.UUID) (
 func (r *taskRepository) GetByIDWithAssignee(ctx context.Context, orgID, taskID uuid.UUID) (*entity.TaskWithAssignee, error) {
 	var model models.Task
 	err := dbFor(ctx, r.db).
-		Preload("Assignee").
+		Preload("Assignee").Preload("Division").
 		Where("id = ? AND organization_id = ?", taskID, orgID).
 		First(&model).Error
 	if err != nil {
@@ -62,6 +62,7 @@ func (r *taskRepository) GetByIDWithAssignee(ctx context.Context, orgID, taskID 
 	return &entity.TaskWithAssignee{
 		Task:     *mapper.TaskToEntity(&model),
 		Assignee: mapper.UserToEntity(model.Assignee),
+		Division: mapper.DivisionToEntity(&model.Division),
 	}, nil
 }
 
@@ -69,7 +70,7 @@ func (r *taskRepository) List(ctx context.Context, orgID, divisionID uuid.UUID) 
 	var models []models.Task
 	err := dbFor(ctx, r.db).
 		Where("organization_id = ? AND division_id = ?", orgID, divisionID).
-		Order("created_at DESC").
+		Order("sort_order ASC, created_at ASC").
 		Find(&models).Error
 	if err != nil {
 		return nil, domainerrors.Internal("list tasks", err)
@@ -85,9 +86,9 @@ func (r *taskRepository) List(ctx context.Context, orgID, divisionID uuid.UUID) 
 func (r *taskRepository) ListWithAssignee(ctx context.Context, orgID, divisionID uuid.UUID) ([]entity.TaskWithAssignee, error) {
 	var rows []models.Task
 	err := dbFor(ctx, r.db).
-		Preload("Assignee").
+		Preload("Assignee").Preload("Division").
 		Where("organization_id = ? AND division_id = ?", orgID, divisionID).
-		Order("created_at DESC").
+		Order("sort_order ASC, created_at ASC").
 		Find(&rows).Error
 	if err != nil {
 		return nil, domainerrors.Internal("list tasks with assignee", err)
@@ -98,6 +99,7 @@ func (r *taskRepository) ListWithAssignee(ctx context.Context, orgID, divisionID
 		tasks[i] = entity.TaskWithAssignee{
 			Task:     *mapper.TaskToEntity(&rows[i]),
 			Assignee: mapper.UserToEntity(rows[i].Assignee),
+			Division: mapper.DivisionToEntity(&rows[i].Division),
 		}
 	}
 	return tasks, nil
@@ -105,7 +107,7 @@ func (r *taskRepository) ListWithAssignee(ctx context.Context, orgID, divisionID
 
 func (r *taskRepository) ListFiltered(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters) ([]entity.TaskWithAssignee, error) {
 	query := dbFor(ctx, r.db).
-		Preload("Assignee").
+		Preload("Assignee").Preload("Division").
 		Where("organization_id = ?", orgID)
 
 	if filters.DivisionID != nil {
@@ -122,7 +124,7 @@ func (r *taskRepository) ListFiltered(ctx context.Context, orgID uuid.UUID, filt
 	}
 
 	var rows []models.Task
-	if err := query.Order("created_at DESC").Find(&rows).Error; err != nil {
+	if err := query.Order("sort_order ASC, created_at ASC").Find(&rows).Error; err != nil {
 		return nil, domainerrors.Internal("list tasks", err)
 	}
 
@@ -131,6 +133,7 @@ func (r *taskRepository) ListFiltered(ctx context.Context, orgID uuid.UUID, filt
 		tasks[i] = entity.TaskWithAssignee{
 			Task:     *mapper.TaskToEntity(&rows[i]),
 			Assignee: mapper.UserToEntity(rows[i].Assignee),
+			Division: mapper.DivisionToEntity(&rows[i].Division),
 		}
 	}
 	return tasks, nil
@@ -163,7 +166,7 @@ func (r *taskRepository) ListFilteredPaginated(ctx context.Context, orgID uuid.U
 
 	// Get paginated results
 	query := dbFor(ctx, r.db).
-		Preload("Assignee").
+		Preload("Assignee").Preload("Division").
 		Where("organization_id = ?", orgID)
 
 	if filters.DivisionID != nil {
@@ -180,7 +183,7 @@ func (r *taskRepository) ListFilteredPaginated(ctx context.Context, orgID uuid.U
 	}
 
 	var rows []models.Task
-	if err := query.Order("created_at DESC").
+	if err := query.Order("sort_order ASC, created_at ASC").
 		Limit(pagination.Limit).
 		Offset(pagination.Offset).
 		Find(&rows).Error; err != nil {
@@ -192,6 +195,7 @@ func (r *taskRepository) ListFilteredPaginated(ctx context.Context, orgID uuid.U
 		tasks[i] = entity.TaskWithAssignee{
 			Task:     *mapper.TaskToEntity(&rows[i]),
 			Assignee: mapper.UserToEntity(rows[i].Assignee),
+			Division: mapper.DivisionToEntity(&rows[i].Division),
 		}
 	}
 	return tasks, int(totalCount), nil
@@ -205,6 +209,7 @@ func (r *taskRepository) Update(ctx context.Context, orgID uuid.UUID, task *enti
 			"title":       task.Title,
 			"description": task.Description,
 			"status":      task.Status,
+			"division_id": task.DivisionID,
 			"assignee_id": task.AssigneeID,
 			"due_date":    task.DueDate,
 		})
@@ -240,6 +245,22 @@ func (r *taskRepository) UpdateStatus(ctx context.Context, orgID, taskID uuid.UU
 	}
 	if result.RowsAffected == 0 {
 		return domainerrors.ErrTaskNotFound
+	}
+	return nil
+}
+
+func (r *taskRepository) UpdatePositions(ctx context.Context, orgID uuid.UUID, orders []entity.TaskPosition) error {
+	for _, o := range orders {
+		result := dbFor(ctx, r.db).
+			Model(&models.Task{}).
+			Where("id = ? AND organization_id = ?", o.ID, orgID).
+			Update("sort_order", o.SortOrder)
+		if result.Error != nil {
+			return domainerrors.Internal("update task position", result.Error)
+		}
+		if result.RowsAffected == 0 {
+			return domainerrors.ErrTaskNotFound
+		}
 	}
 	return nil
 }

@@ -52,7 +52,7 @@ export default function CreateMemberScreen() {
         onError: (err: any) => {
           alert(
             t("division.error"),
-            extractErrorMessage(err, t("members.createError"))
+            extractErrorMessage(err, t("members.createError")),
           );
         },
       });
@@ -101,7 +101,9 @@ export default function CreateMemberScreen() {
           />
 
           <View style={styles.roleContainer}>
-            <ThemedText style={styles.roleLabel}>{t("members.role")}</ThemedText>
+            <ThemedText style={styles.roleLabel}>
+              {t("members.role")}
+            </ThemedText>
             <View style={styles.roleButtons}>
               <View style={styles.roleButtonContainer}>
                 <Button

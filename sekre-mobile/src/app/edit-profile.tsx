@@ -53,11 +53,9 @@ export default function EditProfileScreen() {
   const onSubmit = (data: ProfileFormData) => {
     updateMutation.mutate(data, {
       onSuccess: () => {
-        alert(
-          t("division.success"),
-          t("profile.saveSuccess"),
-          [{ text: t("common.ok"), onPress: () => router.back() }],
-        );
+        alert(t("division.success"), t("profile.saveSuccess"), [
+          { text: t("common.ok"), onPress: () => router.back() },
+        ]);
       },
       onError: (error: any) => {
         alert(
@@ -70,7 +68,11 @@ export default function EditProfileScreen() {
 
   return (
     <ThemedSafeAreaView style={styles.container}>
-      <ThemedHeader title={t("profile.editProfile")} withSafeArea={false} showBackButton />
+      <ThemedHeader
+        title={t("profile.editProfile")}
+        withSafeArea={false}
+        showBackButton
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}

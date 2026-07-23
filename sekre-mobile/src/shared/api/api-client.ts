@@ -1,6 +1,7 @@
 import axios from "axios";
 import { ENV } from "@/shared/config/env";
 import { storage } from "@/shared/lib/storage";
+import { useAuthStore } from "@/shared/store/auth-store";
 
 export const apiClient = axios.create({
   baseURL: ENV.API_URL,
@@ -58,9 +59,7 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         // If refresh fails, we should logout the user (clear store & storage)
-        // Usually handled by firing an event or directly clearing storage here
-        await storage.deleteToken("access_token");
-        await storage.deleteToken("refresh_token");
+        await useAuthStore.getState().logout();
         return Promise.reject(refreshError);
       }
     }

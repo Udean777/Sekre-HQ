@@ -19,6 +19,7 @@ type TaskRepository interface {
 	ListFilteredPaginated(ctx context.Context, orgID uuid.UUID, filters entity.TaskFilters, pagination types.PaginationParams) ([]entity.TaskWithAssignee, int, error)
 	Update(ctx context.Context, orgID uuid.UUID, task *entity.Task) error
 	UpdateStatus(ctx context.Context, orgID, taskID uuid.UUID, status string) error
+	UpdatePositions(ctx context.Context, orgID uuid.UUID, orders []entity.TaskPosition) error
 	Delete(ctx context.Context, orgID, taskID uuid.UUID) error
 	CountActiveByDivision(ctx context.Context, orgID, divisionID uuid.UUID) (int64, error)
 }

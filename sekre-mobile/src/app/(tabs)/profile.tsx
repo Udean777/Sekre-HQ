@@ -64,28 +64,24 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = () => {
-    alert(
-      t("profile.deleteConfirmTitle"),
-      t("profile.deleteConfirmMessage"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("profile.yesDelete"),
-          style: "destructive",
-          onPress: () => {
-            deleteAccountMutation.mutate(undefined, {
-              onError: (error: any) => {
-                const errorMessage = extractErrorMessage(
-                  error,
-                  t("profile.deleteError"),
-                );
-                alert("Gagal", errorMessage);
-              },
-            });
-          },
+    alert(t("profile.deleteConfirmTitle"), t("profile.deleteConfirmMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("profile.yesDelete"),
+        style: "destructive",
+        onPress: () => {
+          deleteAccountMutation.mutate(undefined, {
+            onError: (error: any) => {
+              const errorMessage = extractErrorMessage(
+                error,
+                t("profile.deleteError"),
+              );
+              alert("Gagal", errorMessage);
+            },
+          });
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
@@ -214,7 +210,9 @@ export default function ProfileScreen() {
         )}
 
         {/* Danger Zone */}
-        <ThemedText style={styles.sectionTitle}>{t("profile.dangerZone")}</ThemedText>
+        <ThemedText style={styles.sectionTitle}>
+          {t("profile.dangerZone")}
+        </ThemedText>
         <ThemedCard
           style={[styles.card, { borderColor: "#ef4444", borderWidth: 1 }]}
         >
